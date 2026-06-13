@@ -88,7 +88,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="min-h-screen wc-page text-slate-100">
       <header className="sticky top-0 z-10 border-b border-slate-700">
         {/* Tittel-bånd: diagonale offisielle farger + mørkt slør for lesbar hvit tekst */}
         <div className="relative overflow-hidden">
