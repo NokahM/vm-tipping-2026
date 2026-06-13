@@ -647,14 +647,23 @@ Når en ny sluttspill-runde starter:
 
 Ikke påbegynt – ønsket av Håkon (oppdatert 2026-06-13):
 
-- **Offisielle VM 2026-farger.** Restyle begge apper i mesterskapets offisielle palett
-  (FIFA World Cup 26 «We Are 26»-branding – sterke farger, magenta/rosa som hovedtone, vertsby-aksenter).
-  Konkret: hent eksakt palett, definer som Tailwind v4-tema (`@theme` i `index.css`), bytt ut
-  dagens slate/emerald-tema. Behold mobile-first og god kontrast.
+- **Offisielle VM 2026-farger.** Restyle begge apper i mesterskapets offisielle palett.
+  Brand-grafikken (`assets/FIFA-World-Cup-26-...avif`) viser: dominant **rød** «26», mot en
+  livlig retro/op-art-bakgrunn i rød, oransje, gul, limegrønn, mørkegrønn, turkis, blå,
+  fiolett/lilla, magenta/rosa og lavendel + hvitt. Konkret: definer paletten som Tailwind v4-tema
+  (`@theme` i `index.css`), rødt som primær/aksent på mørk bakgrunn, regnbue-stripene som
+  sekundæraksenter (f.eks. rang-/fanefarger). Behold mobile-first og god kontrast.
 - **Bilder i `assets/`.** Legge inn VM-logo o.l. Merk: root-`assets/` bygges IKKE av appene.
   Bilder som faktisk skal vises må kopieres til `apps/<app>/public/` (refereres som `/filnavn.png`)
   eller importeres fra `src/`. Plan: optimaliser (helst SVG/AVIF/WebP) og legg i begge appers `public/`,
   bruk i header (logo) + evt. favicon (`index.html` + `public/`).
+- **Lag-logoer.** Last ned logo/flagg for alle 48 lag (foretrukket **SVG**). Legg i
+  `apps/<app>/public/teams/` med filnavn som matcher (f.eks. norsk lagnavn eller `tla`).
+  Lag en hjelper `teamLogo(name)` → sti. Brukes i kamprader og «Aktuell kamp»-kortet.
+- **«Aktuell kamp»-kort øverst i Kamper-fanen.** Vis neste kamp som skal spilles, eller den som er
+  **LIVE nå**, i et fremhevet kort øverst: `<logo> <lagnavn> <stilling> <lagnavn> <logo>`.
+  Klikkbart → utvider alles tips (samme som vanlige kamprader). Kampen skal **fortsatt** vises på
+  sin vanlige plass i gruppespill-/runde-listen (kortet er et duplikat-fremheving, ikke en flytting).
 - (fyll inn flere ønsker her etter hvert)
 
 ---
