@@ -643,6 +643,22 @@ Når en ny sluttspill-runde starter:
 
 ---
 
+## Fremtidige planer (backlog)
+
+Ikke påbegynt – ønsket av Håkon (oppdatert 2026-06-13):
+
+- **Offisielle VM 2026-farger.** Restyle begge apper i mesterskapets offisielle palett
+  (FIFA World Cup 26 «We Are 26»-branding – sterke farger, magenta/rosa som hovedtone, vertsby-aksenter).
+  Konkret: hent eksakt palett, definer som Tailwind v4-tema (`@theme` i `index.css`), bytt ut
+  dagens slate/emerald-tema. Behold mobile-first og god kontrast.
+- **Bilder i `assets/`.** Legge inn VM-logo o.l. Merk: root-`assets/` bygges IKKE av appene.
+  Bilder som faktisk skal vises må kopieres til `apps/<app>/public/` (refereres som `/filnavn.png`)
+  eller importeres fra `src/`. Plan: optimaliser (helst SVG/AVIF/WebP) og legg i begge appers `public/`,
+  bruk i header (logo) + evt. favicon (`index.html` + `public/`).
+- (fyll inn flere ønsker her etter hvert)
+
+---
+
 ## Viktige implementasjonsnotater
 
 ### Lagnavn norsk↔engelsk
