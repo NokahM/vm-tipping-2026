@@ -8,6 +8,7 @@ import { BONUS_QUESTIONS } from '../apps/drammen/src/data/bonusQuestions';
 import { calcPoints, computeStandings } from '../apps/drammen/src/utils/scoring';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
+import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
 
 let failures = 0;
@@ -94,6 +95,32 @@ assert('sluttspill eksakt = 3p', koStand[0].knockoutPoints, 3);
 
 const q1WithFasit = applyBonusAnswers(BONUS_QUESTIONS, { q1: 'Frankrike' });
 assert('applyBonusAnswers setter fasit', q1WithFasit.find((q) => q.id === 'q1')!.answer, 'Frankrike');
+
+// 4c) reconcileResults: et ferdig resultat skal aldri degraderes/forsvinne
+console.log('reconcileResults (API-hikke):');
+const settled: MatchResult = m('Canada', 'Bosnia-Herzegovina', 1, 1, 'GROUP_B');
+const glitchedBlank: MatchResult = { ...settled, homeGoals: null, awayGoals: null };
+const glitchedTimed: MatchResult = { ...settled, status: 'TIMED', homeGoals: null, awayGoals: null };
+assert(
+  'beholder resultat når nytt svar er blankt',
+  reconcileResults([settled], [glitchedBlank])[0].homeGoals,
+  1,
+);
+assert(
+  'beholder resultat når nytt svar er TIMED',
+  reconcileResults([settled], [glitchedTimed])[0].status,
+  'FINISHED',
+);
+assert(
+  'beholder kamp som forsvinner helt',
+  reconcileResults([settled], []).length,
+  1,
+);
+assert(
+  'ekte oppdatering vinner (uavgjort → korrigert)',
+  reconcileResults([settled], [m('Canada', 'Bosnia-Herzegovina', 2, 1, 'GROUP_B')])[0].homeGoals,
+  2,
+);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
