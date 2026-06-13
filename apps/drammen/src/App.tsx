@@ -58,8 +58,6 @@ export default function App() {
     [participants, results, questions],
   );
 
-  const rightPanel: 'kamper' | 'krydder' = view === 'krydder' ? 'krydder' : 'kamper';
-
   if (adminOpen) {
     return (
       <AdminPanel
@@ -97,15 +95,15 @@ export default function App() {
             className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/80 to-slate-950/55"
             aria-hidden="true"
           />
-          <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+          <div className="relative mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <img
                 src="/wc-logo.png"
                 alt="FIFA VM 2026"
                 className="h-11 w-auto shrink-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]"
               />
-              <h1 className="min-w-0 truncate text-lg font-bold uppercase tracking-wide text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.7)] sm:text-xl">
-                VM Tipping 2026
+              <h1 className="min-w-0 truncate text-xl font-bold uppercase tracking-wide text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
+                Tippekonk
               </h1>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -139,8 +137,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Faner – ligger inni stripe-båndet, så de deler header-bakgrunnen (kun mobil) */}
-          <div className="relative mx-auto flex max-w-5xl gap-1 px-4 pb-2 lg:hidden">
+          {/* Faner – ligger inni stripe-båndet, så de deler header-bakgrunnen */}
+          <div className="relative mx-auto flex max-w-2xl gap-1 px-4 pb-2">
             <TabButton active={view === 'tabell'} onClick={() => setView('tabell')}>
               Tabell
             </TabButton>
@@ -154,42 +152,22 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-4">
+      <main className="mx-auto max-w-2xl px-4 py-4">
         {error && (
           <p className="mb-4 rounded-lg border border-red-800 bg-red-950/60 p-3 text-sm text-red-200">
             {error}
           </p>
         )}
 
-        <div className="lg:grid lg:grid-cols-[26rem_minmax(0,30rem)] lg:justify-center lg:gap-6">
-          {/* Leaderboard: egen fane på mobil, alltid synlig på desktop */}
-          <div
-            className={`${view === 'tabell' ? 'block' : 'hidden'} lg:sticky lg:top-[7.5rem] lg:block lg:self-start`}
-          >
-            <Leaderboard standings={standings} />
-          </div>
-
-          {/* Høyre kolonne: kamper eller krydder */}
-          <div className={`${view === 'tabell' ? 'hidden' : 'block'} lg:block`}>
-            <div className="mb-3 hidden gap-1 lg:flex">
-              <TabButton active={rightPanel === 'kamper'} onClick={() => setView('kamper')}>
-                Kamper
-              </TabButton>
-              <TabButton active={rightPanel === 'krydder'} onClick={() => setView('krydder')}>
-                Krydder
-              </TabButton>
-            </div>
-
-            {rightPanel === 'krydder' ? (
-              <BonusQuestions questions={questions} participants={participants} />
-            ) : (
-              <MatchList results={results} participants={participants} />
-            )}
-          </div>
-        </div>
+        {/* Enkel mobil-stil layout på alle skjermstørrelser: én kolonne, valgt fane. */}
+        {view === 'tabell' && <Leaderboard standings={standings} />}
+        {view === 'kamper' && <MatchList results={results} participants={participants} />}
+        {view === 'krydder' && (
+          <BonusQuestions questions={questions} participants={participants} />
+        )}
       </main>
 
-      <footer className="mx-auto max-w-5xl px-4 pb-10 pt-6 text-center">
+      <footer className="mx-auto max-w-2xl px-4 pb-10 pt-6 text-center">
         <button
           type="button"
           onClick={() => {
