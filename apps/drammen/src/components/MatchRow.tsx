@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
 import { formatKickoff } from '../utils/labels';
+import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
 
 interface Props {
@@ -9,11 +10,15 @@ interface Props {
   participants: Participant[];
 }
 
+/**
+ * Én kamprad: logo · hjemmelag · stilling · bortelag · logo. Klikkbar for å vise
+ * alles tips. Når kampen ikke har startet vises dato + klokkeslett i stedet for stilling.
+ */
 export default function MatchRow({ match, participants }: Props) {
   const [open, setOpen] = useState(false);
 
-  const played = match.status === 'FINISHED' || match.status === 'IN_PLAY' || match.status === 'PAUSED';
   const live = match.status === 'IN_PLAY' || match.status === 'PAUSED';
+  const played = match.status === 'FINISHED' || live;
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
 
@@ -25,38 +30,31 @@ export default function MatchRow({ match, participants }: Props) {
         className="flex w-full items-center gap-2 px-3 py-2 text-left active:bg-slate-700/30"
         aria-expanded={open}
       >
-        {/* Lagnavn – fast bredde slik at resultatet ligger inntil navnet */}
-        <div className="w-40 shrink-0 sm:w-48">
-          <p className="truncate text-sm text-slate-100">{home}</p>
-          <p className="truncate text-sm text-slate-100">{away}</p>
+        {/* Hjemmelag: logo + navn */}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <TeamLogo name={home} className="h-6 w-6" />
+          <span className="truncate text-sm text-slate-100">{home}</span>
         </div>
 
-        {/* Resultat (eller klokkeslett) – klistret inntil lagnavnet */}
-        <div className="w-8 shrink-0 text-center tabular-nums">
+        {/* Stilling, eller dato + klokkeslett hvis kampen ikke har startet */}
+        <div className="shrink-0 px-1 text-center leading-tight">
           {played ? (
-            <>
-              <p className="text-sm font-bold text-slate-100">{match.homeGoals}</p>
-              <p className="text-sm font-bold text-slate-100">{match.awayGoals}</p>
-            </>
+            <div className="text-sm font-bold tabular-nums text-slate-100">
+              {match.homeGoals}
+              <span className="px-0.5 text-slate-500">–</span>
+              {match.awayGoals}
+            </div>
           ) : (
-            <p className="text-[11px] leading-tight text-slate-400">{formatKickoff(match.utcDate)}</p>
+            <div className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</div>
           )}
+          {live && <div className="text-[10px] font-semibold text-red-400">● LIVE</div>}
         </div>
 
-        {live && <span className="text-[11px] font-semibold text-red-400">● LIVE</span>}
-
-        <svg
-          className={`ml-auto h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            fillRule="evenodd"
-            d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-            clipRule="evenodd"
-          />
-        </svg>
+        {/* Bortelag: navn + logo */}
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <span className="truncate text-right text-sm text-slate-100">{away}</span>
+          <TeamLogo name={away} className="h-6 w-6" />
+        </div>
       </button>
 
       {open && (
