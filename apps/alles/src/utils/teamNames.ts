@@ -1,0 +1,58 @@
+// AUTO-GENERERT av tools/generate_data.py – ikke rediger for hånd.
+// Engelsk API-navn -> norsk navn (matcher tips i participants.ts).
+
+export const TEAM_NAME_MAP: Record<string, string> = {
+  "Czechia": "Tsjekkia",
+  "Mexico": "Mexico",
+  "South Africa": "Sør-Afrika",
+  "South Korea": "Sør-Korea",
+  "Bosnia-Herzegovina": "Bosnia-Hercegovina",
+  "Canada": "Canada",
+  "Qatar": "Qatar",
+  "Switzerland": "Sveits",
+  "Brazil": "Brasil",
+  "Haiti": "Haiti",
+  "Morocco": "Marokko",
+  "Scotland": "Skottland",
+  "Australia": "Australia",
+  "Paraguay": "Paraguay",
+  "Turkey": "Tyrkia",
+  "United States": "USA",
+  "Curaçao": "Curaçao",
+  "Ecuador": "Ecuador",
+  "Germany": "Tyskland",
+  "Ivory Coast": "Elfenbenskysten",
+  "Japan": "Japan",
+  "Netherlands": "Nederland",
+  "Sweden": "Sverige",
+  "Tunisia": "Tunisia",
+  "Belgium": "Belgia",
+  "Egypt": "Egypt",
+  "Iran": "Iran",
+  "New Zealand": "New Zealand",
+  "Cape Verde Islands": "Kapp Verde",
+  "Saudi Arabia": "Saudi-Arabia",
+  "Spain": "Spania",
+  "Uruguay": "Uruguay",
+  "France": "Frankrike",
+  "Iraq": "Irak",
+  "Norway": "Norge",
+  "Senegal": "Senegal",
+  "Algeria": "Algerie",
+  "Argentina": "Argentina",
+  "Austria": "Østerrike",
+  "Jordan": "Jordan",
+  "Colombia": "Colombia",
+  "Congo DR": "DR Kongo",
+  "Portugal": "Portugal",
+  "Uzbekistan": "Usbekistan",
+  "Croatia": "Kroatia",
+  "England": "England",
+  "Ghana": "Ghana",
+  "Panama": "Panama",
+};
+
+/** Oversetter et engelsk API-lagnavn til norsk. Ukjente navn returneres uendret. */
+export function normalizeTeamName(apiName: string): string {
+  return TEAM_NAME_MAP[apiName] ?? apiName;
+}

@@ -1,0 +1,293 @@
+import type {
+  BonusQuestion,
+  BonusTip,
+  GroupTip,
+  KnockoutTip,
+  MatchResult,
+  Outcome,
+  Participant,
+  ParticipantScore,
+} from '../types';
+import { normalizeTeamName } from './teamNames';
+
+// ---------------------------------------------------------------------------
+// Kjernepoeng: 3 = eksakt resultat, 1 = riktig utfall, 0 = feil.
+// ---------------------------------------------------------------------------
+
+export function getOutcome(home: number, away: number): Outcome {
+  if (home > away) return 'home';
+  if (home === away) return 'draw';
+  return 'away';
+}
+
+export function calcPoints(
+  tipHome: number,
+  tipAway: number,
+  resultHome: number,
+  resultAway: number,
+): number {
+  if (tipHome === resultHome && tipAway === resultAway) return 3;
+  if (getOutcome(tipHome, tipAway) === getOutcome(resultHome, resultAway)) return 1;
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Matching av tips mot ferdige resultater.
+// Gruppespill matches på normalisert hjemmelag|bortelag|gruppe.
+// Sluttspill matches på apiId.
+// ---------------------------------------------------------------------------
+
+export type Goals = { home: number; away: number };
+
+function isPlayed(r: MatchResult): r is MatchResult & { homeGoals: number; awayGoals: number } {
+  return r.status === 'FINISHED' && r.homeGoals !== null && r.awayGoals !== null;
+}
+
+function groupKey(home: string, away: string, group: string): string {
+  return `${home}|${away}|${group}`;
+}
+
+/** Bygger oppslag for gruppespill-resultater, nøklet på norske lagnavn + gruppe. */
+export function buildGroupResultIndex(results: MatchResult[]): Map<string, Goals> {
+  const idx = new Map<string, Goals>();
+  for (const r of results) {
+    if (!isPlayed(r) || !r.group) continue;
+    const home = normalizeTeamName(r.homeTeam);
+    const away = normalizeTeamName(r.awayTeam);
+    idx.set(groupKey(home, away, r.group), { home: r.homeGoals, away: r.awayGoals });
+  }
+  return idx;
+}
+
+/** Bygger oppslag for sluttspill-resultater, nøklet på apiId. */
+export function buildKnockoutResultIndex(results: MatchResult[]): Map<number, Goals> {
+  const idx = new Map<number, Goals>();
+  for (const r of results) {
+    if (!isPlayed(r)) continue;
+    idx.set(r.apiId, { home: r.homeGoals, away: r.awayGoals });
+  }
+  return idx;
+}
+
+interface MatchScore {
+  points: number;
+  correctResults: number; // antall 3-poengere
+  correctOutcomes: number; // antall 1-poengere
+  wrongOutcomes: number; // antall 0-poengere (kun spilte kamper med tip)
+}
+
+function emptyScore(): MatchScore {
+  return { points: 0, correctResults: 0, correctOutcomes: 0, wrongOutcomes: 0 };
+}
+
+function accumulate(score: MatchScore, points: number): void {
+  score.points += points;
+  if (points === 3) score.correctResults += 1;
+  else if (points === 1) score.correctOutcomes += 1;
+  else score.wrongOutcomes += 1;
+}
+
+function scoreGroupTips(tips: GroupTip[], idx: Map<string, Goals>): MatchScore {
+  const score = emptyScore();
+  for (const t of tips) {
+    const res = idx.get(groupKey(t.homeTeam, t.awayTeam, t.group));
+    if (!res) continue;
+    accumulate(score, calcPoints(t.homeGoals, t.awayGoals, res.home, res.away));
+  }
+  return score;
+}
+
+function scoreKnockoutTips(tips: KnockoutTip[], idx: Map<number, Goals>): MatchScore {
+  const score = emptyScore();
+  for (const t of tips) {
+    const res = idx.get(t.apiId);
+    if (!res) continue;
+    accumulate(score, calcPoints(t.homeGoals, t.awayGoals, res.home, res.away));
+  }
+  return score;
+}
+
+// ---------------------------------------------------------------------------
+// Krydderspørsmål. Poeng beregnes kun for spørsmål med satt fasit (answer != null).
+// ---------------------------------------------------------------------------
+
+function norm(s: string): string {
+  return s.trim().toLowerCase();
+}
+
+function firstNumber(s: string): number {
+  const m = s.match(/\d+/);
+  return m ? Number(m[0]) : NaN;
+}
+
+/** "mm:ss" eller "hh:mm:ss" → sekunder. */
+function timeToSeconds(s: string): number | null {
+  const parts = s.match(/\d+/g);
+  if (!parts || parts.length < 2) return null;
+  const nums = parts.map(Number);
+  return nums.length >= 3
+    ? nums[0] * 3600 + nums[1] * 60 + nums[2]
+    : nums[0] * 60 + nums[1];
+}
+
+function bonusAnswerOf(tip: BonusTip): string[] {
+  return Array.isArray(tip.answer) ? tip.answer : [tip.answer];
+}
+
+/**
+ * Krydderpoeng for ett spørsmål, for alle deltakere (navn → poeng).
+ * Alle får 0 hvis fasit ikke er satt. q5 «nærmest» krever hele feltet samtidig.
+ */
+export function scoreBonusQuestion(
+  participants: Participant[],
+  q: BonusQuestion,
+): Map<string, number> {
+  const points = new Map<string, number>(participants.map((p) => [p.name, 0]));
+  if (q.answer === null) return points;
+
+  const add = (name: string, p: number) => points.set(name, (points.get(name) ?? 0) + p);
+  const tipFor = (p: Participant) => p.bonusTips.find((t) => t.questionId === q.id);
+
+  if (q.id === 'q5') {
+    // Antall mål totalt: nærmest vinner. Ved likt: alle nærmeste får poeng.
+    const fasit = firstNumber(String(q.answer));
+    if (Number.isNaN(fasit)) return points;
+    const dist = new Map<string, number>();
+    let best = Infinity;
+    for (const p of participants) {
+      const tip = tipFor(p);
+      if (!tip) continue;
+      const guess = firstNumber(bonusAnswerOf(tip)[0] ?? '');
+      if (Number.isNaN(guess)) continue;
+      const d = Math.abs(guess - fasit);
+      dist.set(p.name, d);
+      best = Math.min(best, d);
+    }
+    for (const [name, d] of dist) if (d === best) add(name, q.maxPoints);
+    return points;
+  }
+
+  if (q.id === 'q6') {
+    // Raskeste mål: innenfor ±15 sekunder fra fasit.
+    const fasit = timeToSeconds(String(q.answer));
+    if (fasit === null) return points;
+    for (const p of participants) {
+      const tip = tipFor(p);
+      if (!tip) continue;
+      const guess = timeToSeconds(bonusAnswerOf(tip)[0] ?? '');
+      if (guess !== null && Math.abs(guess - fasit) <= 15) add(p.name, q.maxPoints);
+    }
+    return points;
+  }
+
+  if (Array.isArray(q.answer)) {
+    // q7/q8: 1 poeng per korrekt nevnt lag, maks maxPoints.
+    const actual = new Set(q.answer.map(norm));
+    for (const p of participants) {
+      const tip = tipFor(p);
+      if (!tip) continue;
+      const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
+      if (hits > 0) add(p.name, Math.min(hits, q.maxPoints));
+    }
+    return points;
+  }
+
+  // Standard: eksakt tekstmatch (case-insensitivt) → maxPoints.
+  const fasit = norm(String(q.answer));
+  for (const p of participants) {
+    const tip = tipFor(p);
+    if (!tip) continue;
+    if (norm(bonusAnswerOf(tip)[0] ?? '') === fasit) add(p.name, q.maxPoints);
+  }
+  return points;
+}
+
+/** Summerer krydderpoeng over alle spørsmål: navn → total. */
+export function computeBonusPoints(
+  participants: Participant[],
+  questions: BonusQuestion[],
+): Map<string, number> {
+  const total = new Map<string, number>(participants.map((p) => [p.name, 0]));
+  for (const q of questions) {
+    for (const [name, pts] of scoreBonusQuestion(participants, q)) {
+      total.set(name, (total.get(name) ?? 0) + pts);
+    }
+  }
+  return total;
+}
+
+// ---------------------------------------------------------------------------
+// Totalstilling.
+// ---------------------------------------------------------------------------
+
+export function computeStandings(
+  participants: Participant[],
+  results: MatchResult[],
+  questions: BonusQuestion[],
+): ParticipantScore[] {
+  const groupIdx = buildGroupResultIndex(results);
+  const knockoutIdx = buildKnockoutResultIndex(results);
+  const bonus = computeBonusPoints(participants, questions);
+
+  const scored: ParticipantScore[] = participants.map((p) => {
+    const g = scoreGroupTips(p.groupTips, groupIdx);
+    const k = scoreKnockoutTips(p.knockoutTips, knockoutIdx);
+    const bonusPoints = bonus.get(p.name) ?? 0;
+    return {
+      name: p.name,
+      groupPoints: g.points,
+      knockoutPoints: k.points,
+      bonusPoints,
+      total: g.points + k.points + bonusPoints,
+      correctResults: g.correctResults + k.correctResults,
+      correctOutcomes: g.correctOutcomes + k.correctOutcomes,
+      wrongOutcomes: g.wrongOutcomes + k.wrongOutcomes,
+      rank: 0,
+    };
+  });
+
+  // Sorter på total, så flest eksakte resultater, så navn (stabil visning).
+  scored.sort(
+    (a, b) =>
+      b.total - a.total ||
+      b.correctResults - a.correctResults ||
+      a.name.localeCompare(b.name, 'no'),
+  );
+
+  // Rang: lik totalsum deler plassering (1, 2, 2, 4 …).
+  let lastTotal: number | null = null;
+  let lastRank = 0;
+  scored.forEach((s, i) => {
+    if (s.total !== lastTotal) {
+      lastRank = i + 1;
+      lastTotal = s.total;
+    }
+    s.rank = lastRank;
+  });
+
+  return scored;
+}
+
+// ---------------------------------------------------------------------------
+// UI-hjelpere: finn en deltakers tip for en kamp, og poeng for et tip.
+// ---------------------------------------------------------------------------
+
+/** Finner en deltakers tip for en konkret kamp (gruppespill via navn, sluttspill via apiId). */
+export function tipForMatch(p: Participant, match: MatchResult): Goals | null {
+  if (match.stage === 'GROUP_STAGE' && match.group) {
+    const home = normalizeTeamName(match.homeTeam);
+    const away = normalizeTeamName(match.awayTeam);
+    const t = p.groupTips.find(
+      (g) => g.homeTeam === home && g.awayTeam === away && g.group === match.group,
+    );
+    return t ? { home: t.homeGoals, away: t.awayGoals } : null;
+  }
+  const k = p.knockoutTips.find((t) => t.apiId === match.apiId);
+  return k ? { home: k.homeGoals, away: k.awayGoals } : null;
+}
+
+/** Poeng for et tip mot en kamp. null hvis kampen ikke er ferdigspilt. */
+export function pointsForTip(tip: Goals, match: MatchResult): number | null {
+  if (!isPlayed(match)) return null;
+  return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
+}
