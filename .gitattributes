@@ -1,0 +1,8 @@
+# Normaliser linjeskift til LF i repoet (unngå CRLF-støy på Windows)
+* text=auto eol=lf
+
+# Binærfiler
+*.xlsx binary
+*.png binary
+*.jpg binary
+*.ico binary

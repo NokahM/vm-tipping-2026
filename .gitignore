@@ -17,6 +17,10 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# Python (generator-verktøy)
+__pycache__/
+*.pyc
+
 # Claude Code lokale innstillinger
 .claude/settings.local.json
 
