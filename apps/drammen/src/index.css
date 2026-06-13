@@ -44,3 +44,20 @@ body {
     #b188fc 182px 208px
   );
 }
+
+/* Knapp i header-stil: striper + mørkt slør så hvit tekst er lesbar. */
+.wc-btn {
+  background-image:
+    linear-gradient(rgb(2 6 23 / 0.5), rgb(2 6 23 / 0.62)),
+    repeating-linear-gradient(
+      135deg,
+      #e21602 0 18px,
+      #e84b09 18px 36px,
+      #e8fc4a 36px 54px,
+      #afe905 54px 72px,
+      #66fbda 72px 90px,
+      #324dfb 90px 108px,
+      #6001e6 108px 126px,
+      #b188fc 126px 144px
+    );
+}

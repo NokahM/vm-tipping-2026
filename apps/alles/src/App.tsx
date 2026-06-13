@@ -224,8 +224,8 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[44px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${
-        active ? 'bg-wc-red text-white' : 'bg-slate-800 text-slate-300'
+      className={`min-h-[44px] flex-1 rounded-lg px-3 text-sm font-semibold transition [text-shadow:0_1px_2px_rgb(0_0_0/0.6)] ${
+        active ? 'wc-btn text-white shadow-sm' : 'bg-slate-800 text-slate-300 [text-shadow:none]'
       }`}
     >
       {children}

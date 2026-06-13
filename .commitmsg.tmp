@@ -1,0 +1,7 @@
+Tema: stripet aktiv fane (header-stil) + gruppe J gul
+
+- Aktiv fane bruker nå .wc-btn (samme striper som headeren, med mørkt slør for
+  lesbar hvit tekst). Inaktive faner forblir mørke, så valgt fane synes.
+- Gruppe J: oransje -> gul.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

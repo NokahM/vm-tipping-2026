@@ -23,7 +23,7 @@ const GROUP_COLORS = [
   'text-wc-lavender', // G
   'text-wc-red', // H
   'text-wc-mint', // I
-  'text-wc-orange', // J
+  'text-wc-yellow', // J
   'text-wc-blue', // K
   'text-wc-lime', // L
 ];
