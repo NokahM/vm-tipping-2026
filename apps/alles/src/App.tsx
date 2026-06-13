@@ -138,11 +138,9 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Faner – på rolig bakgrunn (kun mobil/nettbrett; desktop viser leaderboard + veksler til høyre) */}
-        <div className="bg-slate-900/95 backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-5xl gap-1 px-4 py-2">
+          {/* Faner – ligger inni stripe-båndet, så de deler header-bakgrunnen (kun mobil) */}
+          <div className="relative mx-auto flex max-w-5xl gap-1 px-4 pb-2 lg:hidden">
             <TabButton active={view === 'tabell'} onClick={() => setView('tabell')}>
               Tabell
             </TabButton>
