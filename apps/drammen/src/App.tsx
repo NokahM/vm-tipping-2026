@@ -98,11 +98,18 @@ export default function App() {
             aria-hidden="true"
           />
           <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0 [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
-              <p className="text-xs font-semibold uppercase tracking-widest text-white">
-                VM Tipping 2026
-              </p>
-              <h1 className="truncate text-xl font-bold text-white">{APP_CONFIG.groupName}</h1>
+            <div className="flex min-w-0 items-center gap-3">
+              <img
+                src="/wc-logo.png"
+                alt="FIFA VM 2026"
+                className="h-11 w-auto shrink-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]"
+              />
+              <div className="min-w-0 [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
+                <p className="text-xs font-semibold uppercase tracking-widest text-white">
+                  VM Tipping 2026
+                </p>
+                <h1 className="truncate text-xl font-bold text-white">{APP_CONFIG.groupName}</h1>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
