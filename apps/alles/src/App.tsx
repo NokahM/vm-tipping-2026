@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { APP_CONFIG, STORAGE_KEYS } from './config';
+import { STORAGE_KEYS } from './config';
 import { PARTICIPANTS } from './data/participants';
 import { BONUS_QUESTIONS } from './data/bonusQuestions';
 import knockoutBaked from './data/knockoutTips.json';
@@ -104,12 +104,9 @@ export default function App() {
                 alt="FIFA VM 2026"
                 className="h-11 w-auto shrink-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]"
               />
-              <div className="min-w-0 [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
-                <p className="text-xs font-semibold uppercase tracking-widest text-white">
-                  VM Tipping 2026
-                </p>
-                <h1 className="truncate text-xl font-bold text-white">{APP_CONFIG.groupName}</h1>
-              </div>
+              <h1 className="min-w-0 truncate text-lg font-bold uppercase tracking-wide text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.7)] sm:text-xl">
+                VM Tipping 2026
+              </h1>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
