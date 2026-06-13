@@ -106,7 +106,11 @@ export default function App() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
-                {loading ? 'Oppdaterer …' : lastUpdated ? `Sist: ${formatTime(lastUpdated)}` : ''}
+                {loading
+                  ? 'Oppdaterer …'
+                  : lastUpdated
+                    ? `Sist oppdatert: ${formatTime(lastUpdated)}`
+                    : ''}
               </span>
               <button
                 type="button"

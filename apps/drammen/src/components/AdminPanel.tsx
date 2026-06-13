@@ -292,7 +292,7 @@ function KnockoutTab({
           </button>
         </div>
         {copied && (
-          <p className="text-xs text-wc-lime">
+          <p className="text-xs text-emerald-400">
             Kopiert ✓ – lim inn i <code>src/data/knockoutTips.json</code>, så push til GitHub.
           </p>
         )}
@@ -447,7 +447,7 @@ function BonusTab({
           </button>
         </div>
         {copied && (
-          <p className="text-xs text-wc-lime">
+          <p className="text-xs text-emerald-400">
             Kopiert ✓ – lim inn i <code>src/data/bonusAnswers.json</code>, så push til GitHub.
           </p>
         )}

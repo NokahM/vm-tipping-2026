@@ -15,9 +15,9 @@ function answerText(tip: BonusTip | undefined): string | null {
 function chipClasses(hasFasit: boolean, hasAnswer: boolean, points: number, max: number): string {
   if (!hasAnswer) return 'border-slate-700/40 bg-slate-800/40 text-slate-500';
   if (!hasFasit) return 'border-slate-600/40 bg-slate-700/30 text-slate-300';
-  if (points >= max) return 'border-wc-lime/40 bg-wc-lime/15 text-wc-lime';
-  if (points > 0) return 'border-wc-yellow/40 bg-wc-yellow/15 text-wc-yellow';
-  return 'border-wc-red/40 bg-wc-red/15 text-wc-red';
+  if (points >= max) return 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
+  if (points > 0) return 'border-amber-600/40 bg-amber-500/15 text-amber-300';
+  return 'border-red-700/40 bg-red-500/15 text-red-300';
 }
 
 export default function BonusQuestions({ questions, participants }: Props) {
@@ -47,7 +47,7 @@ function BonusRow({ question, participants }: { question: BonusQuestion; partici
         <div className="min-w-0 flex-1">
           <p className="text-sm text-slate-100">{question.question}</p>
           {hasFasit ? (
-            <p className="mt-0.5 text-xs text-wc-lime">Fasit: {fasit}</p>
+            <p className="mt-0.5 text-xs text-emerald-400">Fasit: {fasit}</p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>
           )}

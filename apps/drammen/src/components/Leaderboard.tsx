@@ -38,11 +38,11 @@ export default function Leaderboard({ standings }: Props) {
               <p className="text-xs text-slate-500 sm:hidden">
                 G {s.groupPoints} · S {s.knockoutPoints} · B {s.bonusPoints}
                 <span className="ml-2 tabular-nums">
-                  <span className="text-wc-lime">{s.correctResults}</span>
+                  <span className="text-emerald-400">{s.correctResults}</span>
                   <span className="text-slate-600"> · </span>
-                  <span className="text-wc-yellow">{s.correctOutcomes}</span>
+                  <span className="text-amber-400">{s.correctOutcomes}</span>
                   <span className="text-slate-600"> · </span>
-                  <span className="text-wc-red">{s.wrongOutcomes}</span>
+                  <span className="text-red-400">{s.wrongOutcomes}</span>
                 </span>
               </p>
             </div>
@@ -56,13 +56,13 @@ export default function Leaderboard({ standings }: Props) {
               {s.bonusPoints}
             </span>
             <span className="hidden w-[4.5rem] text-right text-sm tabular-nums sm:block">
-              <span className="text-wc-lime">{s.correctResults}</span>
+              <span className="text-emerald-400">{s.correctResults}</span>
               <span className="text-slate-600"> · </span>
-              <span className="text-wc-yellow">{s.correctOutcomes}</span>
+              <span className="text-amber-400">{s.correctOutcomes}</span>
               <span className="text-slate-600"> · </span>
-              <span className="text-wc-red">{s.wrongOutcomes}</span>
+              <span className="text-red-400">{s.wrongOutcomes}</span>
             </span>
-            <span className="w-9 text-right text-lg font-bold tabular-nums text-wc-lime">
+            <span className="w-9 text-right text-lg font-bold tabular-nums text-emerald-400">
               {s.total}
             </span>
           </li>

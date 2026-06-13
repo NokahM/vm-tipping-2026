@@ -11,20 +11,21 @@ function byDate(a: MatchResult, b: MatchResult): number {
   return a.utcDate.localeCompare(b.utcDate);
 }
 
-// Gruppe A–L får hver sin offisielle farge.
+// Gruppe A–L får hver sin offisielle farge. Rekkefølge stokket så like farger
+// aldri ligger ved siden av (eller nær) hverandre.
 const GROUP_COLORS = [
-  'text-wc-red',
-  'text-wc-orange',
-  'text-wc-yellow',
-  'text-wc-lime',
-  'text-wc-mint',
-  'text-wc-blue',
-  'text-wc-lavender',
-  'text-wc-indigo',
-  'text-wc-red',
-  'text-wc-orange',
-  'text-wc-yellow',
-  'text-wc-lime',
+  'text-wc-red', // A
+  'text-wc-mint', // B
+  'text-wc-yellow', // C
+  'text-wc-blue', // D
+  'text-wc-orange', // E
+  'text-wc-lime', // F
+  'text-wc-lavender', // G
+  'text-wc-red', // H
+  'text-wc-mint', // I
+  'text-wc-orange', // J
+  'text-wc-blue', // K
+  'text-wc-lime', // L
 ];
 
 function groupColor(group: string): string {
