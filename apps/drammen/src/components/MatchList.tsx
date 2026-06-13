@@ -1,6 +1,7 @@
 import type { MatchResult, Participant } from '../types';
 import { STAGE_LABELS, STAGE_ORDER, groupLabel } from '../utils/labels';
 import MatchRow from './MatchRow';
+import FeaturedMatch from './FeaturedMatch';
 
 interface Props {
   results: MatchResult[];
@@ -9,6 +10,29 @@ interface Props {
 
 function byDate(a: MatchResult, b: MatchResult): number {
   return a.utcDate.localeCompare(b.utcDate);
+}
+
+/** Velger «aktuell kamp»: live nå, ellers neste kommende, ellers sist spilte. */
+function pickFeatured(known: MatchResult[]): MatchResult | null {
+  const live = known
+    .filter((m) => m.status === 'IN_PLAY' || m.status === 'PAUSED')
+    .sort(byDate);
+  if (live.length) return live[0];
+
+  const now = Date.now();
+  const upcoming = known
+    .filter(
+      (m) =>
+        (m.status === 'SCHEDULED' || m.status === 'TIMED') &&
+        new Date(m.utcDate).getTime() >= now,
+    )
+    .sort(byDate);
+  if (upcoming.length) return upcoming[0];
+
+  const finished = known
+    .filter((m) => m.status === 'FINISHED')
+    .sort((a, b) => b.utcDate.localeCompare(a.utcDate));
+  return finished[0] ?? null;
 }
 
 // Gruppe A–L får hver sin offisielle farge. Rekkefølge stokket så like farger
@@ -40,18 +64,22 @@ function isKnown(m: MatchResult): boolean {
 
 export default function MatchList({ results, participants }: Props) {
   const known = results.filter(isKnown);
+  const featured = pickFeatured(known);
 
   const stages = STAGE_ORDER.map((stage) => ({
     stage,
     matches: known.filter((m) => m.stage === stage).sort(byDate),
   })).filter((s) => s.matches.length > 0);
 
-  if (stages.length === 0) {
+  if (stages.length === 0 && !featured) {
     return <p className="px-1 text-sm text-slate-400">Ingen kamper å vise ennå.</p>;
   }
 
   return (
     <div className="space-y-6">
+      {/* Aktuell kamp – fremhevet øverst. Kampen vises fortsatt i sin runde under. */}
+      {featured && <FeaturedMatch match={featured} participants={participants} />}
+
       {stages.map(({ stage, matches }) => (
         <section key={stage}>
           <h2 className="mb-2 px-1 text-lg font-bold text-slate-100">{STAGE_LABELS[stage]}</h2>

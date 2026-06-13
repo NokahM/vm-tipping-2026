@@ -1,0 +1,58 @@
+// Norsk lagnavn -> logo-slug. Logoer forventes i public/teams/<slug>.png.
+// Slugs matcher filnavnene fra football-logos.cc.
+const TEAM_SLUG: Record<string, string> = {
+  Tsjekkia: 'czech-republic',
+  Mexico: 'mexico',
+  'Sør-Afrika': 'south-africa',
+  'Sør-Korea': 'south-korea',
+  'Bosnia-Hercegovina': 'bosnia-and-herzegovina',
+  Canada: 'canada',
+  Qatar: 'qatar',
+  Sveits: 'switzerland',
+  Brasil: 'brazil',
+  Haiti: 'haiti',
+  Marokko: 'morocco',
+  Skottland: 'scotland',
+  Australia: 'australia',
+  Paraguay: 'paraguay',
+  Tyrkia: 'turkey',
+  USA: 'usa',
+  Curaçao: 'curacao',
+  Ecuador: 'ecuador',
+  Tyskland: 'germany',
+  Elfenbenskysten: 'cote-d-ivoire',
+  Japan: 'japan',
+  Nederland: 'netherlands',
+  Sverige: 'sweden',
+  Tunisia: 'tunisia',
+  Belgia: 'belgium',
+  Egypt: 'egypt',
+  Iran: 'iran',
+  'New Zealand': 'new-zealand',
+  'Kapp Verde': 'cabo-verde',
+  'Saudi-Arabia': 'saudi-arabia',
+  Spania: 'spain',
+  Uruguay: 'uruguay',
+  Frankrike: 'france',
+  Irak: 'iraq',
+  Norge: 'norway',
+  Senegal: 'senegal',
+  Algerie: 'algeria',
+  Argentina: 'argentina',
+  Østerrike: 'austria',
+  Jordan: 'jordan',
+  Colombia: 'colombia',
+  'DR Kongo': 'congo-dr',
+  Portugal: 'portugal',
+  Usbekistan: 'uzbekistan',
+  Kroatia: 'croatia',
+  England: 'england',
+  Ghana: 'ghana',
+  Panama: 'panama',
+};
+
+/** Sti til logoen for et norsk lagnavn, eller null hvis ukjent. */
+export function teamLogo(norwegianName: string): string | null {
+  const slug = TEAM_SLUG[norwegianName];
+  return slug ? `/teams/${slug}.png` : null;
+}
