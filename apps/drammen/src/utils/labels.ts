@@ -33,9 +33,14 @@ const dateFmt = new Intl.DateTimeFormat('no-NO', {
   minute: '2-digit',
 });
 
-/** ISO-dato → "11.06 21:00" (lokal tid). */
+// Tre faste mellomrom (U+00A0) mellom dato og tid, så de ikke kollapser i HTML.
+const KICKOFF_GAP = String.fromCharCode(0x00a0).repeat(3);
+
+/** ISO-dato → "11.06   21:00" (lokal tid, med litt luft mellom dato og tid). */
 export function formatKickoff(utcDate: string): string {
-  return dateFmt.format(new Date(utcDate)).replace(',', '');
+  const s = dateFmt.format(new Date(utcDate)).replace(',', '');
+  const [date, time] = s.split(/\s+/);
+  return time ? `${date}${KICKOFF_GAP}${time}` : s;
 }
 
 const timeFmt = new Intl.DateTimeFormat('no-NO', { hour: '2-digit', minute: '2-digit' });
