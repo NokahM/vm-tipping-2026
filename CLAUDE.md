@@ -482,13 +482,15 @@ gh repo create vm-tipping-2026 --public --source=. --push
 ### Steg 2 – Drammen-prosjekt
 1. [vercel.com](https://vercel.com) → **Add New Project** → importer `vm-tipping-2026`
 2. **Root Directory:** `apps/drammen`
-3. **Environment Variables:** `VITE_FOOTBALL_API_KEY` = din nøkkel
+3. **Environment Variables:** `FOOTBALL_API_KEY` = din nøkkel (server-side, brukt av `api/matches.js`).
+   Valgfritt: `VITE_ADMIN_PASSWORD` = ditt admin-passord.
 4. Prosjektnavn: `vm-drammen` → **Deploy**
 
 ### Steg 3 – Alles-prosjekt
 1. **Add New Project** igjen (samme repo)
 2. **Root Directory:** `apps/alles`
-3. **Environment Variables:** `VITE_FOOTBALL_API_KEY` = din nøkkel
+3. **Environment Variables:** `FOOTBALL_API_KEY` = din nøkkel (server-side, brukt av `api/matches.js`).
+   Valgfritt: `VITE_ADMIN_PASSWORD` = ditt admin-passord.
 4. Prosjektnavn: `vm-alles` → **Deploy**
 
 Etter første deploy: `git push` trigger automatisk deploy av begge.
@@ -630,7 +632,7 @@ Etter første deploy: `git push` trigger automatisk deploy av begge.
 
 ### Milestone 6 – Deploy
 - [ ] Push til GitHub
-- [ ] Opprett to Vercel-prosjekter med `VITE_FOOTBALL_API_KEY`
+- [ ] Opprett to Vercel-prosjekter med `FOOTBALL_API_KEY` (server-side)
 - [ ] Verifiser begge URL-er fungerer
 
 ### Milestone 7 – Sluttspill-runder (løpende under VM)
