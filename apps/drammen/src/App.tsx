@@ -102,17 +102,13 @@ export default function App() {
                 alt="FIFA VM 2026"
                 className="h-11 w-auto shrink-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]"
               />
-              <h1 className="min-w-0 truncate text-xl font-bold uppercase tracking-wide text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
+              <h1 className="min-w-0 truncate text-lg font-bold uppercase tracking-wide text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
                 Tippekonk
               </h1>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="text-xs text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
-                {loading
-                  ? 'Oppdaterer …'
-                  : lastUpdated
-                    ? `Sist oppdatert: ${formatTime(lastUpdated)}`
-                    : ''}
+              <span className="text-xs text-white tabular-nums [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
+                {lastUpdated ? formatTime(lastUpdated) : ''}
               </span>
               <button
                 type="button"
