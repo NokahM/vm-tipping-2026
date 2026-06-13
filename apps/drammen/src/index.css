@@ -25,6 +25,7 @@ body,
 
 body {
   margin: 0;
+  background-color: #020617;
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -46,8 +47,18 @@ body {
 }
 
 /* Side-bakgrunn: samme striper som headeren, men kraftig mørklagt så fritekst
-   (overskrifter, gruppe-etiketter) er lesbar. Kortene er solide og dekker dette. */
+   (overskrifter, gruppe-etiketter) er lesbar. Kortene er solide og dekker dette.
+   Lagt i et fast-posisjonert lag (::before) så bakgrunnen står helt stille mens
+   man scroller – unngår parallaks-følelsen og iOS-hakking fra background-attachment: fixed. */
 .wc-page {
+  position: relative;
+}
+
+.wc-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   background-color: #020617;
   background-image:
     linear-gradient(rgb(2 6 23 / 0.85), rgb(2 6 23 / 0.89)),
