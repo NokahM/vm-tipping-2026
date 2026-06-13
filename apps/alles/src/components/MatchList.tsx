@@ -11,6 +11,27 @@ function byDate(a: MatchResult, b: MatchResult): number {
   return a.utcDate.localeCompare(b.utcDate);
 }
 
+// Gruppe A–L får hver sin offisielle farge.
+const GROUP_COLORS = [
+  'text-wc-red',
+  'text-wc-orange',
+  'text-wc-yellow',
+  'text-wc-lime',
+  'text-wc-mint',
+  'text-wc-blue',
+  'text-wc-lavender',
+  'text-wc-indigo',
+  'text-wc-red',
+  'text-wc-orange',
+  'text-wc-yellow',
+  'text-wc-lime',
+];
+
+function groupColor(group: string): string {
+  const i = group.charCodeAt(group.length - 1) - 65; // 'A' = 65
+  return GROUP_COLORS[i] ?? 'text-wc-lime';
+}
+
 /** Kamper med ukjente lag (TBD) skjules til oppsettet er klart. */
 function isKnown(m: MatchResult): boolean {
   return m.homeTeam !== 'TBD' && m.awayTeam !== 'TBD';
@@ -52,7 +73,9 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
     <div className="space-y-4">
       {groups.map((g) => (
         <div key={g}>
-          <h3 className="mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide text-emerald-400">
+          <h3
+            className={`mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
+          >
             {groupLabel(g)}
           </h3>
           <MatchCard matches={matches.filter((m) => m.group === g)} participants={participants} />

@@ -1,5 +1,18 @@
 @import 'tailwindcss';
 
+/* Offisielle FIFA World Cup 26-farger (samplet fra brand-grafikken). */
+@theme {
+  --color-wc-red: #e21602;
+  --color-wc-orange: #e84b09;
+  --color-wc-yellow: #e8fc4a;
+  --color-wc-lime: #afe905;
+  --color-wc-mint: #66fbda;
+  --color-wc-blue: #324dfb;
+  --color-wc-indigo: #5555dd;
+  --color-wc-purple: #6001e6;
+  --color-wc-lavender: #b188fc;
+}
+
 :root {
   color-scheme: dark;
 }
@@ -15,4 +28,19 @@ body {
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Diagonale op-art-striper i alle offisielle farger (brukes i headeren). */
+.wc-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #e21602 0 26px,
+    #e84b09 26px 52px,
+    #e8fc4a 52px 78px,
+    #afe905 78px 104px,
+    #66fbda 104px 130px,
+    #324dfb 130px 156px,
+    #6001e6 156px 182px,
+    #b188fc 182px 208px
+  );
 }

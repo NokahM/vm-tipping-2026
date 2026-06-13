@@ -81,7 +81,7 @@ function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: () => void
         <div className="flex gap-2">
           <button
             type="submit"
-            className="min-h-[44px] flex-1 rounded-lg bg-emerald-600 font-semibold text-white"
+            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white"
           >
             Logg inn
           </button>
@@ -130,7 +130,7 @@ function AdminContent({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white"
+              className="rounded-lg bg-wc-red px-3 py-1.5 text-sm font-semibold text-white"
             >
               Til siden
             </button>
@@ -249,7 +249,7 @@ function KnockoutTab({
             type="button"
             onClick={() => setStage(s)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              stage === s ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+              stage === s ? 'bg-wc-red text-white' : 'bg-slate-800 text-slate-300'
             }`}
           >
             {STAGE_LABELS[s]}
@@ -279,7 +279,7 @@ function KnockoutTab({
           <button
             type="button"
             onClick={save}
-            className="min-h-[44px] flex-1 rounded-lg bg-emerald-600 font-semibold text-white"
+            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white"
           >
             Lagre {saved && '✓'}
           </button>
@@ -292,7 +292,7 @@ function KnockoutTab({
           </button>
         </div>
         {copied && (
-          <p className="text-xs text-emerald-400">
+          <p className="text-xs text-wc-lime">
             Kopiert ✓ – lim inn i <code>src/data/knockoutTips.json</code>, så push til GitHub.
           </p>
         )}
@@ -434,7 +434,7 @@ function BonusTab({
           <button
             type="button"
             onClick={save}
-            className="min-h-[44px] flex-1 rounded-lg bg-emerald-600 font-semibold text-white"
+            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white"
           >
             Lagre fasit {saved && '✓'}
           </button>
@@ -447,7 +447,7 @@ function BonusTab({
           </button>
         </div>
         {copied && (
-          <p className="text-xs text-emerald-400">
+          <p className="text-xs text-wc-lime">
             Kopiert ✓ – lim inn i <code>src/data/bonusAnswers.json</code>, så push til GitHub.
           </p>
         )}
@@ -479,7 +479,7 @@ function RefreshTab({
           onClearCache();
           onRefresh();
         }}
-        className="min-h-[44px] w-full rounded-lg bg-emerald-600 font-semibold text-white disabled:opacity-50"
+        className="min-h-[44px] w-full rounded-lg bg-wc-red font-semibold text-white disabled:opacity-50"
       >
         {loading ? 'Henter …' : 'Tøm cache og hent på nytt'}
       </button>
@@ -544,7 +544,7 @@ function TabBtn({
       type="button"
       onClick={onClick}
       className={`min-h-[40px] flex-1 rounded-lg px-2 text-sm font-semibold transition ${
-        active ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+        active ? 'bg-wc-red text-white' : 'bg-slate-800 text-slate-300'
       }`}
     >
       {children}

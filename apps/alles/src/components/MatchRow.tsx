@@ -10,9 +10,9 @@ interface Props {
 }
 
 function pointClasses(points: number | null): string {
-  if (points === 3) return 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
-  if (points === 1) return 'border-amber-600/40 bg-amber-500/15 text-amber-300';
-  if (points === 0) return 'border-red-700/40 bg-red-500/15 text-red-300';
+  if (points === 3) return 'border-wc-lime/40 bg-wc-lime/15 text-wc-lime';
+  if (points === 1) return 'border-wc-yellow/40 bg-wc-yellow/15 text-wc-yellow';
+  if (points === 0) return 'border-wc-red/40 bg-wc-red/15 text-wc-red';
   return 'border-slate-600/40 bg-slate-700/30 text-slate-300';
 }
 
@@ -50,7 +50,7 @@ export default function MatchRow({ match, participants }: Props) {
           )}
         </div>
 
-        {live && <span className="text-[11px] font-semibold text-red-400">● LIVE</span>}
+        {live && <span className="text-[11px] font-semibold text-wc-red">● LIVE</span>}
 
         <svg
           className={`ml-auto h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}

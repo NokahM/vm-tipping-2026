@@ -89,52 +89,62 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      <header className="sticky top-0 z-10 border-b border-slate-700 bg-slate-900/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">
-              VM Tipping 2026
-            </p>
-            <h1 className="truncate text-xl font-bold">{APP_CONFIG.groupName}</h1>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="text-xs text-slate-400">
-              {loading ? 'Oppdaterer …' : lastUpdated ? `Sist: ${formatTime(lastUpdated)}` : ''}
-            </span>
-            <button
-              type="button"
-              onClick={() => void refresh()}
-              disabled={loading}
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300 transition active:scale-95 disabled:opacity-50"
-              aria-label="Oppdater resultater"
-            >
-              <svg
-                className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
+      <header className="sticky top-0 z-10 border-b border-slate-700">
+        {/* Tittel-bånd: diagonale offisielle farger + mørkt slør for lesbar hvit tekst */}
+        <div className="relative overflow-hidden">
+          <div className="wc-stripes absolute inset-0" aria-hidden="true" />
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/80 to-slate-950/55"
+            aria-hidden="true"
+          />
+          <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0 [text-shadow:0_1px_3px_rgb(0_0_0/0.7)]">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white">
+                VM Tipping 2026
+              </p>
+              <h1 className="truncate text-xl font-bold text-white">{APP_CONFIG.groupName}</h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-xs text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
+                {loading ? 'Oppdaterer …' : lastUpdated ? `Sist: ${formatTime(lastUpdated)}` : ''}
+              </span>
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                disabled={loading}
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/25 bg-slate-950/60 text-white transition active:scale-95 disabled:opacity-50"
+                aria-label="Oppdater resultater"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h1.633a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v3.131a.75.75 0 001.5 0v-1.32l.311.311a7 7 0 0011.712-3.138.75.75 0 00-1.45-.39zm1.23-3.723a.75.75 0 00.219-.53V3.989a.75.75 0 00-1.5 0v1.32l-.311-.311a7 7 0 00-11.712 3.139.75.75 0 101.449.389 5.5 5.5 0 019.201-2.466l.312.311H12.06a.75.75 0 000 1.5h3.13a.75.75 0 00.53-.219z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+                <svg
+                  className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`}
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h1.633a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v3.131a.75.75 0 001.5 0v-1.32l.311.311a7 7 0 0011.712-3.138.75.75 0 00-1.45-.39zm1.23-3.723a.75.75 0 00.219-.53V3.989a.75.75 0 00-1.5 0v1.32l-.311-.311a7 7 0 00-11.712 3.139.75.75 0 101.449.389 5.5 5.5 0 019.201-2.466l.312.311H12.06a.75.75 0 000 1.5h3.13a.75.75 0 00.53-.219z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Faner – kun mobil/nettbrett (desktop viser leaderboard + veksler til høyre) */}
-        <div className="mx-auto flex max-w-5xl gap-1 px-4 pb-2 lg:hidden">
-          <TabButton active={view === 'tabell'} onClick={() => setView('tabell')}>
-            Tabell
-          </TabButton>
-          <TabButton active={view === 'kamper'} onClick={() => setView('kamper')}>
-            Kamper
-          </TabButton>
-          <TabButton active={view === 'krydder'} onClick={() => setView('krydder')}>
-            Krydder
-          </TabButton>
+        {/* Faner – på rolig bakgrunn (kun mobil/nettbrett; desktop viser leaderboard + veksler til høyre) */}
+        <div className="bg-slate-900/95 backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-5xl gap-1 px-4 py-2">
+            <TabButton active={view === 'tabell'} onClick={() => setView('tabell')}>
+              Tabell
+            </TabButton>
+            <TabButton active={view === 'kamper'} onClick={() => setView('kamper')}>
+              Kamper
+            </TabButton>
+            <TabButton active={view === 'krydder'} onClick={() => setView('krydder')}>
+              Krydder
+            </TabButton>
+          </div>
         </div>
       </header>
 
@@ -211,7 +221,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={`min-h-[44px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${
-        active ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+        active ? 'bg-wc-red text-white' : 'bg-slate-800 text-slate-300'
       }`}
     >
       {children}
