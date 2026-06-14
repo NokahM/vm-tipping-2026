@@ -16,7 +16,7 @@ DUC_BONUS = [
     ("q1", "Norge"),               # svaret lå én rad for høyt (O2) – tolket som VM-vinner
     ("q2", "Messi"),
     ("q3", "Haaland"),
-    ("q4", "Jamal"),               # rå tekst (Musiala/Yamal? – fasit-setter avgjør)
+    ("q4", "Yamal"),               # rå tekst (Musiala/Yamal? – fasit-setter avgjør)
     ("q5", "189"),                 # antall mål: brukte 189 (O20); «-5» (O10) var margin-rot
     ("q6", "07:30"),               # skrev «5-10 minutter» → midtpunkt 7:30
     ("q7", ["DR Kongo", "Ghana"]), # «Kongo» → DR Kongo

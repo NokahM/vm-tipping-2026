@@ -567,7 +567,7 @@ export const PARTICIPANTS: Participant[] = [
       { questionId: "q1", answer: "Norge" },
       { questionId: "q2", answer: "Messi" },
       { questionId: "q3", answer: "Haaland" },
-      { questionId: "q4", answer: "Jamal" },
+      { questionId: "q4", answer: "Yamal" },
       { questionId: "q5", answer: "189" },
       { questionId: "q6", answer: "07:30" },
       { questionId: "q7", answer: ["DR Kongo", "Ghana"] },
