@@ -158,7 +158,7 @@ function AdminContent({
               onClick={onClose}
               className="rounded-lg bg-wc-red px-3 py-1.5 text-sm font-semibold text-white"
             >
-              Til siden
+              Tilbake
             </button>
           </div>
         </div>
