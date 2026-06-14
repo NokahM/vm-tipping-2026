@@ -29,7 +29,8 @@ export default function BroadcasterBadge({ apiId, className = 'h-4' }: Props) {
       src={`/tv/${channel.toLowerCase()}.png`}
       alt={channel}
       title={`Sendes på ${channel}`}
-      className={`${className} w-auto shrink-0`}
+      // TV2 er bare et smalt «2»-tall, så den skaleres litt opp for visuell balanse med NRK-ordmerket.
+      className={`${className} w-auto shrink-0 ${channel === 'TV2' ? 'scale-[1.3]' : ''}`}
       onError={() => setFailed(true)}
     />
   );

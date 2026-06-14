@@ -82,7 +82,10 @@ export default function MatchList({ results, participants }: Props) {
 
       {stages.map(({ stage, matches }) => (
         <section key={stage}>
-          <h2 className="mb-2 px-1 text-lg font-bold text-slate-100">{STAGE_LABELS[stage]}</h2>
+          {/* Gruppespill trenger ingen overskrift – gruppenavnene (Gruppe A …) avslører det. */}
+          {stage !== 'GROUP_STAGE' && (
+            <h2 className="mb-2 px-1 text-lg font-bold text-slate-100">{STAGE_LABELS[stage]}</h2>
+          )}
           {stage === 'GROUP_STAGE' ? (
             <GroupStage matches={matches} participants={participants} />
           ) : (

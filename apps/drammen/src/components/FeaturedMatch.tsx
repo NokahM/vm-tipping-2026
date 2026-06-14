@@ -26,13 +26,13 @@ export default function FeaturedMatch({ match, participants }: Props) {
   return (
     <section className="mb-5">
       <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-white">
-        Aktuell kamp
+        Aktuelt
       </h2>
       <div className="overflow-hidden rounded-xl border border-slate-600 bg-slate-800 ring-1 ring-wc-red/30">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="w-full px-4 py-3 text-left active:bg-slate-700/30"
+          className="w-full px-4 pt-3 pb-2 text-left active:bg-slate-700/30"
           aria-expanded={open}
         >
           <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
             </div>
           </div>
 
-          <div className="mt-1.5 text-center text-[11px] text-slate-500">
+          <div className="text-center text-[11px] text-slate-500">
             {open ? 'Skjul tips ▲' : 'Vis tips ▼'}
           </div>
         </button>
