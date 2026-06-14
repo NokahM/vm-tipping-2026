@@ -139,24 +139,24 @@ export default function App() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-white tabular-nums [text-shadow:0_1px_3px_rgb(0_0_0/0.8)]">
-                {lastUpdated ? formatTime(lastUpdated) : ''}
+                {lastUpdated ? `Oppdatert ${formatTime(lastUpdated)}` : ''}
               </span>
+              {/* Tannhjul → admin. Manuell refresh ligger nå inne i admin (RefreshTab),
+                  så vanlige brukere bruker auto-oppdateringen (hvert 25. s). */}
               <button
                 type="button"
-                onClick={() => void refresh()}
-                disabled={loading}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/25 bg-slate-950/60 text-white transition active:scale-95 disabled:opacity-50"
-                aria-label="Oppdater resultater"
+                onClick={() => {
+                  window.history.replaceState(null, '', '?admin=true');
+                  setAdminOpen(true);
+                }}
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/25 bg-slate-950/60 text-white transition active:scale-95"
+                aria-label="Admin"
+                title="Admin"
               >
-                <svg
-                  className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path
                     fillRule="evenodd"
-                    d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h1.633a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v3.131a.75.75 0 001.5 0v-1.32l.311.311a7 7 0 0011.712-3.138.75.75 0 00-1.45-.39zm1.23-3.723a.75.75 0 00.219-.53V3.989a.75.75 0 00-1.5 0v1.32l-.311-.311a7 7 0 00-11.712 3.139.75.75 0 101.449.389 5.5 5.5 0 019.201-2.466l.312.311H12.06a.75.75 0 000 1.5h3.13a.75.75 0 00.53-.219z"
+                    d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.992 6.992 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z"
                     clipRule="evenodd"
                   />
                 </svg>
@@ -179,7 +179,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-4">
+      <main className="mx-auto max-w-2xl px-4 pb-16 pt-4">
         {error && (
           <p className="mb-4 rounded-lg border border-red-800 bg-red-950/60 p-3 text-sm text-red-200">
             {error}
@@ -200,27 +200,6 @@ export default function App() {
           <BonusQuestions questions={questions} participants={participants} />
         )}
       </main>
-
-      <footer className="mx-auto max-w-2xl px-4 pb-10 pt-6 text-center">
-        <button
-          type="button"
-          onClick={() => {
-            window.history.replaceState(null, '', '?admin=true');
-            setAdminOpen(true);
-          }}
-          className="p-2 text-slate-700 transition hover:text-slate-400"
-          aria-label="Admin"
-          title="Admin"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path
-              fillRule="evenodd"
-              d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.992 6.992 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
-      </footer>
     </div>
   );
 }
