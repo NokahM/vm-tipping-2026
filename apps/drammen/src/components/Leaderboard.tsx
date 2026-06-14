@@ -86,19 +86,17 @@ function LeaderboardRow({
         >
           {s.rank}
         </span>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2.5 font-medium text-slate-100">
-            <span className="min-w-0 truncate">{s.name}</span>
-            <MovementArrow delta={delta} />
-            <span className="shrink-0 text-xs tabular-nums">
-              <span className="text-emerald-400">{s.correctResults}</span>
-              <span className="text-slate-600"> · </span>
-              <span className="text-amber-400">{s.correctOutcomes}</span>
-              <span className="text-slate-600"> · </span>
-              <span className="text-red-400">{s.wrongOutcomes}</span>
-            </span>
-          </p>
-        </div>
+        <span className="flex min-w-0 items-center gap-2.5 font-medium text-slate-100">
+          <span className="min-w-0 truncate">{s.name}</span>
+          <MovementArrow delta={delta} />
+        </span>
+        <span className="mx-auto shrink-0 text-xs tabular-nums">
+          <span className="text-emerald-400">{s.correctResults}</span>
+          <span className="text-slate-600"> · </span>
+          <span className="text-amber-400">{s.correctOutcomes}</span>
+          <span className="text-slate-600"> · </span>
+          <span className="text-red-400">{s.wrongOutcomes}</span>
+        </span>
         <span className="w-9 text-right text-lg font-bold tabular-nums text-emerald-400">
           {s.total}
         </span>
