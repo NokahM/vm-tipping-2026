@@ -722,6 +722,20 @@ regenererer jeg `participants.ts` via `tools/generate_data.py` og verifiserer an
   liste (`MatchResult[]`): live-puljen hvis noen lever, ellers neste avsparkspulje, ellers `[]`; og
   render én `FeaturedMatch` per kamp. Komponentene støtter allerede dette (bare velg-logikken endres).
 - **Favicon + app-ikon** fra VM-logoen (`index.html` + `public/`).
+- **NRK/TV2-kanal i «Aktuell kamp»** (etter klokkeslett / ved LIVE-merket). **Undersøkt 2026-06-14:**
+  - **Vårt API har det ikke.** football-data.org-kampene har kun `area, competition, season, id,
+    utcDate, status, matchday, stage, group, lastUpdated, homeTeam, awayTeam, score, odds, referees`
+    – ingen kringkaster-felt.
+  - **Rettighetene:** NRK og TV2 **deler** alle 104 kamper i VM 2026, splittet per kamp (f.eks.
+    Norge–Irak på TV2; Norge–Senegal/Frankrike på NRK). Sluttspill tildeles per slot/runde etter hvert.
+  - **Ingen gratis, ren «kamp → norsk kanal»-API** funnet. Live Soccer TV har dataene, men ikke et
+    åpent API (scraping = skjørt/ToS). NRK har et PS-API, men mapping til konkrete VM-kamper er klønete.
+  - **Anbefalt løsning (samme mønster som sluttspill-tips):** en innbakt `data/broadcasters.json`
+    som mapper `apiId → "NRK" | "TV2"`, vedlikeholdt manuelt fra NRK/TV2 sitt publiserte sendeskjema.
+    Gruppespillet (72 kamper) er kjent nå; sluttspill oppdateres per runde (sammen med knockoutTips).
+    Jeg kan generere en utfyllings-mal (alle kamper med apiId + lag + avspark) så det er enkelt å fylle.
+  - **Visning:** liten `NRK`/`TV2`-merkelapp i `FeaturedMatch` etter klokkeslettet/LIVE (evt. også i
+    kampradene). Hjelper `broadcaster(apiId)` → kanal, med tom fallback til skjemaet er fylt.
 - (fyll inn flere ønsker her etter hvert)
 
 ---
