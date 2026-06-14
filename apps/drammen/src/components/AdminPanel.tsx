@@ -167,7 +167,7 @@ function AdminContent({
             Sluttspill
           </TabBtn>
           <TabBtn active={tab === 'krydder'} onClick={() => setTab('krydder')}>
-            Krydder-fasit
+            Krydder
           </TabBtn>
           <TabBtn active={tab === 'oppdater'} onClick={() => setTab('oppdater')}>
             Oppdater
@@ -277,20 +277,22 @@ function KnockoutTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5">
-        {KNOCKOUT_STAGES.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setStage(s)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              stage === s ? 'bg-wc-red text-white' : 'bg-slate-800 text-slate-300'
-            }`}
-          >
-            {STAGE_LABELS[s]}
-          </button>
-        ))}
-      </div>
+      <label className="block">
+        <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+          Velg runde
+        </span>
+        <select
+          value={stage}
+          onChange={(e) => setStage(e.target.value as Stage)}
+          className="h-11 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm font-medium text-slate-100"
+        >
+          {KNOCKOUT_STAGES.map((s) => (
+            <option key={s} value={s}>
+              {STAGE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {matches.length === 0 ? (
         <p className="rounded-lg border border-slate-700 bg-slate-800 p-4 text-sm text-slate-400">
@@ -452,7 +454,7 @@ function BonusTab({
       ))}
 
       <PublishBar
-        label="Lagre & publiser fasit"
+        label="Lagre & publiser"
         status={status}
         errMsg={errMsg}
         onSave={() => void save()}
@@ -522,7 +524,7 @@ function PublishBar({
           type="button"
           onClick={onSave}
           disabled={status === 'saving'}
-          className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white disabled:opacity-60"
+          className="min-h-[44px] flex-1 rounded-lg bg-wc-red text-sm font-semibold text-white disabled:opacity-60"
         >
           {status === 'saving' ? 'Publiserer …' : status === 'ok' ? `${label} ✓` : label}
         </button>
