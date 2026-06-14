@@ -51,20 +51,21 @@ export default function FeaturedMatch({ match, participants }: Props) {
                   {match.awayGoals}
                 </div>
               ) : (
-                <div className="text-sm font-medium text-slate-300">
-                  {formatKickoff(match.utcDate)}
+                <div className="flex items-center justify-center gap-2 text-sm font-medium text-slate-300">
+                  <span>{formatKickoff(match.utcDate)}</span>
+                  <BroadcasterBadge apiId={match.apiId} className="h-4" />
                 </div>
               )}
               {live ? (
-                <div className="text-[10px] font-semibold text-red-400">● LIVE</div>
+                <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-red-400">
+                  <span>● LIVE</span>
+                  <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
+                </div>
               ) : match.status === 'FINISHED' ? (
                 <div className="text-[10px] text-slate-500">Ferdig</div>
               ) : (
                 <div className="text-[10px] text-slate-500">Kommende</div>
               )}
-              <div className="mt-1 flex justify-center">
-                <BroadcasterBadge apiId={match.apiId} className="h-4" />
-              </div>
             </div>
 
             {/* Bortelag: navn + logo */}
