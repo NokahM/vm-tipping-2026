@@ -7,10 +7,10 @@ En React-webapplikasjon som viser live-poengtabell for to vennegjengers VM-tippi
 ## To vennegrupper
 
 ### Gruppe 1: Drammen
-Deltakere: **Erling, Rune, Håkon, Geir, Tore** (5 deltakere)
+Deltakere: **Erling, Rune, Håkon, Geir, Tore, Tor Arne** (6 deltakere)
 
 ### Gruppe 2: Alles Tips
-Deltakere: **Skjalg, Sindre, Anne Marte, Ole, Eirik, Margret, Håkon Emil, Morten, Hilde, Sofia, Nicholas, Trond, Anders, Ida, Erling, Håkon M, Bent Arne, Gunvor, Lisa, Espen, Jonas G, Kay Robin, Magnus, Jonas W, Viktor** (25 deltakere)
+Deltakere: **Skjalg, Sindre, Anne Marte, Ole, Eirik, Margret, Håkon Emil, Morten, Hilde, Sofia, Nicholas, Trond, Anders, Ida, Erling, Håkon M, Bent Arne, Gunvor, Lisa, Espen, Jonas G, Kay Robin, Magnus, Jonas W, Viktor, Kajsa** (26 deltakere)
 
 ---
 
