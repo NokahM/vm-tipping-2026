@@ -4,6 +4,7 @@ import { APP_CONFIG } from '../config';
 import { STAGE_LABELS, STAGE_ORDER, formatKickoff } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
 import type { BonusStore, KnockoutStore } from '../utils/storage';
+import type { SaveResult } from '../utils/remoteStore';
 
 interface Props {
   results: MatchResult[];
@@ -12,8 +13,8 @@ interface Props {
   knockoutStore: KnockoutStore;
   bonusStore: BonusStore;
   loading: boolean;
-  onSaveKnockout: (store: KnockoutStore) => void;
-  onSaveBonus: (store: BonusStore) => void;
+  onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
+  onSaveBonus: (store: BonusStore, password: string) => Promise<SaveResult>;
   onRefresh: () => void;
   onClearCache: () => void;
   onClose: () => void;
@@ -21,6 +22,9 @@ interface Props {
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'vm2026';
 const AUTH_KEY = `${APP_CONFIG.storageSuffix}_admin_authed`;
+// Passordet huskes i admin sin egen nettleser så lagring (server-side sjekk) fungerer
+// etter reload. Delt friendskonk-passord – ikke en reell hemmelighet å beskytte her.
+const PW_KEY = `${APP_CONFIG.storageSuffix}_admin_pw`;
 // Spørsmål med liste-fasit (komma-separert input): q7 (rødt kort), q8 (selvmål) og
 // q15 (kjendis som dør). q7/q8 gir poeng per korrekt lag; q15 full pott hvis kjendisen er i lista.
 const LIST_ANSWER_IDS = new Set(['q7', 'q8', 'q15']);
@@ -28,6 +32,7 @@ const PER_TEAM_IDS = new Set(['q7', 'q8']);
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 type Tab = 'sluttspill' | 'krydder' | 'oppdater';
+type SaveState = 'idle' | 'saving' | 'ok' | 'error';
 
 async function copyJson(value: unknown): Promise<boolean> {
   try {
@@ -40,18 +45,34 @@ async function copyJson(value: unknown): Promise<boolean> {
 
 export default function AdminPanel(props: Props) {
   const [authed, setAuthed] = useState(() => localStorage.getItem(AUTH_KEY) === 'true');
+  const [password, setPassword] = useState(() => localStorage.getItem(PW_KEY) ?? '');
 
   if (!authed) {
-    return <Gate onClose={props.onClose} onAuthed={() => setAuthed(true)} />;
+    return (
+      <Gate
+        onClose={props.onClose}
+        onAuthed={(pw) => {
+          setPassword(pw);
+          setAuthed(true);
+        }}
+      />
+    );
   }
 
-  return <AdminContent {...props} onLogout={() => {
-    localStorage.removeItem(AUTH_KEY);
-    setAuthed(false);
-  }} />;
+  return (
+    <AdminContent
+      {...props}
+      password={password}
+      onLogout={() => {
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(PW_KEY);
+        setAuthed(false);
+      }}
+    />
+  );
 }
 
-function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: () => void }) {
+function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: (pw: string) => void }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState(false);
 
@@ -59,7 +80,8 @@ function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: () => void
     e.preventDefault();
     if (value === ADMIN_PASSWORD) {
       localStorage.setItem(AUTH_KEY, 'true');
-      onAuthed();
+      localStorage.setItem(PW_KEY, value);
+      onAuthed(value);
     } else {
       setError(true);
     }
@@ -108,13 +130,14 @@ function AdminContent({
   knockoutStore,
   bonusStore,
   loading,
+  password,
   onSaveKnockout,
   onSaveBonus,
   onRefresh,
   onClearCache,
   onClose,
   onLogout,
-}: Props & { onLogout: () => void }) {
+}: Props & { password: string; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('sluttspill');
 
   return (
@@ -158,11 +181,17 @@ function AdminContent({
             results={results}
             participants={participants}
             store={knockoutStore}
+            password={password}
             onSave={onSaveKnockout}
           />
         )}
         {tab === 'krydder' && (
-          <BonusTab questions={questions} store={bonusStore} onSave={onSaveBonus} />
+          <BonusTab
+            questions={questions}
+            store={bonusStore}
+            password={password}
+            onSave={onSaveBonus}
+          />
         )}
         {tab === 'oppdater' && (
           <RefreshTab loading={loading} onRefresh={onRefresh} onClearCache={onClearCache} />
@@ -182,12 +211,14 @@ function KnockoutTab({
   results,
   participants,
   store,
+  password,
   onSave,
 }: {
   results: MatchResult[];
   participants: Participant[];
   store: KnockoutStore;
-  onSave: (store: KnockoutStore) => void;
+  password: string;
+  onSave: (store: KnockoutStore, password: string) => Promise<SaveResult>;
 }) {
   const [stage, setStage] = useState<Stage>('ROUND_OF_32');
   const [draft, setDraft] = useState<Record<string, string>>(() => {
@@ -200,8 +231,8 @@ function KnockoutTab({
     }
     return d;
   });
-  const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<SaveState>('idle');
+  const [errMsg, setErrMsg] = useState('');
 
   const matches = useMemo(
     () =>
@@ -214,8 +245,7 @@ function KnockoutTab({
   function setVal(name: string, apiId: number, side: 'h' | 'a', raw: string) {
     const v = raw.replace(/\D/g, '').slice(0, 2);
     setDraft((d) => ({ ...d, [key(name, apiId, side)]: v }));
-    setSaved(false);
-    setCopied(false);
+    setStatus('idle');
   }
 
   function buildStore(): KnockoutStore {
@@ -234,13 +264,15 @@ function KnockoutTab({
     return next;
   }
 
-  function save() {
-    onSave(buildStore());
-    setSaved(true);
-  }
-
-  async function exportJson() {
-    if (await copyJson(buildStore())) setCopied(true);
+  async function save() {
+    setStatus('saving');
+    const r = await onSave(buildStore(), password);
+    if (r.ok) {
+      setStatus('ok');
+    } else {
+      setStatus('error');
+      setErrMsg(r.error ?? 'Ukjent feil.');
+    }
   }
 
   return (
@@ -277,29 +309,13 @@ function KnockoutTab({
         ))
       )}
 
-      <div className="sticky bottom-0 -mx-4 space-y-2 border-t border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={save}
-            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white"
-          >
-            Lagre {saved && '✓'}
-          </button>
-          <button
-            type="button"
-            onClick={() => void exportJson()}
-            className="min-h-[44px] rounded-lg border border-slate-700 px-4 text-sm font-semibold text-slate-200"
-          >
-            Eksporter JSON
-          </button>
-        </div>
-        {copied && (
-          <p className="text-xs text-emerald-400">
-            Kopiert ✓ – lim inn i <code>src/data/knockoutTips.json</code>, så push til GitHub.
-          </p>
-        )}
-      </div>
+      <PublishBar
+        label="Lagre & publiser"
+        status={status}
+        errMsg={errMsg}
+        onSave={() => void save()}
+        onExport={() => copyJson(buildStore())}
+      />
     </div>
   );
 }
@@ -351,11 +367,13 @@ function KnockoutMatch({
 function BonusTab({
   questions,
   store,
+  password,
   onSave,
 }: {
   questions: BonusQuestion[];
   store: BonusStore;
-  onSave: (store: BonusStore) => void;
+  password: string;
+  onSave: (store: BonusStore, password: string) => Promise<SaveResult>;
 }) {
   // Draft som tekst per spørsmål. For liste-spørsmål (q7/q8) er teksten komma-separert.
   const [draft, setDraft] = useState<Record<string, string>>(() => {
@@ -365,13 +383,12 @@ function BonusTab({
     }
     return d;
   });
-  const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<SaveState>('idle');
+  const [errMsg, setErrMsg] = useState('');
 
   function setVal(id: string, v: string) {
     setDraft((d) => ({ ...d, [id]: v }));
-    setSaved(false);
-    setCopied(false);
+    setStatus('idle');
   }
 
   function buildStore(): BonusStore {
@@ -392,13 +409,15 @@ function BonusTab({
     return next;
   }
 
-  function save() {
-    onSave(buildStore());
-    setSaved(true);
-  }
-
-  async function exportJson() {
-    if (await copyJson(buildStore())) setCopied(true);
+  async function save() {
+    setStatus('saving');
+    const r = await onSave(buildStore(), password);
+    if (r.ok) {
+      setStatus('ok');
+    } else {
+      setStatus('error');
+      setErrMsg(r.error ?? 'Ukjent feil.');
+    }
   }
 
   return (
@@ -432,29 +451,13 @@ function BonusTab({
         </div>
       ))}
 
-      <div className="sticky bottom-0 -mx-4 space-y-2 border-t border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={save}
-            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white"
-          >
-            Lagre fasit {saved && '✓'}
-          </button>
-          <button
-            type="button"
-            onClick={() => void exportJson()}
-            className="min-h-[44px] rounded-lg border border-slate-700 px-4 text-sm font-semibold text-slate-200"
-          >
-            Eksporter JSON
-          </button>
-        </div>
-        {copied && (
-          <p className="text-xs text-emerald-400">
-            Kopiert ✓ – lim inn i <code>src/data/bonusAnswers.json</code>, så push til GitHub.
-          </p>
-        )}
-      </div>
+      <PublishBar
+        label="Lagre & publiser fasit"
+        status={status}
+        errMsg={errMsg}
+        onSave={() => void save()}
+        onExport={() => copyJson(buildStore())}
+      />
     </div>
   );
 }
@@ -486,6 +489,61 @@ function RefreshTab({
       >
         {loading ? 'Henter …' : 'Tøm cache og hent på nytt'}
       </button>
+    </div>
+  );
+}
+
+// --- Felles publiserings-bar -----------------------------------------------
+
+/**
+ * Sticky bunn-bar: «Lagre & publiser» skriver til KV (synlig for alle), med status.
+ * «Backup JSON» kopierer gjeldende data til utklippstavla som en valgfri snapshot
+ * man kan lime inn i repoets JSON-filer (versjonert sikkerhetskopi).
+ */
+function PublishBar({
+  label,
+  status,
+  errMsg,
+  onSave,
+  onExport,
+}: {
+  label: string;
+  status: SaveState;
+  errMsg: string;
+  onSave: () => void;
+  onExport: () => Promise<boolean>;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="sticky bottom-0 -mx-4 space-y-2 border-t border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={status === 'saving'}
+          className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white disabled:opacity-60"
+        >
+          {status === 'saving' ? 'Publiserer …' : status === 'ok' ? `${label} ✓` : label}
+        </button>
+        <button
+          type="button"
+          onClick={async () => setCopied(await onExport())}
+          className="min-h-[44px] rounded-lg border border-slate-700 px-4 text-sm font-semibold text-slate-200"
+          title="Kopiér som JSON-backup"
+        >
+          Backup JSON
+        </button>
+      </div>
+      {status === 'ok' && (
+        <p className="text-xs text-emerald-400">Publisert ✓ – synlig for alle.</p>
+      )}
+      {status === 'error' && (
+        <p className="text-xs text-red-400">Kunne ikke publisere: {errMsg}</p>
+      )}
+      {copied && status !== 'ok' && (
+        <p className="text-xs text-emerald-400">Kopiert til utklippstavla ✓ (backup).</p>
+      )}
     </div>
   );
 }

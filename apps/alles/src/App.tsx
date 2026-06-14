@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { STORAGE_KEYS } from './config';
 import { PARTICIPANTS } from './data/participants';
 import { BONUS_QUESTIONS } from './data/bonusQuestions';
@@ -17,6 +17,7 @@ import {
   type BonusStore,
   type KnockoutStore,
 } from './utils/storage';
+import { fetchRemoteState, saveRemoteState } from './utils/remoteStore';
 import Leaderboard from './components/Leaderboard';
 import MatchList from './components/MatchList';
 import BonusQuestions from './components/BonusQuestions';
@@ -37,8 +38,36 @@ export default function App() {
   const [view, setView] = useState<View>('tabell');
   const [adminOpen, setAdminOpen] = useState(isAdminUrl);
 
+  // Initialiseres fra localStorage-cache (rask visning), oppdateres så fra KV (delt sannhet).
   const [knockoutStore, setKnockoutStore] = useState<KnockoutStore>(loadKnockoutStore);
   const [bonusStore, setBonusStore] = useState<BonusStore>(loadBonusStore);
+
+  // Hent delt admin-data fra KV ved oppstart og når fanen blir synlig igjen.
+  // Cache i localStorage så reload viser siste kjente fasit umiddelbart.
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      const remote = await fetchRemoteState();
+      if (cancelled || !remote) return;
+      if (remote.knockoutTips) {
+        setKnockoutStore(remote.knockoutTips);
+        saveKnockoutStore(remote.knockoutTips);
+      }
+      if (remote.bonusAnswers) {
+        setBonusStore(remote.bonusAnswers);
+        saveBonusStore(remote.bonusAnswers);
+      }
+    };
+    void sync();
+    const onVisible = () => {
+      if (!document.hidden) void sync();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   // Innbakt data + lokale (admin) overstyringer. localStorage vinner ved konflikt.
   const knockoutMerged = useMemo(() => ({ ...KNOCKOUT_BAKED, ...knockoutStore }), [knockoutStore]);
@@ -67,13 +96,15 @@ export default function App() {
         knockoutStore={knockoutMerged}
         bonusStore={bonusMerged}
         loading={loading}
-        onSaveKnockout={(s) => {
+        onSaveKnockout={(s, password) => {
           setKnockoutStore(s);
-          saveKnockoutStore(s);
+          saveKnockoutStore(s); // optimistisk lokal cache
+          return saveRemoteState(password, { knockoutTips: s }); // publiser til KV
         }}
-        onSaveBonus={(s) => {
+        onSaveBonus={(s, password) => {
           setBonusStore(s);
           saveBonusStore(s);
+          return saveRemoteState(password, { bonusAnswers: s });
         }}
         onRefresh={() => void refresh()}
         onClearCache={() => localStorage.removeItem(STORAGE_KEYS.results)}

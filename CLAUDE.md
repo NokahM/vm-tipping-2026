@@ -632,6 +632,27 @@ Etter første deploy: `git push` trigger automatisk deploy av begge.
   Vercel redeployer → synlig for alle. Gjøres i begge apper (drammen + alles) ved behov.
 - Subtil admin-inngang: tannhjul-knapp i footeren (åpner `?admin=true` uten reload).
 
+**Datadeling – Upstash KV / «Vercel KV» (oppgradert 2026-06-14, erstatter redeploy-flyten):**
+- **Hvorfor:** admin-ansvaret skal delegeres til en venn som ikke pusher kode. Han trenger å sette
+  fasit (selvmål, rødt kort osv.) daglig via admin-siden uten git/redeploy.
+- **Arkitektur:** én delt Upstash Redis-store (gratis-tier), nøkler namespacet per app:
+  `drammen:knockoutTips`, `drammen:bonusAnswers`, `alles:knockoutTips`, `alles:bonusAnswers`.
+- **`api/state.js`** (serverless, begge apper): `GET ?app=<suffix>` leser (offentlig, edge-cache 10s);
+  `POST ?app=<suffix>` skriver (krever `ADMIN_PASSWORD` server-side). Bruker Upstash REST API via
+  `fetch` – ingen npm-avhengighet. Leser `KV_REST_API_URL/TOKEN` (eller `UPSTASH_REDIS_REST_URL/TOKEN`).
+- **`vite.config.ts`** har en dev-plugin (`kvStatePlugin`) som speiler `/api/state` lokalt, så
+  `npm run dev` fungerer fullt ut (leser KV-nøkler + `ADMIN_PASSWORD` fra `.env.local`).
+- **Klient (`utils/remoteStore.ts`):** `fetchRemoteState()` (GET) + `saveRemoteState(pw, partial)` (POST).
+  `App.tsx` henter KV ved oppstart + ved `visibilitychange`, cacher i localStorage (rask reload), og
+  fletter `{ ...innbakt JSON, ...KV }` før scoring. **Innbakt JSON = fallback hvis KV er tom.**
+- **Admin:** «Lagre & publiser» skriver rett til KV → synlig for alle på sekunder (status: Publiserer…
+  → Publisert ✓ / feilmelding). «Backup JSON» kopierer fortsatt en snapshot til utklippstavla som
+  valgfri git-versjonert sikkerhetskopi. Passordet huskes i `<suffix>_admin_pw` (localStorage) så
+  skriving virker etter reload.
+- **Miljøvariabler (Vercel, begge prosjekter):** `ADMIN_PASSWORD` (server-side, delt med admin-venn) +
+  `VITE_ADMIN_PASSWORD` (klient-gate, **samme verdi**). KV-nøklene injiseres automatisk når storen
+  kobles til prosjektet via Vercel → Storage.
+
 ### Milestone 6 – Deploy
 - [ ] Push til GitHub
 - [ ] Opprett to Vercel-prosjekter med `FOOTBALL_API_KEY` (server-side)
