@@ -93,8 +93,8 @@ function LeaderboardRow({
           {s.rank}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 font-medium text-slate-100">
-            <span className="truncate">{s.name}</span>
+          <p className="flex items-center gap-2.5 font-medium text-slate-100">
+            <span className="min-w-0 truncate">{s.name}</span>
             <MovementArrow delta={delta} />
           </p>
           <p className="text-xs text-slate-500 sm:hidden">
@@ -151,29 +151,19 @@ function LeaderboardRow({
 function MovementArrow({ delta }: { delta: number | undefined }) {
   if (!delta) {
     return (
-      <span className="shrink-0 text-xs text-slate-600" title="Ingen endring" aria-label="Ingen endring">
+      <span className="shrink-0 text-xs text-slate-600" aria-label="Ingen endring">
         –
       </span>
     );
   }
-  if (delta > 0) {
-    return (
-      <span
-        className="shrink-0 text-[10px] text-emerald-400"
-        title={`Opp ${delta}`}
-        aria-label={`Opp ${delta} plasser`}
-      >
-        ▲
-      </span>
-    );
-  }
+  const up = delta > 0;
   return (
     <span
-      className="shrink-0 text-[10px] text-red-400"
-      title={`Ned ${-delta}`}
-      aria-label={`Ned ${-delta} plasser`}
+      className={`shrink-0 text-xs font-semibold tabular-nums ${up ? 'text-emerald-400' : 'text-red-400'}`}
+      aria-label={up ? `Opp ${delta} plasser` : `Ned ${-delta} plasser`}
     >
-      ▼
+      <span className="text-[10px]">{up ? '▲' : '▼'}</span>
+      {Math.abs(delta)}
     </span>
   );
 }
