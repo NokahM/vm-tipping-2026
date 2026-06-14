@@ -32,9 +32,11 @@ export default async function handler(req, res) {
     );
     const body = await upstream.text();
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    // Cache på Vercels edge i 20s for å skåne rategrensen (10 kall/min). Kortere enn
-    // før (60s) for ferskere resultater – ~3 oppstrømskall/min per app, godt under taket.
-    res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=120');
+    // Cache på Vercels edge i 15s for å skåne rategrensen (10 kall/min). ~4 oppstrøms-
+    // kall/min per app → ~8/min for begge apper (samme nøkkel). Dette er ~den trygge
+    // bunnen: s-maxage=12 ville gitt ~10/min (på grensen). Polling under er «gratis»
+    // (treffer cachen), så den kan være tettere uten å belaste rategrensen.
+    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=120');
     return res.status(upstream.status).send(body);
   } catch (e) {
     return res.status(502).json({ error: `Kunne ikke nå football-data.org: ${e.message}` });
