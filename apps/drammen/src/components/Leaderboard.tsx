@@ -96,10 +96,7 @@ function LeaderboardRow({
           <p className="flex items-center gap-2.5 font-medium text-slate-100">
             <span className="min-w-0 truncate">{s.name}</span>
             <MovementArrow delta={delta} />
-          </p>
-          <p className="text-xs text-slate-500 sm:hidden">
-            G {s.groupPoints} · S {s.knockoutPoints} · B {s.bonusPoints}
-            <span className="ml-2 tabular-nums">
+            <span className="shrink-0 text-xs tabular-nums sm:hidden">
               <span className="text-emerald-400">{s.correctResults}</span>
               <span className="text-slate-600"> · </span>
               <span className="text-amber-400">{s.correctOutcomes}</span>
