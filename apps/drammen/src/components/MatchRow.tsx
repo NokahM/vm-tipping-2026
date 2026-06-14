@@ -46,13 +46,7 @@ export default function MatchRow({ match, participants }: Props) {
               {match.awayGoals}
             </span>
           ) : (
-            <span className="grid grid-cols-[2rem_auto_2rem] items-center gap-x-2.5 text-xs tabular-nums text-slate-400">
-              <span aria-hidden="true" />
-              <span className="text-center">{formatKickoff(match.utcDate)}</span>
-              <span className="flex justify-start">
-                <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
-              </span>
-            </span>
+            <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
           )}
           {live && (
             <span
@@ -74,6 +68,9 @@ export default function MatchRow({ match, participants }: Props) {
 
       {open && (
         <div className="px-3 pb-2.5">
+          <div className="mb-2 flex justify-center">
+            <BroadcasterBadge apiId={match.apiId} className="h-4" />
+          </div>
           <TipChips match={match} participants={participants} />
         </div>
       )}

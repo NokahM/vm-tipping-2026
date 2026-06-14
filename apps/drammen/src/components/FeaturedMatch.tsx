@@ -36,10 +36,10 @@ export default function FeaturedMatch({ match, participants }: Props) {
           aria-expanded={open}
         >
           <div className="flex items-center gap-2">
-            {/* Hjemmelag: logo + navn */}
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+            {/* Hjemmelag: logo med navn under */}
+            <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
               <TeamLogo name={home} className="h-9 w-9" />
-              <span className="truncate font-semibold text-slate-100">{home}</span>
+              <span className="w-full truncate text-center font-semibold text-slate-100">{home}</span>
             </div>
 
             {/* Stilling / klokkeslett */}
@@ -69,10 +69,10 @@ export default function FeaturedMatch({ match, participants }: Props) {
               )}
             </div>
 
-            {/* Bortelag: navn + logo */}
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-              <span className="truncate text-right font-semibold text-slate-100">{away}</span>
+            {/* Bortelag: logo med navn under */}
+            <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
               <TeamLogo name={away} className="h-9 w-9" />
+              <span className="w-full truncate text-center font-semibold text-slate-100">{away}</span>
             </div>
           </div>
 
