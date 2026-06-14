@@ -4,6 +4,7 @@ import { normalizeTeamName } from '../utils/teamNames';
 import { formatKickoff } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
+import BroadcasterBadge from './BroadcasterBadge';
 
 interface Props {
   match: MatchResult;
@@ -61,6 +62,9 @@ export default function FeaturedMatch({ match, participants }: Props) {
               ) : (
                 <div className="text-[10px] text-slate-500">Kommende</div>
               )}
+              <div className="mt-1 flex justify-center">
+                <BroadcasterBadge apiId={match.apiId} className="h-4" />
+              </div>
             </div>
 
             {/* Bortelag: navn + logo */}
