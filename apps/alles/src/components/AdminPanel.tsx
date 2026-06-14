@@ -21,7 +21,9 @@ interface Props {
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'vm2026';
 const AUTH_KEY = `${APP_CONFIG.storageSuffix}_admin_authed`;
-const TWO_ANSWER_IDS = new Set(['q7', 'q8']);
+// q7 (rødt kort) og q8 (selvmål): fasit er en LISTE med alle lag som gjorde det
+// (deltakere får 1p per korrekt nevnt lag). Legges inn komma-separert.
+const LIST_ANSWER_IDS = new Set(['q7', 'q8']);
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 type Tab = 'sluttspill' | 'krydder' | 'oppdater';
@@ -354,21 +356,19 @@ function BonusTab({
   store: BonusStore;
   onSave: (store: BonusStore) => void;
 }) {
-  const [draft, setDraft] = useState<BonusStore>(() => ({ ...store }));
+  // Draft som tekst per spørsmål. For liste-spørsmål (q7/q8) er teksten komma-separert.
+  const [draft, setDraft] = useState<Record<string, string>>(() => {
+    const d: Record<string, string> = {};
+    for (const [id, val] of Object.entries(store)) {
+      d[id] = Array.isArray(val) ? val.join(', ') : val;
+    }
+    return d;
+  });
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  function setSingle(id: string, v: string) {
+  function setVal(id: string, v: string) {
     setDraft((d) => ({ ...d, [id]: v }));
-    setSaved(false);
-    setCopied(false);
-  }
-  function setPair(id: string, i: 0 | 1, v: string) {
-    setDraft((d) => {
-      const cur = Array.isArray(d[id]) ? [...(d[id] as string[])] : ['', ''];
-      cur[i] = v;
-      return { ...d, [id]: cur };
-    });
     setSaved(false);
     setCopied(false);
   }
@@ -376,12 +376,16 @@ function BonusTab({
   function buildStore(): BonusStore {
     const next: BonusStore = {};
     for (const q of questions) {
-      const v = draft[q.id];
-      if (TWO_ANSWER_IDS.has(q.id)) {
-        const arr = (Array.isArray(v) ? v : []).map((s) => s.trim()).filter(Boolean);
+      const raw = (draft[q.id] ?? '').trim();
+      if (!raw) continue;
+      if (LIST_ANSWER_IDS.has(q.id)) {
+        const arr = raw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
         if (arr.length) next[q.id] = arr;
-      } else if (typeof v === 'string' && v.trim()) {
-        next[q.id] = v.trim();
+      } else {
+        next[q.id] = raw;
       }
     }
     return next;
@@ -406,25 +410,20 @@ function BonusTab({
               {q.maxPoints}p
             </span>
           </div>
-          {TWO_ANSWER_IDS.has(q.id) ? (
-            <div className="flex gap-2">
-              <TextInput
-                value={(Array.isArray(draft[q.id]) ? (draft[q.id] as string[])[0] : '') ?? ''}
-                onChange={(v) => setPair(q.id, 0, v)}
-                placeholder="Lag 1"
-              />
-              <TextInput
-                value={(Array.isArray(draft[q.id]) ? (draft[q.id] as string[])[1] : '') ?? ''}
-                onChange={(v) => setPair(q.id, 1, v)}
-                placeholder="Lag 2"
-              />
-            </div>
-          ) : (
-            <TextInput
-              value={typeof draft[q.id] === 'string' ? (draft[q.id] as string) : ''}
-              onChange={(v) => setSingle(q.id, v)}
-              placeholder="Fasit (tom = ikke avgjort)"
-            />
+          <TextInput
+            value={draft[q.id] ?? ''}
+            onChange={(v) => setVal(q.id, v)}
+            placeholder={
+              LIST_ANSWER_IDS.has(q.id)
+                ? 'Alle lag, komma-separert (Norge, Brasil, …)'
+                : 'Fasit (tom = ikke avgjort)'
+            }
+          />
+          {LIST_ANSWER_IDS.has(q.id) && (
+            <p className="mt-1 text-[11px] text-slate-500">
+              Legg inn alle lagene som gjorde det – deltakerne får 1p per korrekt nevnt lag (maks{' '}
+              {q.maxPoints}p hver).
+            </p>
           )}
         </div>
       ))}

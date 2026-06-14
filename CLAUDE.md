@@ -617,7 +617,9 @@ Etter første deploy: `git push` trigger automatisk deploy av begge.
   overstyringene inn i de statiske dataene før scoring – `App.tsx` holder dette i state.
 - Sluttspill-tab henter kamper fra allerede-hentede `results` (filtrert på runde, kun kjente lag),
   ikke et eget API-kall. Hver kamp er utvidbar med 2-talls input per deltaker.
-- Krydder-tab: ett felt per spørsmål (to felt for q7/q8). Tomt felt = ikke avgjort (`answer` forblir null).
+- Krydder-tab: ett felt per spørsmål. q7/q8 (rødt kort/selvmål) tar en **komma-separert liste** med
+  alle lag som gjorde det (deltakere får 1p per korrekt nevnt lag, maks 2). Lagres som `string[]` i
+  `bonusAnswers.json`. Tomt felt = ikke avgjort (`answer` forblir null).
 - Oppdater-tab: tømmer resultat-cachen og kaller `refresh()`.
 
 **Datadeling – «bake inn + redeploy» (valgt 2026-06-13):**
