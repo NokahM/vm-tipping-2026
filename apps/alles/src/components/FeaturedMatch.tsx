@@ -18,8 +18,15 @@ interface Props {
 export default function FeaturedMatch({ match, participants }: Props) {
   const [open, setOpen] = useState(false);
 
-  const live = match.status === 'IN_PLAY' || match.status === 'PAUSED';
-  const played = match.status === 'FINISHED' || live;
+  // Avspark kan ha vært selv om football-data.org henger etter med å flippe status til
+  // IN_PLAY – regn kampen som «live» når avsparkstidspunktet har passert og den ikke er ferdig.
+  const liveNow =
+    match.status === 'IN_PLAY' ||
+    match.status === 'PAUSED' ||
+    (Date.parse(match.utcDate) <= Date.now() && match.status !== 'FINISHED');
+  const finished = match.status === 'FINISHED';
+  const hasScore = match.homeGoals != null && match.awayGoals != null;
+  const showScore = finished || (liveNow && hasScore);
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
 
@@ -44,23 +51,23 @@ export default function FeaturedMatch({ match, participants }: Props) {
 
             {/* Stilling / klokkeslett */}
             <div className="shrink-0 px-2 text-center">
-              {played ? (
+              {showScore ? (
                 <div className="text-xl font-bold tabular-nums text-slate-100">
                   {match.homeGoals}
                   <span className="px-1 text-slate-500">–</span>
                   {match.awayGoals}
                 </div>
-              ) : (
+              ) : liveNow ? null : (
                 <div className="text-sm font-medium text-slate-300">
                   {formatKickoff(match.utcDate)}
                 </div>
               )}
-              {live ? (
+              {liveNow ? (
                 <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-red-400">
                   <span>● LIVE</span>
                   <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
                 </div>
-              ) : match.status === 'FINISHED' ? (
+              ) : finished ? (
                 <div className="text-[10px] text-slate-500">Ferdig</div>
               ) : (
                 <div className="mt-1 flex justify-center">

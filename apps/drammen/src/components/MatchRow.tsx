@@ -18,8 +18,14 @@ interface Props {
 export default function MatchRow({ match, participants }: Props) {
   const [open, setOpen] = useState(false);
 
-  const live = match.status === 'IN_PLAY' || match.status === 'PAUSED';
-  const played = match.status === 'FINISHED' || live;
+  // Avspark kan ha vært selv om football-data.org henger etter med å flippe status til
+  // IN_PLAY – regn kampen som «live» når avsparkstidspunktet har passert og den ikke er ferdig.
+  const liveNow =
+    match.status === 'IN_PLAY' ||
+    match.status === 'PAUSED' ||
+    (Date.parse(match.utcDate) <= Date.now() && match.status !== 'FINISHED');
+  const hasScore = match.homeGoals != null && match.awayGoals != null;
+  const played = match.status === 'FINISHED' || (liveNow && hasScore);
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
 
@@ -48,7 +54,7 @@ export default function MatchRow({ match, participants }: Props) {
           ) : (
             <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
           )}
-          {live && (
+          {liveNow && (
             <span
               className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 text-[10px] text-red-400"
               title="Live"

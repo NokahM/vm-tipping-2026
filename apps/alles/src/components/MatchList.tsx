@@ -14,18 +14,25 @@ function byDate(a: MatchResult, b: MatchResult): number {
 
 /** Velger «aktuell kamp»: live nå, ellers neste kommende, ellers sist spilte. */
 function pickFeatured(known: MatchResult[]): MatchResult | null {
-  const live = known
-    .filter((m) => m.status === 'IN_PLAY' || m.status === 'PAUSED')
-    .sort(byDate);
-  if (live.length) return live[0];
-
   const now = Date.now();
+  // En kamp varer ~2t; gi rom for pause/tillegg før vi slutter å regne den som «pågående».
+  const LIVE_WINDOW = 3.5 * 60 * 60 * 1000;
+
+  // «Pågår nå»: eksplisitt live-status, ELLER avspark har vært men kampen er ikke ferdig
+  // (football-data.org henger ofte noen minutter etter med å flippe status til IN_PLAY,
+  // og da skal kampen IKKE forsvinne fra Aktuelt idet klokken passerer avspark).
+  const liveish = known
+    .filter((m) => {
+      if (m.status === 'IN_PLAY' || m.status === 'PAUSED') return true;
+      if (m.status === 'FINISHED') return false;
+      const kickoff = new Date(m.utcDate).getTime();
+      return kickoff <= now && now - kickoff < LIVE_WINDOW;
+    })
+    .sort(byDate);
+  if (liveish.length) return liveish[0];
+
   const upcoming = known
-    .filter(
-      (m) =>
-        (m.status === 'SCHEDULED' || m.status === 'TIMED') &&
-        new Date(m.utcDate).getTime() >= now,
-    )
+    .filter((m) => m.status !== 'FINISHED' && new Date(m.utcDate).getTime() > now)
     .sort(byDate);
   if (upcoming.length) return upcoming[0];
 
