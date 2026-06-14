@@ -663,9 +663,10 @@ kolonne (`max-w-2xl`). Ingen egen to-kolonne desktop-layout lenger (desktop = mo
 **Leaderboard (`Leaderboard.tsx`):**
 - Rad: `#  navn  plasserings-pil  grønn·gul·rød (midtstilt)  sum`. Identisk mobil/desktop.
 - **Plasserings-pil** (`computeRankDeltas`): sammenligner nå-tabellen mot tabellen *før siste
-  resultat-pulje* (alle ferdige kamper med seneste avspark = én hendelse → samtidige kamper teller
-  som én). ▲tall = opp, ▼tall = ned, – = uendret. Basert på **plassering** (delt plass deler tall),
-  ikke rad-posisjon. Kun FINISHED-kamper teller (live påvirker ingenting).
+  kampdag* (alle ferdige kamper med seneste UTC-dato = én pulje, så hele dagens runde – inkl.
+  samtidige kamper – teller som én hendelse). ▲tall = opp, ▼tall = ned, – = uendret. Basert på
+  **plassering** (delt plass deler tall), ikke rad-posisjon. Kun FINISHED-kamper teller (live påvirker
+  ingenting). Merk: pila viser «dagens bevegelse» – nullstilles ved ny kampdag, ikke per enkeltkamp.
 - **Trykk på navn** → `participantBreakdown`: viser hvor poengene kom fra. Kun poenggivende treff
   (kamper som kompakt `lag resultat lag +p`, krydder med svar). Bomtipp utelates.
 

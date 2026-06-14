@@ -156,6 +156,19 @@ const rkDeltas = computeRankDeltas(rkCurrent, rkParts, rkResults, BONUS_QUESTION
 assert('P2 gikk opp (+1)', rkDeltas.get('P2'), 1);
 assert('P1 uendret (0)', rkDeltas.get('P1'), 0);
 
+// 4e2) hele siste kampdag grupperes: to kamper samme UTC-dato = én pulje
+const e0 = rkMatch(10, 'C1', 'C2', 1, 0, '2026-06-12T12:00:00Z'); // baseline (tidligere dag)
+const e1 = rkMatch(11, 'A1', 'A2', 1, 0, '2026-06-13T12:00:00Z'); // siste dag, tidlig
+const e2 = rkMatch(12, 'B1', 'B2', 1, 0, '2026-06-13T20:00:00Z'); // siste dag, sent (samme dato)
+const eP1: Participant = { name: 'E1', groupTips: [gtip('C1', 'C2', 1, 0), gtip('A1', 'A2', 0, 1), gtip('B1', 'B2', 0, 1)], bonusTips: [], knockoutTips: [] }; // kun e0 → 3
+const eP2: Participant = { name: 'E2', groupTips: [gtip('C1', 'C2', 0, 1), gtip('A1', 'A2', 1, 0), gtip('B1', 'B2', 1, 0)], bonusTips: [], knockoutTips: [] }; // e1+e2 → 6
+const eParts = [eP1, eP2];
+const eResults = [e0, e1, e2];
+const eDeltas = computeRankDeltas(computeStandings(eParts, eResults, BONUS_QUESTIONS), eParts, eResults, BONUS_QUESTIONS);
+// Før siste kampdag (kun e0): E1 #1, E2 #2. Etter: E2 #1, E1 #2. ▲ kun mulig hvis e1+e2 grupperes.
+assert('E2 opp 1 (hele kampdagen gruppert)', eDeltas.get('E2'), 1);
+assert('E1 ned 1', eDeltas.get('E1'), -1);
+
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
 for (const s of standings) {

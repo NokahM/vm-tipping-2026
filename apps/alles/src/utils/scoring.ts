@@ -340,9 +340,10 @@ export function participantBreakdown(
 }
 
 /**
- * Plasseringsendring etter forrige resultat-pulje: navn → delta (positiv = opp,
- * negativ = ned, 0 = uendret). «Forrige pulje» er alle ferdige kamper som deler
- * det seneste avsparkstidspunktet (så samtidige kamper teller som én hendelse).
+ * Plasseringsendring etter siste kampdag: navn → delta (positiv = opp, negativ =
+ * ned, 0 = uendret). «Siste kampdag» = alle ferdige kamper med den seneste UTC-datoen,
+ * så bevegelse vises per kampdag (samtidige kamper og hele dagens runde teller som én
+ * hendelse). Sammenligner nåværende tabell mot tabellen før den dagens resultater.
  */
 export function computeRankDeltas(
   current: ParticipantScore[],
@@ -355,10 +356,13 @@ export function computeRankDeltas(
   const finished = results.filter(isPlayed);
   if (finished.length === 0) return deltas; // ingen resultater ennå → ingen bevegelse
 
-  let lastKickoff = '';
-  for (const m of finished) if (m.utcDate > lastKickoff) lastKickoff = m.utcDate;
+  let lastDay = '';
+  for (const m of finished) {
+    const day = m.utcDate.slice(0, 10); // "YYYY-MM-DD"
+    if (day > lastDay) lastDay = day;
+  }
   const lastBatch = new Set(
-    finished.filter((m) => m.utcDate === lastKickoff).map((m) => m.apiId),
+    finished.filter((m) => m.utcDate.slice(0, 10) === lastDay).map((m) => m.apiId),
   );
 
   const prevResults = results.filter((m) => !lastBatch.has(m.apiId));
