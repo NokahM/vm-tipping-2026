@@ -421,8 +421,8 @@ function BonusTab({
           />
           {LIST_ANSWER_IDS.has(q.id) && (
             <p className="mt-1 text-[11px] text-slate-500">
-              Legg inn alle lagene som gjorde det – deltakerne får 1p per korrekt nevnt lag (maks{' '}
-              {q.maxPoints}p hver).
+              Legg inn alle lagene som gjorde det – deltakerne får {q.maxPoints / 2}p per korrekt
+              nevnt lag (maks {q.maxPoints}p hver).
             </p>
           )}
         </div>
