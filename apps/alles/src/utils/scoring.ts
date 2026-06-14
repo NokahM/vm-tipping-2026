@@ -181,13 +181,15 @@ export function scoreBonusQuestion(
   }
 
   if (Array.isArray(q.answer)) {
-    // q7/q8: 1 poeng per korrekt nevnt lag, maks maxPoints.
+    // q7/q8: poeng per korrekt nevnt lag. Deltakerne nevner 2 lag, så hvert lag er verdt
+    // maxPoints/2 (q7: 1p per lag av maks 2; q8: 2p per lag av maks 4).
     const actual = new Set(q.answer.map(norm));
+    const perTeam = q.maxPoints / 2;
     for (const p of participants) {
       const tip = tipFor(p);
       if (!tip) continue;
       const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
-      if (hits > 0) add(p.name, Math.min(hits, q.maxPoints));
+      if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
     }
     return points;
   }

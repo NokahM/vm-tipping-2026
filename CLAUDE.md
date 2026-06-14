@@ -740,7 +740,9 @@ Behandle `undefined`/`null` tips som 0 poeng uten feilmelding.
 ### Krydderspørsmål – spesialregler
 - **Sp. 5 (antall mål):** Nærmest fasit vinner. Ved likt: begge får poeng.
 - **Sp. 6 (raskeste mål):** Innenfor ±15 sekunder fra fasit.
-- **Sp. 7 & 8 (rødt kort / selvmål):** 1 poeng per korrekt nevnt lag (maks 2p).
+- **Sp. 7 (rødt kort):** 1 poeng per korrekt nevnt lag (maks 2p).
+- **Sp. 8 (selvmål):** **2 poeng** per korrekt nevnt lag (maks 4p). Derfor `maxPoints: 4` for q8.
+  Generelt for liste-spørsmål: poeng per lag = `maxPoints / 2` (deltakerne nevner 2 lag).
 - **Sp. 15 (kjendis):** Manuelt avgjort av fasit-setter.
 
 ### API-nøkkel i utvikling

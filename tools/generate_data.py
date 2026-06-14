@@ -103,10 +103,14 @@ def parse_bonus(rows):
             continue
         qnum = int(c0[:-1])
         qid = f"q{qnum}"
+        max_points = int(cell(r, 2).replace("p", ""))
+        # Regelvedtak: selvmål (q8) gir 2p per korrekt lag → maks 4 (2 lag × 2p).
+        if qid == "q8":
+            max_points = 4
         questions.append({
             "id": qid,
             "question": cell(r, 1),
-            "maxPoints": int(cell(r, 2).replace("p", "")),
+            "maxPoints": max_points,
             "two": qnum in TWO_ANSWER_QUESTIONS,
         })
         nxt = rows[i + 1] if i + 1 < len(rows) else []
