@@ -31,12 +31,8 @@ export default function FeaturedMatch({ match, participants }: Props) {
   const away = normalizeTeamName(match.awayTeam);
 
   return (
-    <section className="mb-5">
-      <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-white">
-        Aktuelt
-      </h2>
-      <div className="overflow-hidden rounded-xl border border-slate-600 bg-slate-800 ring-1 ring-wc-red/30">
-        <button
+    <div>
+      <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="w-full px-4 pt-3 pb-2 text-left active:bg-slate-700/30"
@@ -93,7 +89,6 @@ export default function FeaturedMatch({ match, participants }: Props) {
             <TipChips match={match} participants={participants} />
           </div>
         )}
-      </div>
-    </section>
+    </div>
   );
 }
