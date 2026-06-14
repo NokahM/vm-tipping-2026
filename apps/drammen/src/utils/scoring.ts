@@ -291,3 +291,52 @@ export function pointsForTip(tip: Goals, match: MatchResult): number | null {
   if (!isPlayed(match)) return null;
   return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
 }
+
+export interface ScoringItem {
+  kind: 'match' | 'bonus';
+  title: string; // "Mexico–Sør-Afrika" eller spørsmålstekst
+  detail: string; // tip + fasit, eller krydder-svar
+  points: number;
+}
+
+/**
+ * Alle kildene der en deltaker faktisk har FÅTT poeng (kamper og krydder).
+ * Bomtipp (0 poeng) tas ikke med. Kamper sorteres kronologisk, krydder til slutt.
+ */
+export function participantBreakdown(
+  participant: Participant,
+  participants: Participant[],
+  results: MatchResult[],
+  questions: BonusQuestion[],
+): ScoringItem[] {
+  const items: ScoringItem[] = [];
+
+  const played = results.filter(isPlayed).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+  for (const m of played) {
+    const tip = tipForMatch(participant, m);
+    if (!tip) continue;
+    const pts = calcPoints(tip.home, tip.away, m.homeGoals, m.awayGoals);
+    if (pts <= 0) continue;
+    items.push({
+      kind: 'match',
+      title: `${normalizeTeamName(m.homeTeam)}–${normalizeTeamName(m.awayTeam)}`,
+      detail: `${tip.home}–${tip.away} · fasit ${m.homeGoals}–${m.awayGoals}`,
+      points: pts,
+    });
+  }
+
+  for (const q of questions) {
+    if (q.answer === null) continue;
+    const pts = scoreBonusQuestion(participants, q).get(participant.name) ?? 0;
+    if (pts <= 0) continue;
+    const tip = participant.bonusTips.find((t) => t.questionId === q.id);
+    const answer = tip
+      ? Array.isArray(tip.answer)
+        ? tip.answer.join(' + ')
+        : tip.answer
+      : '';
+    items.push({ kind: 'bonus', title: q.question, detail: answer, points: pts });
+  }
+
+  return items;
+}

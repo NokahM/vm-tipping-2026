@@ -156,7 +156,14 @@ export default function App() {
         )}
 
         {/* Enkel mobil-stil layout på alle skjermstørrelser: én kolonne, valgt fane. */}
-        {view === 'tabell' && <Leaderboard standings={standings} />}
+        {view === 'tabell' && (
+          <Leaderboard
+            standings={standings}
+            participants={participants}
+            results={results}
+            questions={questions}
+          />
+        )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}
         {view === 'krydder' && (
           <BonusQuestions questions={questions} participants={participants} />

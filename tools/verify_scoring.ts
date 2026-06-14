@@ -5,7 +5,7 @@
  */
 import { PARTICIPANTS } from '../apps/drammen/src/data/participants';
 import { BONUS_QUESTIONS } from '../apps/drammen/src/data/bonusQuestions';
-import { calcPoints, computeStandings } from '../apps/drammen/src/utils/scoring';
+import { calcPoints, computeStandings, participantBreakdown } from '../apps/drammen/src/utils/scoring';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
@@ -121,6 +121,14 @@ assert(
   reconcileResults([settled], [m('Canada', 'Bosnia-Herzegovina', 2, 1, 'GROUP_B')])[0].homeGoals,
   2,
 );
+
+// 4d) participantBreakdown: kun poenggivende treff, sum = gruppepoeng
+console.log('participantBreakdown (Erling):');
+const erlingP = PARTICIPANTS.find((p) => p.name === 'Erling')!;
+const breakdown = participantBreakdown(erlingP, PARTICIPANTS, results, BONUS_QUESTIONS);
+assert('antall poengkilder (Mexico 3p + Brasil 1p)', breakdown.length, 2);
+assert('ingen 0-poengs-kilder', breakdown.every((i) => i.points > 0), true);
+assert('sum = gruppepoeng (4)', breakdown.reduce((s, i) => s + i.points, 0), 4);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
