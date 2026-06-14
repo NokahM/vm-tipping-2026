@@ -5,7 +5,7 @@ import { STORAGE_KEYS } from '../config';
 import type { MatchResult } from '../types';
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutter
-const POLL_INTERVAL = 60 * 1000; // auto-oppdater hvert minutt (edge-cachen skåner rategrensen)
+const POLL_INTERVAL = 25 * 1000; // auto-oppdater hvert 25. sek (edge-cachen skåner rategrensen)
 
 interface CacheShape {
   data: MatchResult[];

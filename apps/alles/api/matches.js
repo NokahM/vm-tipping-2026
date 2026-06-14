@@ -32,8 +32,9 @@ export default async function handler(req, res) {
     );
     const body = await upstream.text();
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    // Cache på Vercels edge i 60s for å skåne rategrensen (10 kall/min).
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+    // Cache på Vercels edge i 20s for å skåne rategrensen (10 kall/min). Kortere enn
+    // før (60s) for ferskere resultater – ~3 oppstrømskall/min per app, godt under taket.
+    res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=120');
     return res.status(upstream.status).send(body);
   } catch (e) {
     return res.status(502).json({ error: `Kunne ikke nå football-data.org: ${e.message}` });
