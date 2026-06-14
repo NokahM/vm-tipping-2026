@@ -46,11 +46,11 @@ export default function MatchRow({ match, participants }: Props) {
               {match.awayGoals}
             </span>
           ) : (
-            <span className="relative text-xs tabular-nums text-slate-400">
-              {formatKickoff(match.utcDate)}
-              <span className="absolute left-full top-1/2 ml-1.5 flex -translate-y-1/2 items-center">
-                <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
-              </span>
+            <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
+          )}
+          {!played && (
+            <span className="absolute left-full top-1/2 ml-1.5 flex -translate-y-1/2 items-center">
+              <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
             </span>
           )}
           {live && (
