@@ -57,7 +57,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
                   <span className="px-1 text-slate-500">–</span>
                   {match.awayGoals}
                 </div>
-              ) : liveNow ? null : (
+              ) : (
                 <div className="text-sm font-medium text-slate-300">
                   {formatKickoff(match.utcDate)}
                 </div>

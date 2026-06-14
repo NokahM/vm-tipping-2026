@@ -5,6 +5,7 @@ import { STORAGE_KEYS } from '../config';
 import type { MatchResult } from '../types';
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutter
+const POLL_INTERVAL = 60 * 1000; // auto-oppdater hvert minutt (edge-cachen skåner rategrensen)
 
 interface CacheShape {
   data: MatchResult[];
@@ -39,18 +40,25 @@ export function useMatches(): UseMatchesResult {
     localStorage.setItem(STORAGE_KEYS.results, JSON.stringify({ data, timestamp } as CacheShape));
   }, []);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const fresh = await fetchWCMatches();
-      store(reconcileResults(resultsRef.current, fresh), Date.now());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunne ikke hente resultater.');
-    } finally {
-      setLoading(false);
-    }
-  }, [store]);
+  // silent=true ved bakgrunns-polling: ingen «Laster …»-flimmer, men data og
+  // feilstatus oppdateres som vanlig.
+  const doFetch = useCallback(
+    async (silent: boolean) => {
+      if (!silent) setLoading(true);
+      setError(null);
+      try {
+        const fresh = await fetchWCMatches();
+        store(reconcileResults(resultsRef.current, fresh), Date.now());
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Kunne ikke hente resultater.');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [store],
+  );
+
+  const refresh = useCallback(() => doFetch(false), [doFetch]);
 
   useEffect(() => {
     const cached = localStorage.getItem(STORAGE_KEYS.results);
@@ -68,8 +76,22 @@ export function useMatches(): UseMatchesResult {
         // korrupt cache – hent på nytt
       }
     }
-    void refresh();
-  }, [refresh]);
+    void doFetch(false);
+  }, [doFetch]);
+
+  // Auto-oppdatering: hent ferske resultater hvert minutt mens fanen er synlig,
+  // og umiddelbart når brukeren kommer tilbake til fanen. Stille (ingen spinner).
+  useEffect(() => {
+    const tick = () => {
+      if (!document.hidden) void doFetch(true);
+    };
+    const id = setInterval(tick, POLL_INTERVAL);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [doFetch]);
 
   return { results, loading, error, lastUpdated, refresh };
 }
