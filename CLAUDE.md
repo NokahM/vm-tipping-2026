@@ -735,15 +735,23 @@ regenererer jeg `participants.ts` via `tools/generate_data.py` og verifiserer an
 
 ## Backlog (fremtid)
 
-- **«Aktuell kamp» ved flere samtidige kamper.** I dag viser kortet KUN ÉN kamp (`pickFeatured` i
-  `MatchList.tsx`: live nå → ellers neste kommende → ellers sist spilte). Når flere kamper spilles
-  samtidig (typisk siste gruppekamp-runde, kl. 21:00-kampene; og bronse/finale-helg), bør det bli til
-  **flere kort** – f.eks. en «Aktuelle kamper»-seksjon som viser ALLE som er live nå (eller alle i
-  neste avsparkspulje hvis ingen er live ennå). Forslag: endre `pickFeatured()` til å returnere en
-  liste (`MatchResult[]`): live-puljen hvis noen lever, ellers neste avsparkspulje, ellers `[]`; og
-  render én `FeaturedMatch` per kamp. Komponentene støtter allerede dette (bare velg-logikken endres).
+- **Sluttspills-visning for «Kamper»-fanen (når sluttspillet starter).** Ønske: når
+  gruppespillet er over og sluttspillet i gang, skal **«Kamper»-knappen føre rett til
+  sluttspill-kampene** (R32 → finale), ikke til gruppespillet. Må presenteres på en **visuelt
+  tilfredsstillende måte** – vurder f.eks. en bracket-/turneringstre-følelse, eller runde-for-runde-
+  seksjoner med tydelig hierarki, der gruppespillet skyves ned/kollapses (eller får en egen
+  under-fane). I dag rendrer `MatchList.tsx` alle stages i `STAGE_ORDER` med gruppespillet øverst;
+  endringen handler om rekkefølge/standardvisning + design, ikke ny data. Tenk mobil-først (smal
+  skjerm gjør et fullt bracket-tre krevende – kanskje horisontal scroll per runde, eller kort).
+- **Utvide «Aktuelt» til 3 (kanskje 4) kamper.** I dag inntil **2** (`FEATURED_LIMIT` i
+  `MatchList.tsx`). Selve tallet er en ett-linjes endring, men tenk på **visuell tetthet på mobil**:
+  3–4 kamprader i den rød-kantede boksen blir høyt – vurder mer kompakte rader, eller at boksen kun
+  fylles med så mange som faktisk er live/relevante samtidig. «Vi får se» – avgjøres når vi ser
+  hvordan samtidige sluttspill-/siste-gruppekamprunder ser ut.
 - **Favicon + app-ikon** fra VM-logoen (`index.html` + `public/`).
-- **NRK/TV2-kanal i «Aktuell kamp»** (etter klokkeslett / ved LIVE-merket). **Undersøkt 2026-06-14:**
+- **NRK/TV2-kanal i «Aktuelt»** (etter klokkeslett / ved LIVE-merket). **✅ IMPLEMENTERT 2026-06-14**
+  (`broadcasters.json` + `BroadcasterBadge`, gruppespillet fylt). Gjenstår: fyll sluttspill per runde.
+  Opprinnelig research beholdt under:
   - **Vårt API har det ikke.** football-data.org-kampene har kun `area, competition, season, id,
     utcDate, status, matchday, stage, group, lastUpdated, homeTeam, awayTeam, score, odds, referees`
     – ingen kringkaster-felt.

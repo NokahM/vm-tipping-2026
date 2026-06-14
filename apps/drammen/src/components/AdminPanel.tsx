@@ -90,7 +90,7 @@ function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: (pw: strin
   return (
     <div className="min-h-screen bg-slate-900 px-4 py-16 text-slate-100">
       <form onSubmit={submit} className="mx-auto max-w-sm space-y-4">
-        <h1 className="text-xl font-bold">Admin – {APP_CONFIG.groupName}</h1>
+        <h1 className="text-xl font-bold">Admin</h1>
         <input
           type="password"
           autoFocus
@@ -144,7 +144,7 @@ function AdminContent({
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <header className="sticky top-0 z-10 border-b border-slate-700 bg-slate-900/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <h1 className="text-lg font-bold">Admin – {APP_CONFIG.groupName}</h1>
+          <h1 className="text-lg font-bold">Admin</h1>
           <div className="flex gap-2">
             <button
               type="button"
