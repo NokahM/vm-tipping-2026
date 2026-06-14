@@ -39,7 +39,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
             {/* Hjemmelag: logo med navn under */}
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
               <TeamLogo name={home} className="h-9 w-9" />
-              <span className="w-full truncate text-center font-semibold text-slate-100">{home}</span>
+              <span className="w-full truncate text-center font-semibold leading-tight text-slate-100">{home}</span>
             </div>
 
             {/* Stilling / klokkeslett */}
@@ -72,7 +72,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
             {/* Bortelag: logo med navn under */}
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
               <TeamLogo name={away} className="h-9 w-9" />
-              <span className="w-full truncate text-center font-semibold text-slate-100">{away}</span>
+              <span className="w-full truncate text-center font-semibold leading-tight text-slate-100">{away}</span>
             </div>
           </div>
 

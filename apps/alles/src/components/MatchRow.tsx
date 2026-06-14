@@ -68,9 +68,12 @@ export default function MatchRow({ match, participants }: Props) {
 
       {open && (
         <div className="px-3 pb-2.5">
-          <div className="mb-2 flex justify-center">
-            <BroadcasterBadge apiId={match.apiId} className="h-4" />
-          </div>
+          {/* Kanal vises ikke for ferdigspilte kamper – ikke interessant lenger. */}
+          {match.status !== 'FINISHED' && (
+            <div className="mb-2 flex justify-center">
+              <BroadcasterBadge apiId={match.apiId} className="h-4" />
+            </div>
+          )}
           <TipChips match={match} participants={participants} />
         </div>
       )}
