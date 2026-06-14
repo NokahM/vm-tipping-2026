@@ -7,7 +7,7 @@ En React-webapplikasjon som viser live-poengtabell for to vennegjengers VM-tippi
 ## To vennegrupper
 
 ### Gruppe 1: Drammen
-Deltakere: **Erling, Rune, Håkon, Geir, Tore, Tor Arne** (6 deltakere)
+Deltakere: **Erling, Rune, Håkon, Geir, Tore, Tor Arne, Duc** (7 deltakere)
 
 ### Gruppe 2: Alles Tips
 Deltakere: **Skjalg, Sindre, Anne Marte, Ole, Eirik, Margret, Håkon Emil, Morten, Hilde, Sofia, Nicholas, Trond, Anders, Ida, Erling, Håkon M, Bent Arne, Gunvor, Lisa, Espen, Jonas G, Kay Robin, Magnus, Jonas W, Viktor, Kajsa** (26 deltakere)
@@ -704,7 +704,16 @@ kolonne (`max-w-2xl`). Ingen egen to-kolonne desktop-layout lenger (desktop = mo
 **Robusthet:** `reconcileResults` (i `useMatches`) sikrer at et allerede ferdig resultat aldri kan
 «forsvinne» pga. en inkonsistent/forbigående API-respons.
 
-**Data:** Tor Arne i Drammen (6 deltakere), Kajsa i Alles (26). Lag-/pokal-logoer er PNG, ikke SVG.
+**Data:** Tor Arne + Duc i Drammen (7 deltakere), Kajsa i Alles (26). Lag-/pokal-logoer er PNG, ikke SVG.
+
+**Sen deltaker Duc (Drammen, 2026-06-15):** Kom inn etter at VM hadde startet, leverte et eget
+enkeltmann-skjema (`data/VM 2026 skjema-Duc-Drammen.xlsx`, layout: kol I=kamp, L=tips, N/O=krydder).
+Lagt til via `tools/add_duc.py` (gruppespill-tips leses fra skjemaet og valideres mot kanon; 65 tips,
+7 allerede spilte kamper står blanke siden han ikke kunne tippe dem). Krydder-svarene var rotete og
+er **tolket** (se `DUC_BONUS` i scriptet): q1 «Norge» (svaret lå én rad for høyt), q5 «189» (ikke
+«-5»-margin-rotet), q6 «07:30» (han skrev «5-10 minutter» → midtpunkt), q7 «DR Kongo»+«Ghana»,
+q8 «Curaçao»+«Tunisia». Blanke: q10, q13, q15, q17. **Ved full regenerering: kjør `add_duc.py` på nytt.**
+Justér enkelt-svar ved behov i admin (Krydder-fasit påvirkes ikke; dette er Ducs egne tips).
 
 **Tester:** `tools/verify_scoring.ts` (`npx tsx`) dekker calcPoints, matching, krydder-regler,
 storage-fletting, reconcile, breakdown og rank-deltas.
