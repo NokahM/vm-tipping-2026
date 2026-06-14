@@ -78,7 +78,7 @@ function LeaderboardRow({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left active:bg-slate-700/30"
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left active:bg-slate-700/30"
         aria-expanded={open}
       >
         <span
@@ -97,7 +97,7 @@ function LeaderboardRow({
           <span className="text-slate-600"> · </span>
           <span className="text-red-400">{s.wrongOutcomes}</span>
         </span>
-        <span className="ml-1 w-9 text-right text-lg font-bold tabular-nums text-emerald-400">
+        <span className="ml-1 w-9 text-right text-lg font-bold leading-none tabular-nums text-emerald-400">
           {s.total}
         </span>
       </button>
