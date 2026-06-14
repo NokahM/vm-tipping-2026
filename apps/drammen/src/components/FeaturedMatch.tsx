@@ -76,7 +76,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
             </div>
           </div>
 
-          <div className="text-center text-[11px] text-slate-500">
+          <div className="-mt-2 text-center text-[11px] text-slate-500">
             {open ? 'Skjul tips ▲' : 'Vis tips ▼'}
           </div>
         </button>
