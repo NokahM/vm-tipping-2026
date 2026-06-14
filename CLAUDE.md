@@ -740,10 +740,10 @@ Behandle `undefined`/`null` tips som 0 poeng uten feilmelding.
 ### Krydderspørsmål – spesialregler
 - **Sp. 5 (antall mål):** Nærmest fasit vinner. Ved likt: begge får poeng.
 - **Sp. 6 (raskeste mål):** Innenfor ±15 sekunder fra fasit.
-- **Sp. 7 (rødt kort):** 1 poeng per korrekt nevnt lag (maks 2p).
-- **Sp. 8 (selvmål):** **2 poeng** per korrekt nevnt lag (maks 4p). Derfor `maxPoints: 4` for q8.
-  Generelt for liste-spørsmål: poeng per lag = `maxPoints / 2` (deltakerne nevner 2 lag).
-- **Sp. 15 (kjendis):** Manuelt avgjort av fasit-setter.
+- **Sp. 7 (rødt kort) & 8 (selvmål):** **2 poeng** per korrekt nevnt lag (maks 4p hver). Derfor
+  `maxPoints: 4` for q7 og q8. Poeng per lag = `maxPoints / 2` (deltakerne nevner 2 lag). `PER_TEAM_IDS`.
+- **Sp. 15 (kjendis):** Fasit er en **komma-separert liste** (flere kan dø). Deltakeren nevner én
+  kjendis → **full pott (3p)** hvis den er i lista, ellers 0 («medlemskap», ikke per-element).
 
 ### API-nøkkel i utvikling
 Lag en `.env.local`-fil i hver app-mappe (ikke commit denne):

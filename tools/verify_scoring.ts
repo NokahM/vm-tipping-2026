@@ -81,8 +81,8 @@ const fasit: BonusQuestion[] = BONUS_QUESTIONS.map((q) => {
 const withBonus = computeStandings(PARTICIPANTS, results, fasit);
 const find = (n: string) => withBonus.find((s) => s.name === n)!;
 console.log('Krydderpoeng (syntetisk fasit):');
-// Erling: q1 Frankrike +5, q6 00:35 +2, q7 Nederland +1 = 8
-assert('Erling bonus', find('Erling').bonusPoints, 8);
+// Erling: q1 Frankrike +5, q6 00:35 +2, q7 Nederland (2p/lag) +2 = 9
+assert('Erling bonus', find('Erling').bonusPoints, 9);
 // Tore: q1 Frankrike +5, q5 nærmest +2 = 7
 assert('Tore bonus', find('Tore').bonusPoints, 7);
 // Rune: q1 Spania (feil) = 0
@@ -170,15 +170,18 @@ const eDeltas = computeRankDeltas(computeStandings(eParts, eResults, BONUS_QUEST
 assert('E2 opp 1 (hele kampdagen gruppert)', eDeltas.get('E2'), 1);
 assert('E1 ned 1', eDeltas.get('E1'), -1);
 
-// 4f) q8 (selvmål): 2p per korrekt lag (maks 4); q7 (rødt kort): 1p per lag (maks 2)
-console.log('Liste-spørsmål (per-lag-poeng):');
+// 4f) q7/q8: 2p per korrekt lag (maks 4); q15: full pott hvis kjendis i lista
+console.log('Liste-spørsmål:');
 const q7q = BONUS_QUESTIONS.find((q) => q.id === 'q7')!;
 const q8q = BONUS_QUESTIONS.find((q) => q.id === 'q8')!;
-// Erling q7-tip: ["Nederland","Portugal"]; q8-tip: ["Curacao","Kapp Verde"]
-assert('q7 ett riktig = 1p', scoreBonusQuestion(PARTICIPANTS, { ...q7q, answer: ['Nederland'] }).get('Erling'), 1);
-assert('q7 begge riktige = 2p', scoreBonusQuestion(PARTICIPANTS, { ...q7q, answer: ['Nederland', 'Portugal'] }).get('Erling'), 2);
+const q15q = BONUS_QUESTIONS.find((q) => q.id === 'q15')!;
+// Erling: q7-tip ["Nederland","Portugal"], q8-tip ["Curacao","Kapp Verde"], q15-tip "Prinsesse Astrid"
+assert('q7 ett riktig = 2p', scoreBonusQuestion(PARTICIPANTS, { ...q7q, answer: ['Nederland'] }).get('Erling'), 2);
+assert('q7 begge riktige = 4p', scoreBonusQuestion(PARTICIPANTS, { ...q7q, answer: ['Nederland', 'Portugal'] }).get('Erling'), 4);
 assert('q8 ett riktig = 2p', scoreBonusQuestion(PARTICIPANTS, { ...q8q, answer: ['Curacao'] }).get('Erling'), 2);
 assert('q8 begge riktige = 4p', scoreBonusQuestion(PARTICIPANTS, { ...q8q, answer: ['Curacao', 'Kapp Verde'] }).get('Erling'), 4);
+assert('q15 kjendis i lista = 3p', scoreBonusQuestion(PARTICIPANTS, { ...q15q, answer: ['Prinsesse Astrid', 'Pave Frans'] }).get('Erling'), 3);
+assert('q15 kjendis ikke i lista = 0p', scoreBonusQuestion(PARTICIPANTS, { ...q15q, answer: ['Pave Frans'] }).get('Erling'), 0);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');

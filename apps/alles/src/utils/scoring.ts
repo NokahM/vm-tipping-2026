@@ -134,6 +134,10 @@ function bonusAnswerOf(tip: BonusTip): string[] {
   return Array.isArray(tip.answer) ? tip.answer : [tip.answer];
 }
 
+// Liste-fasit-spørsmål der deltakeren nevner FLERE og får poeng per korrekt (maxPoints/2 per lag).
+// Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
+const PER_TEAM_IDS = new Set(['q7', 'q8']);
+
 /**
  * Krydderpoeng for ett spørsmål, for alle deltakere (navn → poeng).
  * Alle får 0 hvis fasit ikke er satt. q5 «nærmest» krever hele feltet samtidig.
@@ -181,15 +185,23 @@ export function scoreBonusQuestion(
   }
 
   if (Array.isArray(q.answer)) {
-    // q7/q8: poeng per korrekt nevnt lag. Deltakerne nevner 2 lag, så hvert lag er verdt
-    // maxPoints/2 (q7: 1p per lag av maks 2; q8: 2p per lag av maks 4).
     const actual = new Set(q.answer.map(norm));
-    const perTeam = q.maxPoints / 2;
-    for (const p of participants) {
-      const tip = tipFor(p);
-      if (!tip) continue;
-      const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
-      if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
+    if (PER_TEAM_IDS.has(q.id)) {
+      // q7/q8: deltakerne nevner 2 lag, hvert korrekt lag er verdt maxPoints/2 (begge nå 2p, maks 4).
+      const perTeam = q.maxPoints / 2;
+      for (const p of participants) {
+        const tip = tipFor(p);
+        if (!tip) continue;
+        const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
+        if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
+      }
+    } else {
+      // Liste-fasit med ett tip (q15 kjendis): full pott hvis deltakerens svar er i lista.
+      for (const p of participants) {
+        const tip = tipFor(p);
+        if (!tip) continue;
+        if (bonusAnswerOf(tip).some((a) => actual.has(norm(a)))) add(p.name, q.maxPoints);
+      }
     }
     return points;
   }

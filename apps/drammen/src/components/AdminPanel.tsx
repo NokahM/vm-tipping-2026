@@ -21,9 +21,10 @@ interface Props {
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'vm2026';
 const AUTH_KEY = `${APP_CONFIG.storageSuffix}_admin_authed`;
-// q7 (rødt kort) og q8 (selvmål): fasit er en LISTE med alle lag som gjorde det
-// (deltakere får 1p per korrekt nevnt lag). Legges inn komma-separert.
-const LIST_ANSWER_IDS = new Set(['q7', 'q8']);
+// Spørsmål med liste-fasit (komma-separert input): q7 (rødt kort), q8 (selvmål) og
+// q15 (kjendis som dør). q7/q8 gir poeng per korrekt lag; q15 full pott hvis kjendisen er i lista.
+const LIST_ANSWER_IDS = new Set(['q7', 'q8', 'q15']);
+const PER_TEAM_IDS = new Set(['q7', 'q8']);
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 type Tab = 'sluttspill' | 'krydder' | 'oppdater';
@@ -414,15 +415,18 @@ function BonusTab({
             value={draft[q.id] ?? ''}
             onChange={(v) => setVal(q.id, v)}
             placeholder={
-              LIST_ANSWER_IDS.has(q.id)
-                ? 'Alle lag, komma-separert (Norge, Brasil, …)'
-                : 'Fasit (tom = ikke avgjort)'
+              !LIST_ANSWER_IDS.has(q.id)
+                ? 'Fasit (tom = ikke avgjort)'
+                : PER_TEAM_IDS.has(q.id)
+                  ? 'Alle lag, komma-separert (Norge, Brasil, …)'
+                  : 'Alle, komma-separert (Pave Frans, Charter-Svein, …)'
             }
           />
           {LIST_ANSWER_IDS.has(q.id) && (
             <p className="mt-1 text-[11px] text-slate-500">
-              Legg inn alle lagene som gjorde det – deltakerne får {q.maxPoints / 2}p per korrekt
-              nevnt lag (maks {q.maxPoints}p hver).
+              {PER_TEAM_IDS.has(q.id)
+                ? `Legg inn alle lagene som gjorde det – deltakerne får ${q.maxPoints / 2}p per korrekt nevnt lag (maks ${q.maxPoints}p hver).`
+                : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
         </div>
