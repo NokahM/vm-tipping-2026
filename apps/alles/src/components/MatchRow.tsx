@@ -36,8 +36,8 @@ export default function MatchRow({ match, participants }: Props) {
           <span className="truncate text-sm text-slate-100">{home}</span>
         </div>
 
-        {/* Stilling (+ LIVE etter), eller dato + klokkeslett hvis kampen ikke har startet */}
-        <div className="flex shrink-0 items-center gap-1.5 px-1 leading-tight">
+        {/* Stilling alltid sentrert; LIVE legges absolutt rett etter uten å flytte stillingen */}
+        <div className="relative flex shrink-0 items-center justify-center px-1 leading-tight">
           {played ? (
             <span className="text-sm font-bold tabular-nums text-slate-100">
               {match.homeGoals}
@@ -47,7 +47,11 @@ export default function MatchRow({ match, participants }: Props) {
           ) : (
             <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
           )}
-          {live && <span className="text-[10px] font-semibold text-red-400">● LIVE</span>}
+          {live && (
+            <span className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 whitespace-nowrap text-[10px] font-semibold text-red-400">
+              ● LIVE
+            </span>
+          )}
         </div>
 
         {/* Bortelag: navn + logo */}
