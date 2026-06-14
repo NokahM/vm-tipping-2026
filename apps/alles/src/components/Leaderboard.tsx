@@ -142,13 +142,25 @@ function BreakdownChip({ item }: { item: ScoringItem }) {
     item.points === 1
       ? 'border-amber-600/40 bg-amber-500/15 text-amber-300'
       : 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
+
+  if (item.kind === 'match') {
+    return (
+      <div className={`flex items-center gap-1.5 rounded border px-2 py-1 text-xs ${color}`}>
+        <span className="min-w-0 flex-1 truncate">{item.home}</span>
+        <span className="shrink-0 font-bold tabular-nums">{item.result}</span>
+        <span className="min-w-0 flex-1 truncate text-right">{item.away}</span>
+        <span className="shrink-0 font-bold tabular-nums">+{item.points}</span>
+      </div>
+    );
+  }
+
   return (
     <div className={`rounded border px-2 py-1 text-xs ${color}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="truncate font-medium">{item.title}</span>
+        <span className="truncate font-medium">{item.question}</span>
         <span className="shrink-0 font-bold tabular-nums">+{item.points}</span>
       </div>
-      {item.detail && <span className="block truncate text-[11px] opacity-80">{item.detail}</span>}
+      {item.answer && <span className="block truncate text-[11px] opacity-80">{item.answer}</span>}
     </div>
   );
 }

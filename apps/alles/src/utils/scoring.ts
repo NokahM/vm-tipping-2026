@@ -292,12 +292,9 @@ export function pointsForTip(tip: Goals, match: MatchResult): number | null {
   return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
 }
 
-export interface ScoringItem {
-  kind: 'match' | 'bonus';
-  title: string; // "Mexico–Sør-Afrika" eller spørsmålstekst
-  detail: string; // tip + fasit, eller krydder-svar
-  points: number;
-}
+export type ScoringItem =
+  | { kind: 'match'; home: string; away: string; result: string; points: number }
+  | { kind: 'bonus'; question: string; answer: string; points: number };
 
 /**
  * Alle kildene der en deltaker faktisk har FÅTT poeng (kamper og krydder).
@@ -319,8 +316,9 @@ export function participantBreakdown(
     if (pts <= 0) continue;
     items.push({
       kind: 'match',
-      title: `${normalizeTeamName(m.homeTeam)}–${normalizeTeamName(m.awayTeam)}`,
-      detail: `${tip.home}–${tip.away} · fasit ${m.homeGoals}–${m.awayGoals}`,
+      home: normalizeTeamName(m.homeTeam),
+      away: normalizeTeamName(m.awayTeam),
+      result: `${m.homeGoals}–${m.awayGoals}`,
       points: pts,
     });
   }
@@ -335,7 +333,7 @@ export function participantBreakdown(
         ? tip.answer.join(' + ')
         : tip.answer
       : '';
-    items.push({ kind: 'bonus', title: q.question, detail: answer, points: pts });
+    items.push({ kind: 'bonus', question: q.question, answer, points: pts });
   }
 
   return items;
