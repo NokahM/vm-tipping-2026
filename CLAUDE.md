@@ -643,27 +643,81 @@ Når en ny sluttspill-runde starter:
 
 ---
 
-## Fremtidige planer (backlog)
+## Implementert (oppdatert 2026-06-14)
 
-Ikke påbegynt – ønsket av Håkon (oppdatert 2026-06-13):
+Utover Milestone 1–5 er følgende bygget og i drift lokalt. Begge apper er kodedelt – kun
+`config.ts`, `data/participants.ts`, `data/*.json` og `public/teams` skiller dem (resten kopieres likt).
 
-- **Offisielle VM 2026-farger.** Restyle begge apper i mesterskapets offisielle palett.
-  Brand-grafikken (`assets/FIFA-World-Cup-26-...avif`) viser: dominant **rød** «26», mot en
-  livlig retro/op-art-bakgrunn i rød, oransje, gul, limegrønn, mørkegrønn, turkis, blå,
-  fiolett/lilla, magenta/rosa og lavendel + hvitt. Konkret: definer paletten som Tailwind v4-tema
-  (`@theme` i `index.css`), rødt som primær/aksent på mørk bakgrunn, regnbue-stripene som
-  sekundæraksenter (f.eks. rang-/fanefarger). Behold mobile-first og god kontrast.
-- **Bilder i `assets/`.** Legge inn VM-logo o.l. Merk: root-`assets/` bygges IKKE av appene.
-  Bilder som faktisk skal vises må kopieres til `apps/<app>/public/` (refereres som `/filnavn.png`)
-  eller importeres fra `src/`. Plan: optimaliser (helst SVG/AVIF/WebP) og legg i begge appers `public/`,
-  bruk i header (logo) + evt. favicon (`index.html` + `public/`).
-- **Lag-logoer.** Last ned logo/flagg for alle 48 lag (foretrukket **SVG**). Legg i
-  `apps/<app>/public/teams/` med filnavn som matcher (f.eks. norsk lagnavn eller `tla`).
-  Lag en hjelper `teamLogo(name)` → sti. Brukes i kamprader og «Aktuell kamp»-kortet.
-- **«Aktuell kamp»-kort øverst i Kamper-fanen.** Vis neste kamp som skal spilles, eller den som er
-  **LIVE nå**, i et fremhevet kort øverst: `<logo> <lagnavn> <stilling> <lagnavn> <logo>`.
-  Klikkbart → utvider alles tips (samme som vanlige kamprader). Kampen skal **fortsatt** vises på
-  sin vanlige plass i gruppespill-/runde-listen (kortet er et duplikat-fremheving, ikke en flytting).
+**Design / tema (offisielle VM 2026-farger, samplet fra brand-grafikken):**
+- `index.css`: `@theme`-tokens (`--color-wc-red`, `-lime`, `-mint`, `-blue`, `-lavender` …), op-art-
+  striper (`.wc-stripes`), knapp-stil (`.wc-btn`), og **fast** side-bakgrunn (`.wc-page::before`,
+  `position: fixed` → står helt stille ved scroll, ingen parallaks-kvalme).
+- Header: diagonale farger + mørkt slør for lesbar hvit tekst, hvit VM-logo (`public/wc-logo.png`,
+  uttrukket og nedskalert fra PNG) + tittel «TIPPEKONK». Aktiv fane bruker stripe-stilen.
+  Status viser kun klokkeslett. Subtilt tannhjul i footeren → admin.
+- Body holdes rolig/mørk med hvit tekst. Poeng-fargekoding i **standard** grønn/gul/rød.
+
+**Layout:** konsekvent mobil-stil på alle skjermer – tre faner (Tabell/Kamper/Krydder), én sentrert
+kolonne (`max-w-2xl`). Ingen egen to-kolonne desktop-layout lenger (desktop = mobil, bare bredere).
+
+**Leaderboard (`Leaderboard.tsx`):**
+- Rad: `#  navn  plasserings-pil  grønn·gul·rød (midtstilt)  sum`. Identisk mobil/desktop.
+- **Plasserings-pil** (`computeRankDeltas`): sammenligner nå-tabellen mot tabellen *før siste
+  resultat-pulje* (alle ferdige kamper med seneste avspark = én hendelse → samtidige kamper teller
+  som én). ▲tall = opp, ▼tall = ned, – = uendret. Basert på **plassering** (delt plass deler tall),
+  ikke rad-posisjon. Kun FINISHED-kamper teller (live påvirker ingenting).
+- **Trykk på navn** → `participantBreakdown`: viser hvor poengene kom fra. Kun poenggivende treff
+  (kamper som kompakt `lag resultat lag +p`, krydder med svar). Bomtipp utelates.
+
+**Kamper:**
+- Kamprad + «Aktuell kamp»-kort: `logo  lag  stilling  lag  logo`. Stilling alltid sentrert; dato +
+  klokkeslett (`14.06   21:00`) når kampen ikke har startet; rød prikk (rad) / «● LIVE» (kort) live.
+  Klikkbar → alles tips (`TipChips`, delt komponent). «Aktuell kamp» blir også værende i runde-lista.
+- Lag-logoer: `public/teams/<slug>.png` (256px transparente PNG). `teamLogos.ts` mapper norsk lagnavn
+  → slug (= filnavn-prefiks fra football-logos.cc); `TeamLogo` faller elegant tilbake om logo mangler.
+
+**Robusthet:** `reconcileResults` (i `useMatches`) sikrer at et allerede ferdig resultat aldri kan
+«forsvinne» pga. en inkonsistent/forbigående API-respons.
+
+**Data:** Tor Arne i Drammen (6 deltakere), Kajsa i Alles (26). Lag-/pokal-logoer er PNG, ikke SVG.
+
+**Tester:** `tools/verify_scoring.ts` (`npx tsx`) dekker calcPoints, matching, krydder-regler,
+storage-fletting, reconcile, breakdown og rank-deltas.
+
+---
+
+## Sluttspill: innhenting av tips (foretrukket arbeidsflyt)
+
+Sluttspill-lagene er ukjente på forhånd, så tips samles inn runde for runde. Modellen er
+**«bake inn i koden + redeploy»** (samme som gruppespill): de innbakte JSON-filene er den delte
+sannheten, localStorage er kun admin sin live-forhåndsvisning. Tips matches mot resultat via **`apiId`**.
+
+**Per runde (R32 → finale):**
+1. Når runden er trukket dukker kampene opp automatisk fra API-et (TBD-kamper skjules til lagene er klare).
+2. Samle inn tips fra deltakerne (WhatsApp e.l.).
+3. Admin (`?admin=true`, passord `vm2026` / `VITE_ADMIN_PASSWORD`) → **Sluttspill**-fanen → velg runde
+   → legg inn 2-talls tips per deltaker per kamp → **Lagre** (lokal forhåndsvisning).
+4. **Eksporter JSON** → lim inn i `apps/<app>/src/data/knockoutTips.json` (gjøres per app).
+5. `git push` → Vercel redeployer → synlig for alle.
+
+Krydder-fasit settes på samme måte i **Krydder-fasit**-fanen → `bonusAnswers.json` (tomt felt = ikke avgjort).
+
+**Alternativ (raskt):** send meg tipsene/fasiten, så baker jeg dem inn i JSON-filene direkte (slik vi
+gjorde med deltaker-oppdateringen). **Nye/endrede deltakere:** bytt ut Excel-filene i `data/`, så
+regenererer jeg `participants.ts` via `tools/generate_data.py` og verifiserer antall + lagnavn.
+
+---
+
+## Backlog (fremtid)
+
+- **«Aktuell kamp» ved flere samtidige kamper.** I dag viser kortet KUN ÉN kamp (`pickFeatured` i
+  `MatchList.tsx`: live nå → ellers neste kommende → ellers sist spilte). Når flere kamper spilles
+  samtidig (typisk siste gruppekamp-runde, kl. 21:00-kampene; og bronse/finale-helg), bør det bli til
+  **flere kort** – f.eks. en «Aktuelle kamper»-seksjon som viser ALLE som er live nå (eller alle i
+  neste avsparkspulje hvis ingen er live ennå). Forslag: endre `pickFeatured()` til å returnere en
+  liste (`MatchResult[]`): live-puljen hvis noen lever, ellers neste avsparkspulje, ellers `[]`; og
+  render én `FeaturedMatch` per kamp. Komponentene støtter allerede dette (bare velg-logikken endres).
+- **Favicon + app-ikon** fra VM-logoen (`index.html` + `public/`).
 - (fyll inn flere ønsker her etter hvert)
 
 ---
