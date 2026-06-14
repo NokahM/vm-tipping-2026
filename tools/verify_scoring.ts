@@ -156,10 +156,10 @@ const rkDeltas = computeRankDeltas(rkCurrent, rkParts, rkResults, BONUS_QUESTION
 assert('P2 gikk opp (+1)', rkDeltas.get('P2'), 1);
 assert('P1 uendret (0)', rkDeltas.get('P1'), 0);
 
-// 4e2) hele siste kampdag grupperes: to kamper samme UTC-dato = én pulje
-const e0 = rkMatch(10, 'C1', 'C2', 1, 0, '2026-06-12T12:00:00Z'); // baseline (tidligere dag)
-const e1 = rkMatch(11, 'A1', 'A2', 1, 0, '2026-06-13T12:00:00Z'); // siste dag, tidlig
-const e2 = rkMatch(12, 'B1', 'B2', 1, 0, '2026-06-13T20:00:00Z'); // siste dag, sent (samme dato)
+// 4e2) hele runden grupperes på tvers av UTC-midnatt (grense 10:00 UTC / 12:00 norsk)
+const e0 = rkMatch(10, 'C1', 'C2', 1, 0, '2026-06-12T12:00:00Z'); // forrige runde
+const e1 = rkMatch(11, 'A1', 'A2', 1, 0, '2026-06-13T21:00:00Z'); // 23:00 norsk 13/6
+const e2 = rkMatch(12, 'B1', 'B2', 1, 0, '2026-06-14T02:00:00Z'); // 04:00 norsk 14/6 (samme runde, krysser UTC-midnatt)
 const eP1: Participant = { name: 'E1', groupTips: [gtip('C1', 'C2', 1, 0), gtip('A1', 'A2', 0, 1), gtip('B1', 'B2', 0, 1)], bonusTips: [], knockoutTips: [] }; // kun e0 → 3
 const eP2: Participant = { name: 'E2', groupTips: [gtip('C1', 'C2', 0, 1), gtip('A1', 'A2', 1, 0), gtip('B1', 'B2', 1, 0)], bonusTips: [], knockoutTips: [] }; // e1+e2 → 6
 const eParts = [eP1, eP2];

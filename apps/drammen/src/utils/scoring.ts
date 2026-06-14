@@ -339,11 +339,21 @@ export function participantBreakdown(
   return items;
 }
 
+// Grensen mellom «kampdager» settes til 10:00 UTC = 12:00 norsk sommertid – midt i det
+// daglige kampfrie vinduet. Da havner en hel runde (som for VM 2026 i Nord-Amerika strekker
+// seg over midnatt europeisk tid) i samme pulje. Vi forskyver tidspunktet 10 timer tilbake
+// før vi tar datoen, så grensen faller på 10:00 UTC i stedet for 00:00 UTC.
+const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000;
+function matchDayKey(utcDate: string): string {
+  return new Date(Date.parse(utcDate) - MATCHDAY_BOUNDARY_MS).toISOString().slice(0, 10);
+}
+
 /**
  * Plasseringsendring etter siste kampdag: navn → delta (positiv = opp, negativ =
- * ned, 0 = uendret). «Siste kampdag» = alle ferdige kamper med den seneste UTC-datoen,
- * så bevegelse vises per kampdag (samtidige kamper og hele dagens runde teller som én
- * hendelse). Sammenligner nåværende tabell mot tabellen før den dagens resultater.
+ * ned, 0 = uendret). «Siste kampdag» = alle ferdige kamper i den seneste runden, der en
+ * runde avgrenses ved 10:00 UTC / 12:00 norsk (samtidige kamper og hele rundens kamper –
+ * inkl. de som krysser midnatt – teller som én hendelse). Sammenligner nåværende tabell mot
+ * tabellen før den rundens resultater.
  */
 export function computeRankDeltas(
   current: ParticipantScore[],
@@ -358,11 +368,11 @@ export function computeRankDeltas(
 
   let lastDay = '';
   for (const m of finished) {
-    const day = m.utcDate.slice(0, 10); // "YYYY-MM-DD"
+    const day = matchDayKey(m.utcDate);
     if (day > lastDay) lastDay = day;
   }
   const lastBatch = new Set(
-    finished.filter((m) => m.utcDate.slice(0, 10) === lastDay).map((m) => m.apiId),
+    finished.filter((m) => matchDayKey(m.utcDate) === lastDay).map((m) => m.apiId),
   );
 
   const prevResults = results.filter((m) => !lastBatch.has(m.apiId));
