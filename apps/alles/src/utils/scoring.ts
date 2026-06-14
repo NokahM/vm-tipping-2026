@@ -338,3 +338,36 @@ export function participantBreakdown(
 
   return items;
 }
+
+/**
+ * Plasseringsendring etter forrige resultat-pulje: navn → delta (positiv = opp,
+ * negativ = ned, 0 = uendret). «Forrige pulje» er alle ferdige kamper som deler
+ * det seneste avsparkstidspunktet (så samtidige kamper teller som én hendelse).
+ */
+export function computeRankDeltas(
+  current: ParticipantScore[],
+  participants: Participant[],
+  results: MatchResult[],
+  questions: BonusQuestion[],
+): Map<string, number> {
+  const deltas = new Map<string, number>();
+
+  const finished = results.filter(isPlayed);
+  if (finished.length === 0) return deltas; // ingen resultater ennå → ingen bevegelse
+
+  let lastKickoff = '';
+  for (const m of finished) if (m.utcDate > lastKickoff) lastKickoff = m.utcDate;
+  const lastBatch = new Set(
+    finished.filter((m) => m.utcDate === lastKickoff).map((m) => m.apiId),
+  );
+
+  const prevResults = results.filter((m) => !lastBatch.has(m.apiId));
+  const previous = computeStandings(participants, prevResults, questions);
+  const prevRank = new Map(previous.map((s) => [s.name, s.rank]));
+
+  for (const s of current) {
+    const before = prevRank.get(s.name) ?? s.rank;
+    deltas.set(s.name, before - s.rank); // lavere rank = bedre → positiv = opp
+  }
+  return deltas;
+}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant, ParticipantScore } from '../types';
-import { participantBreakdown, type ScoringItem } from '../utils/scoring';
+import { computeRankDeltas, participantBreakdown, type ScoringItem } from '../utils/scoring';
 
 interface Props {
   standings: ParticipantScore[];
@@ -19,6 +19,11 @@ export default function Leaderboard({ standings, participants, results, question
   const byName = useMemo(
     () => new Map(participants.map((p) => [p.name, p])),
     [participants],
+  );
+
+  const deltas = useMemo(
+    () => computeRankDeltas(standings, participants, results, questions),
+    [standings, participants, results, questions],
   );
 
   return (
@@ -40,6 +45,7 @@ export default function Leaderboard({ standings, participants, results, question
           <LeaderboardRow
             key={s.name}
             score={s}
+            delta={deltas.get(s.name)}
             participant={byName.get(s.name)}
             participants={participants}
             results={results}
@@ -53,12 +59,14 @@ export default function Leaderboard({ standings, participants, results, question
 
 function LeaderboardRow({
   score: s,
+  delta,
   participant,
   participants,
   results,
   questions,
 }: {
   score: ParticipantScore;
+  delta: number | undefined;
   participant: Participant | undefined;
   participants: Participant[];
   results: MatchResult[];
@@ -85,7 +93,10 @@ function LeaderboardRow({
           {s.rank}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-slate-100">{s.name}</p>
+          <p className="flex items-center gap-1.5 font-medium text-slate-100">
+            <span className="truncate">{s.name}</span>
+            <MovementArrow delta={delta} />
+          </p>
           <p className="text-xs text-slate-500 sm:hidden">
             G {s.groupPoints} · S {s.knockoutPoints} · B {s.bonusPoints}
             <span className="ml-2 tabular-nums">
@@ -134,6 +145,36 @@ function LeaderboardRow({
         </div>
       )}
     </li>
+  );
+}
+
+function MovementArrow({ delta }: { delta: number | undefined }) {
+  if (!delta) {
+    return (
+      <span className="shrink-0 text-xs text-slate-600" title="Ingen endring" aria-label="Ingen endring">
+        –
+      </span>
+    );
+  }
+  if (delta > 0) {
+    return (
+      <span
+        className="shrink-0 text-[10px] text-emerald-400"
+        title={`Opp ${delta}`}
+        aria-label={`Opp ${delta} plasser`}
+      >
+        ▲
+      </span>
+    );
+  }
+  return (
+    <span
+      className="shrink-0 text-[10px] text-red-400"
+      title={`Ned ${-delta}`}
+      aria-label={`Ned ${-delta} plasser`}
+    >
+      ▼
+    </span>
   );
 }
 

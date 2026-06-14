@@ -5,7 +5,12 @@
  */
 import { PARTICIPANTS } from '../apps/drammen/src/data/participants';
 import { BONUS_QUESTIONS } from '../apps/drammen/src/data/bonusQuestions';
-import { calcPoints, computeStandings, participantBreakdown } from '../apps/drammen/src/utils/scoring';
+import {
+  calcPoints,
+  computeRankDeltas,
+  computeStandings,
+  participantBreakdown,
+} from '../apps/drammen/src/utils/scoring';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
@@ -129,6 +134,27 @@ const breakdown = participantBreakdown(erlingP, PARTICIPANTS, results, BONUS_QUE
 assert('antall poengkilder (Mexico 3p + Brasil 1p)', breakdown.length, 2);
 assert('ingen 0-poengs-kilder', breakdown.every((i) => i.points > 0), true);
 assert('sum = gruppepoeng (4)', breakdown.reduce((s, i) => s + i.points, 0), 4);
+
+// 4e) computeRankDeltas: bevegelse etter siste (seneste) resultat-pulje
+console.log('computeRankDeltas (to puljer):');
+const rkMatch = (apiId: number, h: string, a: string, hg: number, ag: number, date: string): MatchResult => ({
+  apiId, stage: 'GROUP_STAGE', group: 'GROUP_A', homeTeam: h, awayTeam: a,
+  homeGoals: hg, awayGoals: ag, status: 'FINISHED', utcDate: date,
+});
+const gtip = (h: string, a: string, hg: number, ag: number) => ({
+  homeTeam: h, awayTeam: a, group: 'GROUP_A', homeGoals: hg, awayGoals: ag,
+});
+const m1 = rkMatch(1, 'A1', 'A2', 1, 0, '2026-06-12T19:00:00Z'); // tidlig pulje
+const m2 = rkMatch(2, 'B1', 'B2', 1, 0, '2026-06-13T19:00:00Z'); // seneste pulje
+const rkP1: Participant = { name: 'P1', groupTips: [gtip('A1', 'A2', 1, 0), gtip('B1', 'B2', 0, 1)], bonusTips: [], knockoutTips: [] };
+const rkP2: Participant = { name: 'P2', groupTips: [gtip('A1', 'A2', 0, 1), gtip('B1', 'B2', 1, 0)], bonusTips: [], knockoutTips: [] };
+const rkParts = [rkP1, rkP2];
+const rkResults = [m1, m2];
+// Før m2: P1=3 (rank1), P2=0 (rank2). Etter m2: begge=3 (delt rank1).
+const rkCurrent = computeStandings(rkParts, rkResults, BONUS_QUESTIONS);
+const rkDeltas = computeRankDeltas(rkCurrent, rkParts, rkResults, BONUS_QUESTIONS);
+assert('P2 gikk opp (+1)', rkDeltas.get('P2'), 1);
+assert('P1 uendret (0)', rkDeltas.get('P1'), 0);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
