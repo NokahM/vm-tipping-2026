@@ -48,8 +48,12 @@ export default function MatchRow({ match, participants }: Props) {
             <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
           )}
           {live && (
-            <span className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 whitespace-nowrap text-[10px] font-semibold text-red-400">
-              ● LIVE
+            <span
+              className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 text-[10px] text-red-400"
+              title="Live"
+              aria-label="Live"
+            >
+              ●
             </span>
           )}
         </div>
