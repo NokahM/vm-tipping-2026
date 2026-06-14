@@ -46,9 +46,11 @@ export default function MatchRow({ match, participants }: Props) {
               {match.awayGoals}
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-xs tabular-nums text-slate-400">
+            <span className="relative text-xs tabular-nums text-slate-400">
               {formatKickoff(match.utcDate)}
-              <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
+              <span className="absolute left-full top-1/2 ml-1.5 flex -translate-y-1/2 items-center">
+                <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
+              </span>
             </span>
           )}
           {live && (
