@@ -9,6 +9,7 @@ import {
   calcPoints,
   computeRankDeltas,
   computeStandings,
+  displayPointsForTip,
   participantBreakdown,
   scoreBonusQuestion,
 } from '../apps/drammen/src/utils/scoring';
@@ -31,6 +32,16 @@ assert('eksakt 0-0', calcPoints(0, 0, 0, 0), 3);
 assert('riktig utfall hjemme', calcPoints(2, 1, 1, 0), 1);
 assert('riktig utfall uavgjort', calcPoints(1, 1, 2, 2), 1);
 assert('feil utfall', calcPoints(2, 1, 0, 2), 0);
+
+// 1b) Foreløpige poeng på live-kamp (kun visning – ikke tabellen)
+console.log('displayPointsForTip:');
+const liveMatch = { status: 'IN_PLAY', homeGoals: 2, awayGoals: 1 } as unknown as MatchResult;
+const schedMatch = { status: 'TIMED', homeGoals: null, awayGoals: null } as unknown as MatchResult;
+const finishedMatch = { status: 'FINISHED', homeGoals: 0, awayGoals: 0 } as unknown as MatchResult;
+assert('live eksakt = 3p (foreløpig)', displayPointsForTip({ home: 2, away: 1 }, liveMatch), 3);
+assert('live utfall = 1p (foreløpig)', displayPointsForTip({ home: 1, away: 0 }, liveMatch), 1);
+assert('ikke startet = null', displayPointsForTip({ home: 1, away: 0 }, schedMatch), null);
+assert('ferdig teller fortsatt', displayPointsForTip({ home: 0, away: 0 }, finishedMatch), 3);
 
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');

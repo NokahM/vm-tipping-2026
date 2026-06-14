@@ -306,6 +306,18 @@ export function pointsForTip(tip: Goals, match: MatchResult): number | null {
   return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
 }
 
+/**
+ * Som pointsForTip, men gir også FORELØPIGE poeng mens en kamp pågår (live-stilling).
+ * Brukes KUN til visuell fargekoding i kamp-tips – påvirker ikke tabellen/standings,
+ * som fortsatt teller utelukkende ferdigspilte kamper.
+ */
+export function displayPointsForTip(tip: Goals, match: MatchResult): number | null {
+  const started =
+    match.status === 'FINISHED' || match.status === 'IN_PLAY' || match.status === 'PAUSED';
+  if (!started || match.homeGoals === null || match.awayGoals === null) return null;
+  return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
+}
+
 export type ScoringItem =
   | { kind: 'match'; home: string; away: string; result: string; points: number }
   | { kind: 'bonus'; question: string; answer: string; points: number };
