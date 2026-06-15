@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Progression } from '../utils/progression';
 
 interface Props {
@@ -43,21 +43,6 @@ export default function ProgressionChart({ progression }: Props) {
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(series.slice(0, 3).map((s) => s.name)),
   );
-  const [fullscreen, setFullscreen] = useState(false);
-
-  // Roter fullskjerm-grafen til landskap KUN når telefonen står i portrett. Hvis telefonen
-  // (auto-)roteres til landskap blir skjermen allerede bred, så vi dropper rotasjonen –
-  // ellers ville det blitt dobbel-snu.
-  const [isPortrait, setIsPortrait] = useState(
-    () => typeof window === 'undefined' || window.matchMedia('(orientation: portrait)').matches,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(orientation: portrait)');
-    const onChange = (e: MediaQueryListEvent) => setIsPortrait(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-
   if (days.length === 0) {
     return (
       <p className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-6 text-center text-sm text-slate-400">
@@ -94,7 +79,7 @@ export default function ProgressionChart({ progression }: Props) {
       return next;
     });
 
-  function renderSvg(vbW: number, vbH: number, fill = false) {
+  function renderSvg(vbW: number, vbH: number) {
     const PAD = { left: 18, right: 52, top: 10, bottom: 20 };
     const plotW = vbW - PAD.left - PAD.right;
     const plotH = vbH - PAD.top - PAD.bottom;
@@ -104,8 +89,7 @@ export default function ProgressionChart({ progression }: Props) {
     return (
       <svg
         viewBox={`0 0 ${vbW} ${vbH}`}
-        className={fill ? 'h-full w-full' : 'w-full'}
-        preserveAspectRatio={fill ? 'xMidYMid meet' : undefined}
+        className="w-full"
         role="img"
         aria-label="Poengutvikling over tid"
       >
@@ -205,58 +189,10 @@ export default function ProgressionChart({ progression }: Props) {
 
   return (
     <section className="space-y-2">
-      <div className="relative overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+      <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
         {renderSvg(340, 240)}
-        <button
-          type="button"
-          onClick={() => setFullscreen(true)}
-          className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 text-white"
-          aria-label="Fullskjerm"
-          title="Fullskjerm"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path d="M3 3h6v2H5v4H3V3zm8 0h6v6h-2V5h-4V3zM3 11h2v4h4v2H3v-6zm14 0v6h-6v-2h4v-4h2z" />
-          </svg>
-        </button>
       </div>
       {legend}
-
-      {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-slate-900">
-          {/* Portrett: roter innholdet 90° til landskap (snu telefonen). Landskap: vis rett. */}
-          <div
-            className="flex flex-col p-3"
-            style={
-              isPortrait
-                ? {
-                    position: 'absolute',
-                    top: 0,
-                    left: '100%',
-                    width: '100vh',
-                    height: '100vw',
-                    transformOrigin: 'top left',
-                    transform: 'rotate(90deg)',
-                  }
-                : { position: 'absolute', inset: 0 }
-            }
-          >
-            <div className="mb-1 flex shrink-0 items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white">Utvikling</h2>
-              <button
-                type="button"
-                onClick={() => setFullscreen(false)}
-                className="rounded-lg bg-wc-red px-3 py-1 text-sm font-semibold text-white"
-              >
-                Lukk
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
-              {renderSvg(560, 240, true)}
-            </div>
-            <div className="mt-1 max-h-16 shrink-0 overflow-auto">{legend}</div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }
