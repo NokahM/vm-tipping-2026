@@ -134,10 +134,11 @@ const prog = computeProgression(
   BONUS_QUESTIONS,
   {},
 );
-assert('progresjon: to dager', prog.days.length, 2);
+assert('progresjon: start + to dager', prog.days.length, 3);
 const erlingProg = prog.series.find((s) => s.name === 'Erling')!;
-assert('Erling dag 1 = 3', erlingProg.totals[0], 3);
-assert('Erling dag 2 = 4 (kumulativt)', erlingProg.totals[1], 4);
+assert('alle starter på 0', erlingProg.totals[0], 0);
+assert('Erling dag 1 = 3', erlingProg.totals[1], 3);
+assert('Erling dag 2 = 4 (kumulativt)', erlingProg.totals[2], 4);
 
 // 1h) computeProgression: liste-spørsmål (q8 selvmål) datert PER LAG
 console.log('computeProgression per-lag-dato (q8):');
@@ -151,10 +152,11 @@ const q8full = BONUS_QUESTIONS.find((q) => q.id === 'q8')!;
 const ogProg = computeProgression([ownGoalP], [], [{ ...q8full, answer: ['Paraguay', 'Spania'] }], {
   q8: { ats: { Paraguay: '2026-06-13T12:00:00Z', Spania: '2026-06-15T12:00:00Z' } },
 });
-assert('per-lag: to dager', ogProg.days.length, 2);
+assert('per-lag: start + to dager', ogProg.days.length, 3);
 const ogS = ogProg.series.find((s) => s.name === 'X')!;
-assert('dag 1: kun Paraguay = 2p', ogS.totals[0], 2);
-assert('dag 2: begge lag = 4p', ogS.totals[1], 4);
+assert('start på 0', ogS.totals[0], 0);
+assert('dag 1: kun Paraguay = 2p', ogS.totals[1], 2);
+assert('dag 2: begge lag = 4p', ogS.totals[2], 4);
 
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');

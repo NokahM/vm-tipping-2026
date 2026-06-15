@@ -18,6 +18,13 @@ export interface Progression {
   series: ProgressionSeries[]; // sortert på final (synkende), så topp-N = de N første
 }
 
+/** Dagen før (YYYY-MM-DD) – brukes til «start»-punktet der alle står på 0. */
+function dayBefore(ymd: string): string {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 /**
  * Kumulativ poengutvikling per deltaker, dag for dag (samme 10:00 UTC / 12:00 norsk-grense
  * som plasserings-pilene). Kamp-poeng bøttes til kampens matchday. Krydder-poeng bøttes til
@@ -76,10 +83,12 @@ export function computeProgression(
     for (const p of participants) totalsByName.get(p.name)!.push(byName.get(p.name) ?? 0);
   }
 
+  // «Start»-dag (dagen før første kampdag) der alle står på 0, så linjene stiger fra 0.
+  const startDay = dayBefore(days[0]);
   const series: ProgressionSeries[] = participants.map((p) => {
-    const totals = totalsByName.get(p.name)!;
+    const totals = [0, ...totalsByName.get(p.name)!];
     return { name: p.name, totals, final: totals[totals.length - 1] ?? 0 };
   });
   series.sort((a, b) => b.final - a.final || a.name.localeCompare(b.name, 'no'));
-  return { days, series };
+  return { days: [startDay, ...days], series };
 }
