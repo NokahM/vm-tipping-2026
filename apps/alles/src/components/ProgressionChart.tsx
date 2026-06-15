@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Progression } from '../utils/progression';
 
 interface Props {
@@ -44,6 +44,19 @@ export default function ProgressionChart({ progression }: Props) {
     () => new Set(series.slice(0, 3).map((s) => s.name)),
   );
   const [fullscreen, setFullscreen] = useState(false);
+
+  // Roter fullskjerm-grafen til landskap KUN når telefonen står i portrett. Hvis telefonen
+  // (auto-)roteres til landskap blir skjermen allerede bred, så vi dropper rotasjonen –
+  // ellers ville det blitt dobbel-snu.
+  const [isPortrait, setIsPortrait] = useState(
+    () => typeof window === 'undefined' || window.matchMedia('(orientation: portrait)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait)');
+    const onChange = (e: MediaQueryListEvent) => setIsPortrait(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   if (days.length === 0) {
     return (
@@ -210,18 +223,22 @@ export default function ProgressionChart({ progression }: Props) {
 
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-slate-900">
-          {/* Roterer innholdet 90° til landskap: bredden = telefonens høyde. Snu telefonen. */}
+          {/* Portrett: roter innholdet 90° til landskap (snu telefonen). Landskap: vis rett. */}
           <div
             className="flex flex-col p-3"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: '100%',
-              width: '100vh',
-              height: '100vw',
-              transformOrigin: 'top left',
-              transform: 'rotate(90deg)',
-            }}
+            style={
+              isPortrait
+                ? {
+                    position: 'absolute',
+                    top: 0,
+                    left: '100%',
+                    width: '100vh',
+                    height: '100vw',
+                    transformOrigin: 'top left',
+                    transform: 'rotate(90deg)',
+                  }
+                : { position: 'absolute', inset: 0 }
+            }
           >
             <div className="mb-1 flex shrink-0 items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white">Utvikling</h2>
