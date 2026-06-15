@@ -25,9 +25,10 @@ import Leaderboard from './components/Leaderboard';
 import ProgressionChart from './components/ProgressionChart';
 import MatchList from './components/MatchList';
 import BonusQuestions from './components/BonusQuestions';
+import GroupTables from './components/GroupTables';
 import AdminPanel from './components/AdminPanel';
 
-type View = 'tabell' | 'kamper' | 'krydder';
+type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
 
 // Innbakt (delt) admin-data fra repoet. localStorage legges oppå som live-overstyring.
 const KNOCKOUT_BAKED = knockoutBaked as KnockoutStore;
@@ -234,6 +235,9 @@ export default function App() {
             <TabButton active={view === 'krydder'} onClick={() => setView('krydder')}>
               Krydder
             </TabButton>
+            <TabButton active={view === 'stats'} onClick={() => setView('stats')}>
+              Stats
+            </TabButton>
           </div>
         </div>
       </header>
@@ -287,6 +291,12 @@ export default function App() {
             <BonusQuestions questions={questions} participants={participants} results={results} />
           </div>
         )}
+        {view === 'stats' && (
+          <div className="space-y-2">
+            <p className="px-1 text-center text-[11px] text-slate-500">Gruppetabeller</p>
+            <GroupTables results={results} />
+          </div>
+        )}
       </main>
     </div>
   );
@@ -329,7 +339,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[34px] flex-1 rounded-lg px-3 text-sm font-semibold transition [text-shadow:0_1px_2px_rgb(0_0_0/0.6)] ${
+      className={`min-h-[34px] flex-1 rounded-lg px-2 text-sm font-semibold transition [text-shadow:0_1px_2px_rgb(0_0_0/0.6)] ${
         active ? 'wc-btn text-white shadow-sm' : 'bg-slate-800 text-slate-300 [text-shadow:none]'
       }`}
     >

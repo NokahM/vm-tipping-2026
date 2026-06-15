@@ -263,8 +263,11 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
 - **Header:** diagonale farger + mørkt slør, hvit VM-logo + tittel «Tippekonk». «Oppdatert hh:mm» +
   et **subtilt, gjennomsiktig tannhjul** (→ admin). Ingen offentlig refresh-knapp (auto-polling dekker
   det); manuell refresh ligger i admin.
-- **Faner:** tre (Stilling / Kamper / Krydder), én sentrert kolonne. «Stilling» har en under-toggle
-  `Stilling | Graf` (tabell vs. utviklingsgraf).
+- **Faner:** fire (Stilling / Kamper / Krydder / Stats), én sentrert kolonne. Standard landingsfane er
+  **Kamper**. «Stilling» har en under-toggle `Stilling | Graf` (tabell vs. utviklingsgraf).
+- **Stats-fanen:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra
+  ferdigspilte gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Tiltenkt
+  utvidet med toppscorere/assist/kort fra deep data (krever aggregator over alle kamper – se «Deep data»).
 - **Leaderboard:** kompakte rader `#  navn  plasserings-pil  grønn·gul·rød  sum`. Trykk på navn →
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
