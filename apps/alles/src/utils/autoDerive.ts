@@ -1,7 +1,7 @@
 import type { MatchResult } from '../types';
 import type { StatsData } from '../hooks/useStats';
 import type { BonusStore } from './storage';
-import { matchDayKey } from './scoring';
+import { groupGoalLeaders, matchDayKey } from './scoring';
 import { normalizeTeamName } from './teamNames';
 import { worstTeamSoFar } from './groupTables';
 
@@ -58,12 +58,19 @@ export function deriveDecidedBonus(results: MatchResult[]): BonusStore {
     store.q5 = { answer: String(total), at: `${latestDay(results)}T12:00:00.000Z` };
   }
 
-  // q10: dårligste lag – når gruppespillet er ferdig.
+  // q9 + q10: avgjøres når gruppespillet er ferdig.
   const group = results.filter((m) => m.stage === 'GROUP_STAGE');
   if (group.length > 0 && group.every((m) => m.status === 'FINISHED')) {
+    const groupDay = `${latestDay(group)}T12:00:00.000Z`;
+    // q9: gruppe(r) med flest mål – likt på toppen → alle (gruppe-bokstav-matching i scoringen).
+    const leaders = groupGoalLeaders(results);
+    if (leaders && leaders.leaders.length > 0) {
+      store.q9 = { answer: leaders.leaders, at: groupDay };
+    }
+    // q10: dårligste lag.
     const worst = worstTeamSoFar(results);
     if (worst) {
-      store.q10 = { answer: normalizeTeamName(worst.team), at: `${latestDay(group)}T12:00:00.000Z` };
+      store.q10 = { answer: normalizeTeamName(worst.team), at: groupDay };
     }
   }
 

@@ -115,6 +115,11 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
+/** Gruppe-bokstaver (A–L) som står alene i et q9-svar, f.eks. «Gruppe I og L» → [I, L]. */
+export function groupLetters(text: string): string[] {
+  return text.toUpperCase().match(/\b[A-L]\b/g) ?? [];
+}
+
 function firstNumber(s: string): number {
   const m = s.match(/\d+/);
   return m ? Number(m[0]) : NaN;
@@ -177,6 +182,22 @@ export function scoreBonusQuestion(
       if (!tip) continue;
       const guess = timeToSeconds(bonusAnswerOf(tip)[0] ?? '');
       if (guess !== null && Math.abs(guess - fasit) <= 15) add(p.name, q.maxPoints);
+    }
+    return points;
+  }
+
+  if (q.id === 'q9') {
+    // Gruppe flest mål: sammenlign gruppe-bokstaver (robust mot «I» / «Gruppe I» / «gruppe i»).
+    // Fasit kan være flere bokstaver (uavgjort på toppen → poeng til alle som tippet en av dem).
+    const fasitLetters = new Set(
+      groupLetters(Array.isArray(q.answer) ? q.answer.join(' ') : String(q.answer)),
+    );
+    if (fasitLetters.size === 0) return points;
+    for (const p of participants) {
+      const tip = tipFor(p);
+      if (!tip) continue;
+      const ans = groupLetters(bonusAnswerOf(tip)[0] ?? '');
+      if (ans.some((l) => fasitLetters.has(l))) add(p.name, q.maxPoints);
     }
     return points;
   }

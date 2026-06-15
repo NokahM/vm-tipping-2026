@@ -334,6 +334,16 @@ const dDone = deriveDecidedBonus(gsDone);
 assert('q10 satt når gruppespill ferdig', typeof dDone.q10 === 'object' && (dDone.q10 as { answer: string }).answer, 'Sør-Afrika');
 assert('q10 dato = siste gruppedag', (dDone.q10 as { at: string }).at, '2026-06-12T12:00:00.000Z');
 assert('q5 satt når alt ferdig (4 mål)', (dDone.q5 as { answer: string }).answer, '4');
+assert('q9 satt når gruppespill ferdig (gruppe A)', (dDone.q9 as { answer: string[] }).answer.join(','), 'A');
+// q9-scoring: gruppe-bokstav-matching robust mot format
+const q9q = BONUS_QUESTIONS.find((q) => q.id === 'q9')!;
+const q9p: Participant[] = [
+  { name: 'A', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q9', answer: 'Gruppe I' }] },
+  { name: 'B', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q9', answer: 'gruppe c' }] },
+];
+assert('q9 «Gruppe I» mot fasit [I] = full pott', scoreBonusQuestion(q9p, { ...q9q, answer: ['I'] }).get('A'), q9q.maxPoints);
+assert('q9 feil gruppe = 0', scoreBonusQuestion(q9p, { ...q9q, answer: ['I'] }).get('B') ?? 0, 0);
+assert('q9 uavgjort [I,L] – tippet I = full pott', scoreBonusQuestion(q9p, { ...q9q, answer: ['I', 'L'] }).get('A'), q9q.maxPoints);
 // q1: finale ferdig (ikke uavgjort)
 const withFinal = [
   mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-19T18:00:00Z' }),
