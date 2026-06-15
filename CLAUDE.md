@@ -45,6 +45,11 @@ Begge apper deler **samme** API-nøkkel, så samlet forbruk teller mot 20/min.
 - Konkurranse-kode: `WC`. Hovedendepunkt: `GET /v4/competitions/WC/matches`. Auth: `X-Auth-Token`.
 - Statuser vi bruker: `SCHEDULED`/`TIMED` (kommende), `IN_PLAY`/`PAUSED` (live), `FINISHED`.
 - Live: `score.fullTime` oppdateres løpende mens kampen spilles.
+- **Stage-navn:** API-et bruker `LAST_32`/`LAST_16` for sekstendels-/åttendelsfinaler; `apiClient.ts`
+  oversetter til `ROUND_OF_32`/`ROUND_OF_16` (som resten av koden bruker). Alle 104 kampene ligger i
+  API-et fra start – sluttspill-kampene med **tomme lag (→ «TBD») + klokkeslett**, og fylles inn
+  automatisk med lag/stilling per runde. Sluttspill-fanen viser TBD-slotene; gruppespill + «Aktuelt»
+  filtrerer dem bort (`isKnown`) til lagene er klare.
 
 ### CORS → proxy er nødvendig
 football-data.org svarer ikke med en brukbar CORS-header, så direkte nettleserkall blokkeres.

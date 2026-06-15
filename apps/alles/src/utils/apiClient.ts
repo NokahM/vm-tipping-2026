@@ -51,10 +51,20 @@ export async function fetchWCMatches(options: FetchOptions = {}): Promise<MatchR
   return (json.matches ?? []).map(mapMatch);
 }
 
+// football-data.org bruker LAST_32/LAST_16 for sekstendels-/åttendelsfinaler;
+// resten av koden bruker ROUND_OF_32/ROUND_OF_16. Oversett ved API-grensen.
+const STAGE_ALIASES: Record<string, Stage> = {
+  LAST_32: 'ROUND_OF_32',
+  LAST_16: 'ROUND_OF_16',
+};
+function normalizeStage(s: string): Stage {
+  return (STAGE_ALIASES[s] ?? s) as Stage;
+}
+
 function mapMatch(m: RawMatch): MatchResult {
   return {
     apiId: m.id,
-    stage: m.stage as Stage,
+    stage: normalizeStage(m.stage),
     group: m.group ?? undefined,
     homeTeam: m.homeTeam.name ?? 'TBD',
     awayTeam: m.awayTeam.name ?? 'TBD',

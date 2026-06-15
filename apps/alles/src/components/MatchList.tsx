@@ -108,9 +108,11 @@ export default function MatchList({ results, participants }: Props) {
   const phase = override ?? defaultPhase;
 
   const groupMatches = known.filter((m) => m.stage === 'GROUP_STAGE').sort(byDate);
+  // Sluttspill viser ALLE kampene (også TBD vs TBD med klokkeslett) – lag og stilling
+  // fylles automatisk inn når API-et mater inn data per runde.
   const knockoutStages = KNOCKOUT_STAGES.map((stage) => ({
     stage,
-    matches: known.filter((m) => m.stage === stage).sort(byDate),
+    matches: results.filter((m) => m.stage === stage).sort(byDate),
   })).filter((s) => s.matches.length > 0);
 
   if (groupMatches.length === 0 && knockoutStages.length === 0 && featured.length === 0) {
