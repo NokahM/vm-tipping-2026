@@ -1,7 +1,8 @@
-import type { MatchResult } from '../types';
+import type { MatchResult, Stage } from '../types';
 import type { StatsData } from '../hooks/useStats';
 import type { BonusStore } from './storage';
 import { groupGoalLeaders, matchDayKey } from './scoring';
+import { STAGE_LABELS, STAGE_ORDER } from './labels';
 import { normalizeTeamName } from './teamNames';
 import { worstTeamSoFar } from './groupTables';
 
@@ -9,6 +10,59 @@ import { worstTeamSoFar } from './groupTables';
 const RONALDO_ID = 44;
 const MESSI_ID = 3218;
 const GLIMT_IDS = [37913, 37924, 37916]; // Bjørkan, Patrick Berg, Hauge
+
+// Referanselister (engelske API-lagnavn) for «kommer lengst»-spørsmålene.
+const ISLAND_NATIONS = ['Japan', 'Haiti', 'New Zealand', 'Cape Verde Islands', 'Curaçao'];
+const AFRICAN_NATIONS = [
+  'Algeria',
+  'Cape Verde Islands',
+  'Congo DR',
+  'Egypt',
+  'Ghana',
+  'Ivory Coast',
+  'Morocco',
+  'Senegal',
+  'South Africa',
+  'Tunisia',
+];
+const STAGE_RANK: Record<string, number> = Object.fromEntries(STAGE_ORDER.map((s, i) => [s, i]));
+
+/** Lag i `list` som kom lengst (høyest stage). Likt → alle. `day` = den avgjørende kampdagen. */
+function furthestAmong(list: string[], results: MatchResult[]): { teams: string[]; day: string } | null {
+  const set = new Set(list);
+  const best = new Map<string, { rank: number; day: string }>();
+  for (const m of results) {
+    const rank = STAGE_RANK[m.stage];
+    if (rank == null) continue;
+    const day = matchDayKey(m.utcDate);
+    for (const team of [m.homeTeam, m.awayTeam]) {
+      if (team === 'TBD' || !set.has(team)) continue;
+      const cur = best.get(team);
+      if (!cur || rank > cur.rank || (rank === cur.rank && day > cur.day)) best.set(team, { rank, day });
+    }
+  }
+  if (best.size === 0) return null;
+  const maxRank = Math.max(...[...best.values()].map((b) => b.rank));
+  const teams = [...best].filter(([, b]) => b.rank === maxRank).map(([t]) => t);
+  const day = teams.reduce((d, t) => (best.get(t)!.day > d ? best.get(t)!.day : d), '');
+  return { teams, day };
+}
+
+/** Lagets lengste runde + den avgjørende kampdagen. */
+function furthestStageOf(team: string, results: MatchResult[]): { stage: Stage; day: string } | null {
+  let bestRank = -1;
+  let res: { stage: Stage; day: string } | null = null;
+  for (const m of results) {
+    const rank = STAGE_RANK[m.stage];
+    if (rank == null || (m.homeTeam !== team && m.awayTeam !== team)) continue;
+    const day = matchDayKey(m.utcDate);
+    if (rank > bestRank || (rank === bestRank && res && day > res.day)) {
+      bestRank = rank;
+      res = { stage: m.stage, day };
+    }
+  }
+  return res;
+}
 
 /** Noon-ISO for en kamps matchday (samme 12:00-grense som grafen/pilene). */
 const noon = (utcDate: string) => `${matchDayKey(utcDate)}T12:00:00.000Z`;
@@ -72,6 +126,17 @@ export function deriveDecidedBonus(results: MatchResult[]): BonusStore {
     if (worst) {
       store.q10 = { answer: normalizeTeamName(worst.team), at: groupDay };
     }
+  }
+
+  // q12/q14/q17: «kommer lengst» – avgjøres ved turneringsslutt (finalen ferdig), så vi aldri
+  // låser på et lag som fortsatt kan komme lenger. Likt på toppen → alle (q12/q14).
+  if (final && final.status === 'FINISHED') {
+    const isl = furthestAmong(ISLAND_NATIONS, results);
+    if (isl) store.q12 = { answer: isl.teams.map(normalizeTeamName), at: `${isl.day}T12:00:00.000Z` };
+    const afr = furthestAmong(AFRICAN_NATIONS, results);
+    if (afr) store.q14 = { answer: afr.teams.map(normalizeTeamName), at: `${afr.day}T12:00:00.000Z` };
+    const nor = furthestStageOf('Norway', results);
+    if (nor) store.q17 = { answer: STAGE_LABELS[nor.stage], at: `${nor.day}T12:00:00.000Z` };
   }
 
   return store;

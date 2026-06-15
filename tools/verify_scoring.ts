@@ -379,6 +379,29 @@ assert('avgjort entry beholdes', decidedOnly({ q1: { answer: 'X', decided: true 
 assert('utkast (decided:false) filtreres bort', decidedOnly({ q1: { answer: 'X', decided: false } }).q1, undefined);
 assert('ren verdi regnes som avgjort', decidedOnly({ q1: 'X' }).q1, 'X');
 
+// 4e) Pulje 2: «kommer lengst» (q12/q14/q17) – låses ved turneringsslutt
+console.log('\nderiveDecidedBonus «kommer lengst» (q12/q14/q17):');
+const knockout = [
+  mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-19T18:00:00Z' }),
+  mk({ stage: 'QUARTER_FINALS', homeTeam: 'Japan', awayTeam: 'Spain', homeGoals: 0, awayGoals: 2, status: 'FINISHED', utcDate: '2026-07-10T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_16', homeTeam: 'New Zealand', awayTeam: 'Italy', homeGoals: 0, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-05T18:00:00Z' }),
+  mk({ stage: 'SEMI_FINALS', homeTeam: 'Morocco', awayTeam: 'France', homeGoals: 0, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-15T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_32', homeTeam: 'Norway', awayTeam: 'Spain', homeGoals: 0, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-01T18:00:00Z' }),
+];
+const dk = deriveDecidedBonus(knockout);
+assert('q12 lengste øynasjon = Japan (QF)', (dk.q12 as { answer: string[] }).answer.join(','), 'Japan');
+assert('q14 lengste afrikanske = Marokko (SF)', (dk.q14 as { answer: string[] }).answer.join(','), 'Marokko');
+assert('q17 Norge = Sekstendelsfinaler', (dk.q17 as { answer: string }).answer, 'Sekstendelsfinaler');
+assert('q12 ikke satt før finalen er ferdig', deriveDecidedBonus([knockout[1]]).q12, undefined);
+// q17-scoring: parseStage robust mot format
+const q17q = BONUS_QUESTIONS.find((q) => q.id === 'q17')!;
+const q17p: Participant[] = [
+  { name: 'A', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q17', answer: 'Kvartfinale' }] },
+  { name: 'B', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q17', answer: 'Gruppespill' }] },
+];
+assert('q17 «Kvartfinale» mot «Kvartfinaler» = full pott', scoreBonusQuestion(q17p, { ...q17q, answer: 'Kvartfinaler' }).get('A'), q17q.maxPoints);
+assert('q17 feil runde = 0', scoreBonusQuestion(q17p, { ...q17q, answer: 'Kvartfinaler' }).get('B') ?? 0, 0);
+
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
 for (const s of standings) {
