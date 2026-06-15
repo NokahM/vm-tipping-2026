@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { MatchResult } from '../types';
 import { computeGroupTables, type GroupRow } from '../utils/groupTables';
 import { normalizeTeamName } from '../utils/teamNames';
+import { wcFrameStyle } from '../utils/wcFrame';
 import TeamLogo from './TeamLogo';
 
 /**
@@ -11,6 +12,8 @@ import TeamLogo from './TeamLogo';
  */
 export default function GroupTables({ results }: { results: MatchResult[] }) {
   const tables = useMemo(() => computeGroupTables(results), [results]);
+
+  const frameStyle = useMemo(wcFrameStyle, []);
 
   const worstTeam = useMemo(() => {
     const played = tables.flatMap((t) => t.rows).filter((r) => r.played > 0);
@@ -26,7 +29,7 @@ export default function GroupTables({ results }: { results: MatchResult[] }) {
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
         {tables.map((t) => (
-          <div key={t.group} className="overflow-hidden rounded-xl bg-slate-800">
+          <div key={t.group} style={frameStyle} className="wc-frame overflow-hidden rounded-xl bg-slate-800">
             <div className="border-b border-slate-700/70 px-2 py-1 text-xs font-semibold text-slate-200">
               Gruppe {t.letter}
             </div>

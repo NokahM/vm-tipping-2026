@@ -1,12 +1,15 @@
+import { useMemo } from 'react';
 import type { TeamCard } from '../hooks/useStats';
 import { normalizeTeamName } from '../utils/teamNames';
+import { wcFrameStyle } from '../utils/wcFrame';
 import TeamLogo from './TeamLogo';
 
 /** Kort per lag (gule + røde), sortert på flest røde. Del av Lagstats. */
 export default function TeamCards({ teamCards }: { teamCards: TeamCard[] }) {
+  const frameStyle = useMemo(wcFrameStyle, []);
   if (!teamCards || teamCards.length === 0) return null;
   return (
-    <div className="overflow-hidden rounded-xl bg-slate-800">
+    <div style={frameStyle} className="wc-frame overflow-hidden rounded-xl bg-slate-800">
       <div className="border-b border-slate-700/70 px-3 py-1.5 text-sm font-semibold text-slate-200">
         Kort per lag
       </div>

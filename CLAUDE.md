@@ -274,9 +274,13 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
     per rad**, kompakt (logo + navn + ± + P). **Dårligste lag så langt** (færrest poeng → lavest
     målforskjell → færrest mål, blant lag som har spilt) markeres med rød rad. Under: **kort per lag**
     (`TeamCards`) fra aggregatoren.
-  - **Spillerstats:** toppscorer, assistkonge og råtass (`PlayerStats`): `# logo navn posisjon tall`.
-    Posisjon (Keeper/Forsvar/Midt/Angrep) fra `lineup`, landlogo fra laget. Fra **stats-aggregatoren**
-    (`/api/stats` + `useStats`), inkl. live – se «Deep data».
+  - **Spillerstats:** toppscorer, assistkonge og råtass (`PlayerStats`): `# logo navn posisjon tall`,
+    med **delt plassering ved likhet** (1, 2, 2, 4 …, som tabellen). Råtass sorteres på **flest røde →
+    flest gule** (RED + YELLOW_RED = rødt). Posisjon normaliseres til fire bøtter
+    (Keeper/Forsvar/Midtbane/Angrep) – API-et blander grovt (Goalkeeper/Defence/Midfield/Offence) med
+    spesifikt (f.eks. «Left Winger»), så `positionLabel` matcher på nøkkelord. Landlogo fra laget. Fra
+    **stats-aggregatoren** (`/api/stats` + `useStats`), inkl. live – se «Deep data».
+  - Alle stats-kort bruker den fargerike `.wc-frame`-rammen (faselåst via `wcFrameStyle`), som krydder.
 - **Leaderboard:** kompakte rader `#  navn  plasserings-pil  grønn·gul·rød  sum`. Trykk på navn →
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
