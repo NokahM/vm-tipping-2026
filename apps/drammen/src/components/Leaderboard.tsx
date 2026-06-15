@@ -97,7 +97,7 @@ function LeaderboardRow({
           <span className="text-slate-600"> · </span>
           <span className="text-red-400">{s.wrongOutcomes}</span>
         </span>
-        <span className="ml-1 w-9 text-right text-lg font-bold leading-none tabular-nums text-emerald-400">
+        <span className="ml-1 w-9 text-right text-lg font-bold leading-none tabular-nums text-white [text-shadow:0_0_3px_rgb(0_0_0/0.9)]">
           {s.total}
         </span>
       </button>
