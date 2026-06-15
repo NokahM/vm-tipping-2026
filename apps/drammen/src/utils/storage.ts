@@ -4,8 +4,25 @@ import { STORAGE_KEYS } from '../config';
 /** Sluttspill-tips lagt inn via admin: deltakernavn → tips (nøklet på apiId). */
 export type KnockoutStore = Record<string, KnockoutTip[]>;
 
-/** Krydder-fasit lagt inn via admin: questionId → fasit. */
-export type BonusStore = Record<string, string | string[]>;
+/**
+ * En krydder-fasit: enten en ren verdi, eller `{ answer, at }` der `at` er ISO-datoen
+ * fasiten ble avgjort (brukt av utviklingsgrafen). Ren verdi = ingen dato (bakoverkompatibelt
+ * med eksisterende `bonusAnswers.json`).
+ */
+export type BonusValue = string | string[] | { answer: string | string[]; at?: string };
+
+/** Krydder-fasit lagt inn via admin: questionId → fasit (med valgfri dato). */
+export type BonusStore = Record<string, BonusValue>;
+
+/** Selve svaret ut av en BonusValue (uten dato). */
+export function bonusAnswerOf(v: BonusValue): string | string[] {
+  return typeof v === 'string' || Array.isArray(v) ? v : v.answer;
+}
+
+/** «Avgjort»-datoen (ISO) hvis satt, ellers undefined. */
+export function bonusDateOf(v: BonusValue): string | undefined {
+  return typeof v === 'string' || Array.isArray(v) ? undefined : v.at;
+}
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -45,5 +62,5 @@ export function mergeKnockoutTips(participants: Participant[], store: KnockoutSt
 
 /** Overstyrer fasit på krydderspørsmål med admin-lagrede svar. */
 export function applyBonusAnswers(questions: BonusQuestion[], store: BonusStore): BonusQuestion[] {
-  return questions.map((q) => (q.id in store ? { ...q, answer: store[q.id] } : q));
+  return questions.map((q) => (q.id in store ? { ...q, answer: bonusAnswerOf(store[q.id]) } : q));
 }

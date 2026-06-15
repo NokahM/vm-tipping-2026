@@ -10,6 +10,7 @@ import { computeProgression } from './utils/progression';
 import { formatTime } from './utils/labels';
 import {
   applyBonusAnswers,
+  bonusDateOf,
   loadBonusStore,
   loadKnockoutStore,
   mergeKnockoutTips,
@@ -121,10 +122,20 @@ export default function App() {
     [participants, results, questions],
   );
 
-  // Poengutvikling for grafen (kun kamp-poeng datert ennå; krydder-datering kommer).
+  // Krydder-fasit sine datoer (questionId → ISO) for grafen; udaterte faller tilbake til siste dag.
+  const bonusDates = useMemo(() => {
+    const d: Record<string, string> = {};
+    for (const [qid, v] of Object.entries(bonusMerged)) {
+      const at = bonusDateOf(v);
+      if (at) d[qid] = at;
+    }
+    return d;
+  }, [bonusMerged]);
+
+  // Poengutvikling for grafen.
   const progression = useMemo(
-    () => computeProgression(participants, results, questions, {}),
-    [participants, results, questions],
+    () => computeProgression(participants, results, questions, bonusDates),
+    [participants, results, questions, bonusDates],
   );
 
   if (adminOpen) {

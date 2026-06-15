@@ -3,7 +3,7 @@ import type { BonusQuestion, KnockoutTip, MatchResult, Participant, Stage } from
 import { APP_CONFIG } from '../config';
 import { STAGE_LABELS, STAGE_ORDER, formatKickoff } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
-import type { BonusStore, KnockoutStore } from '../utils/storage';
+import { bonusAnswerOf, bonusDateOf, type BonusStore, type KnockoutStore } from '../utils/storage';
 import type { SaveResult } from '../utils/remoteStore';
 
 interface Props {
@@ -381,7 +381,8 @@ function BonusTab({
   const [draft, setDraft] = useState<Record<string, string>>(() => {
     const d: Record<string, string> = {};
     for (const [id, val] of Object.entries(store)) {
-      d[id] = Array.isArray(val) ? val.join(', ') : val;
+      const ans = bonusAnswerOf(val);
+      d[id] = Array.isArray(ans) ? ans.join(', ') : ans;
     }
     return d;
   });
@@ -398,15 +399,20 @@ function BonusTab({
     for (const q of questions) {
       const raw = (draft[q.id] ?? '').trim();
       if (!raw) continue;
+      let answer: string | string[];
       if (LIST_ANSWER_IDS.has(q.id)) {
         const arr = raw
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean);
-        if (arr.length) next[q.id] = arr;
+        if (!arr.length) continue;
+        answer = arr;
       } else {
-        next[q.id] = raw;
+        answer = raw;
       }
+      // Behold eksisterende «avgjort»-dato; ellers stemple nå (default = i dag) for grafen.
+      const at = bonusDateOf(store[q.id] ?? '') ?? new Date().toISOString();
+      next[q.id] = { answer, at };
     }
     return next;
   }
