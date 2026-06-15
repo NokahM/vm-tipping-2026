@@ -481,9 +481,10 @@ function BonusTab({
   return (
     <div className="space-y-3">
       <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
-        💡 «Avgjort»-datoen bestemmer hvilken dag poengene dukker opp i utviklingsgrafen –{' '}
-        <span className="text-slate-300">datoen du velger = dagen i grafen</span>. Tomt felt = i dag
-        (norsk tid). For liste-spørsmål settes dato per lag/svar.
+        «Avgjort»-datoen bestemmer hvilken dag poengene dukker opp i utviklingsgrafen –{' '}
+        <span className="text-slate-300">datoen du velger = dagen i grafen</span>. Velger du ingen
+        dato, settes den til dagens dato (norsk tid). For liste-spørsmål settes datoen per lag/svar –
+        samme regel.
       </p>
       {questions.map((q) => {
         const isList = LIST_ANSWER_IDS.has(q.id);
