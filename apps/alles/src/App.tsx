@@ -31,7 +31,7 @@ import PlayerStats from './components/PlayerStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
-import { deriveDecidedBonus } from './utils/autoDerive';
+import { deriveDecidedBonus, deriveStatsBonus } from './utils/autoDerive';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
 
@@ -141,9 +141,10 @@ export default function App() {
   // q7/q8 fra aggregatoren (akkumulerende), q1/q5/q10 fra resultatene (låses når avgjort).
   const autoBonusStore = useMemo(() => autoBonusToStore(stats?.autoBonus), [stats?.autoBonus]);
   const autoDecided = useMemo(() => deriveDecidedBonus(results), [results]);
+  const autoStats = useMemo(() => deriveStatsBonus(stats, results), [stats, results]);
   const bonusMerged = useMemo(
-    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...bonusStore }),
-    [autoBonusStore, autoDecided, bonusStore],
+    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...bonusStore }),
+    [autoBonusStore, autoDecided, autoStats, bonusStore],
   );
 
   const participants = useMemo(

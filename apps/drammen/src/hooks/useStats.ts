@@ -29,6 +29,9 @@ export interface StatsData {
   topCards: StatPlayer[];
   teamCards: TeamCard[];
   autoBonus?: AutoBonus;
+  goalsByPlayer?: Record<string, number>; // spiller-id → mål (for q13)
+  playedIds?: number[]; // spillere m/ spilletid (for q16)
+  finalReferee?: string | null; // for q11
   coverage?: { cached: number; relevant: number };
   updatedAt?: number;
 }

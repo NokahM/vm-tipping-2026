@@ -4,7 +4,7 @@
 //
 // Selv-inneholdt (ingen lokale imports) så den samme handleren kan kalles fra Vite-dev-proxyen.
 
-const CACHE_KEY = 'stats:v2'; // v2: lagrer også utcDate per kamp (for auto-krydder-datoer)
+const CACHE_KEY = 'stats:v3'; // v3: lagrer også stage/dommer/spilte spillere (auto-krydder q11/q16)
 const BATCH = 10; // maks antall kamp-detaljer å hente per kall (skåner rategrensen)
 const LIVE = ['FINISHED', 'IN_PLAY', 'PAUSED'];
 const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000; // 10:00 UTC = 12:00 norsk – samme som matchDayKey
@@ -54,7 +54,19 @@ function extractMatch(d) {
     team: b.team?.name ?? '',
     card: b.card || 'YELLOW',
   }));
-  return { lastUpdated: d.lastUpdated, utcDate: d.utcDate, goals, bookings };
+  const refs = d.referees || [];
+  const referee = (refs.find((r) => r.type === 'REFEREE') || refs[0])?.name || null;
+  return { lastUpdated: d.lastUpdated, utcDate: d.utcDate, stage: d.stage, referee, goals, bookings };
+}
+
+/** Spillere som faktisk fikk spilletid: startellever (lineup) + innbyttere (substitutions). */
+function collectPlayed(d, played) {
+  for (const t of [d.homeTeam, d.awayTeam]) {
+    for (const p of t?.lineup || []) if (p?.id != null) played[p.id] = true;
+  }
+  for (const s of d.substitutions || []) {
+    if (s?.playerIn?.id != null) played[s.playerIn.id] = true;
+  }
 }
 
 /**
@@ -138,7 +150,10 @@ function aggregate(cache) {
 
   const pos = cache.positions || {};
   const withPos = (x) => ({ ...x, position: pos[x.id] || '' });
+  const goalsByPlayer = {};
+  for (const s of scorers.values()) goalsByPlayer[s.id] = s.goals;
   return {
+    goalsByPlayer, // id → antall mål (ekskl. selvmål), for q13 (Ronaldo/Messi)
     topScorers: [...scorers.values()]
       .map(withPos)
       .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
@@ -166,9 +181,10 @@ async function computeStats(apiKey, kvUrl, kvToken) {
   const matches = bulk.matches || [];
 
   const raw = await kvCmd(kvUrl, kvToken, ['GET', CACHE_KEY]);
-  const cache = raw ? JSON.parse(raw) : memCache || { matches: {}, positions: {} };
+  const cache = raw ? JSON.parse(raw) : memCache || { matches: {}, positions: {}, played: {} };
   if (!cache.matches) cache.matches = {};
   if (!cache.positions) cache.positions = {};
+  if (!cache.played) cache.played = {};
 
   const relevant = matches.filter((m) => LIVE.includes(m.status));
   const stale = relevant.filter((m) => {
@@ -183,6 +199,7 @@ async function computeStats(apiKey, kvUrl, kvToken) {
       const d = await dRes.json();
       cache.matches[m.id] = extractMatch(d);
       collectPositions(d, cache.positions);
+      collectPlayed(d, cache.played);
     } catch {
       /* hopp over kampen denne runden */
     }
@@ -191,9 +208,12 @@ async function computeStats(apiKey, kvUrl, kvToken) {
   memCache = cache;
   if (kvUrl && kvToken) await kvCmd(kvUrl, kvToken, ['SET', CACHE_KEY, JSON.stringify(cache)]);
 
+  const finalMatch = Object.values(cache.matches).find((m) => m.stage === 'FINAL');
   return {
     ...aggregate(cache),
     autoBonus: autoBonusFrom(cache),
+    playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
+    finalReferee: finalMatch?.referee || null, // for q11
     coverage: { cached: Object.keys(cache.matches).length, relevant: relevant.length },
     updatedAt: Date.now(),
   };

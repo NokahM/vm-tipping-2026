@@ -19,7 +19,7 @@ import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
-import { deriveDecidedBonus } from '../apps/drammen/src/utils/autoDerive';
+import { deriveDecidedBonus, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
 
 let failures = 0;
@@ -342,6 +342,26 @@ assert('q1 = finalevinner (Frankrike)', (deriveDecidedBonus(withFinal).q1 as { a
 // q1: uavgjort finale (straffer) → ikke auto
 const drawFinal = [mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 1, awayGoals: 1, status: 'FINISHED' })];
 assert('q1 ikke satt ved uavgjort finale', deriveDecidedBonus(drawFinal).q1, undefined);
+
+// 4c) Auto-krydder pulje 1 (deriveStatsBonus) – aggregator-basert
+console.log('\nderiveStatsBonus (aggregator-basert):');
+const baseStats = { topScorers: [], topAssists: [], topCards: [], teamCards: [] };
+const overResults = [
+  mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-19T18:00:00Z' }),
+];
+assert('q11 = finaledommer når kjent', (deriveStatsBonus({ ...baseStats, finalReferee: 'Pierluigi Collina' }, []).q11 as { answer: string }).answer, 'Pierluigi Collina');
+assert('q16 = Ja når alle tre Glimt spilte', (deriveStatsBonus({ ...baseStats, playedIds: [37913, 37924, 37916, 99] }, []).q16 as { answer: string }).answer, 'Ja');
+assert('q16 ikke satt før avgjort (mangler spiller)', deriveStatsBonus({ ...baseStats, playedIds: [37913] }, []).q16, undefined);
+assert('q16 = Nei når turnering ferdig og mangler', (deriveStatsBonus({ ...baseStats, playedIds: [37913] }, overResults).q16 as { answer: string }).answer, 'Nei');
+const q3store = deriveStatsBonus({ ...baseStats, topScorers: [
+  { id: 1, name: 'Kylian Mbappe', team: 'France', position: '', goals: 8 },
+  { id: 2, name: 'Harry Kane', team: 'England', position: '', goals: 6 },
+] }, overResults);
+assert('q3 inkluderer toppscorer-etternavn', (q3store.q3 as { answer: string[] }).answer.includes('Mbappe'), true);
+assert('q3 ikke satt før turnering ferdig', deriveStatsBonus({ ...baseStats, topScorers: [{ id: 1, name: 'X', team: 'Y', position: '', goals: 3 }] }, []).q3, undefined);
+const q13store = deriveStatsBonus({ ...baseStats, goalsByPlayer: { '44': 3, '3218': 1 } }, overResults);
+assert('q13 = Ronaldo når flest', (q13store.q13 as { answer: string[] }).answer.includes('Ronaldo'), true);
+assert('q13 ikke Messi når færre', (q13store.q13 as { answer: string[] }).answer.includes('Messi'), false);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
