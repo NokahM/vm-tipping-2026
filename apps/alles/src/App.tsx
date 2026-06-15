@@ -26,7 +26,10 @@ import ProgressionChart from './components/ProgressionChart';
 import MatchList from './components/MatchList';
 import BonusQuestions from './components/BonusQuestions';
 import GroupTables from './components/GroupTables';
+import TeamCards from './components/TeamCards';
+import PlayerStats from './components/PlayerStats';
 import AdminPanel from './components/AdminPanel';
+import { useStats } from './hooks/useStats';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
 
@@ -42,6 +45,8 @@ export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
   const [view, setView] = useState<View>('kamper');
   const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
+  const [statsView, setStatsView] = useState<'lag' | 'spiller'>('lag');
+  const { data: stats } = useStats(view === 'stats');
   const [adminOpen, setAdminOpen] = useState(isAdminUrl);
 
   // Initialiseres fra localStorage-cache (rask visning), oppdateres så fra KV (delt sannhet).
@@ -293,10 +298,25 @@ export default function App() {
         )}
         {view === 'stats' && (
           <div className="space-y-2">
-            <p className="px-1 text-center text-[11px] text-slate-500">
-              Gruppetabeller · ± målforskjell · P poeng
-            </p>
-            <GroupTables results={results} />
+            <div className="flex gap-1.5">
+              <SubTab active={statsView === 'lag'} onClick={() => setStatsView('lag')}>
+                Lagstats
+              </SubTab>
+              <SubTab active={statsView === 'spiller'} onClick={() => setStatsView('spiller')}>
+                Spillerstats
+              </SubTab>
+            </div>
+            {statsView === 'lag' ? (
+              <div className="space-y-3">
+                <p className="px-1 text-center text-[11px] text-slate-500">
+                  Gruppetabeller · ± målforskjell · P poeng
+                </p>
+                <GroupTables results={results} />
+                <TeamCards teamCards={stats?.teamCards ?? []} />
+              </div>
+            ) : (
+              <PlayerStats data={stats} />
+            )}
           </div>
         )}
       </main>

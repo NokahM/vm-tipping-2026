@@ -20,6 +20,9 @@ Se [CLAUDE.md](./CLAUDE.md) for full arkitektur- og prosjektbeskrivelse.
   side; deep data).
 - **Krydder** – 17 spesialspørsmål med egne poeng- og spesialregler. Live-projeksjoner for q5 (antall
   mål) og q9 (gruppe med flest mål).
+- **Stats** – sub-toggle `Lagstats | Spillerstats`: gruppetabeller (med markering av dårligste lag) +
+  kort per lag, og toppscorer/assistkonge/råtass med posisjon og landlogo. Aggregeres fra deep data på
+  tvers av alle kamper (inkl. live).
 - **Admin-panel** (`?admin=true`) – legg inn sluttspill-tips, krydder-fasit (med dato per svar) og
   publiser til alle via den delte databasen. Passordbeskyttet server-side.
 
@@ -33,6 +36,7 @@ origin (Vercel-funksjon i prod, Vite dev-proxy lokalt):
 |-------------------------|--------------------------------|----------------------------------------|
 | `/api/matches`          | `/v4/competitions/WC/matches`  | Alle kamper (bulk), polles hvert 10s   |
 | `/api/matchdetail?id=`  | `/v4/matches/{id}`             | Deep data (mål/kort) for én kamp       |
+| `/api/stats`            | `/v4/matches/{id}` (alle) + KV | Aggregert statistikk (mål/assist/kort) |
 | `/api/state?app=`       | Upstash KV                     | Delt admin-data (GET offentlig / POST) |
 
 Proxyene setter edge-cache (`s-maxage`) så mange brukere deler samme svar og holder seg trygt under

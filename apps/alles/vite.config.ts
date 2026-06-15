@@ -2,8 +2,30 @@ import { defineConfig, loadEnv } from 'vite';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import statsHandler from './api/stats.js';
 
 const APPS = new Set(['drammen', 'alles']);
+
+/**
+ * Dev-versjon av /api/stats: gjenbruker den samme serverless-handleren (api/stats.js).
+ * Den leser nøkler fra process.env, som vi fyller fra .env.local i defineConfig under.
+ */
+function statsApiPlugin(): Plugin {
+  return {
+    name: 'dev-api-stats',
+    configureServer(server) {
+      server.middlewares.use('/api/stats', async (req: any, res: any) => {
+        try {
+          await statsHandler(req, res);
+        } catch (e) {
+          res.statusCode = 502;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
+        }
+      });
+    },
+  };
+}
 
 /**
  * Dev-versjon av /api/state (samme logikk som serverless-funksjonen api/state.js),
@@ -84,8 +106,13 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiKey = env.FOOTBALL_API_KEY || env.VITE_FOOTBALL_API_KEY || '';
 
+  // Eksponer nøkler til api/stats.js (den leser process.env, som under dev ellers er tom).
+  process.env.FOOTBALL_API_KEY ||= apiKey;
+  process.env.KV_REST_API_URL ||= env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL || '';
+  process.env.KV_REST_API_TOKEN ||= env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN || '';
+
   return {
-    plugins: [react(), tailwindcss(), kvStatePlugin(env)],
+    plugins: [react(), tailwindcss(), kvStatePlugin(env), statsApiPlugin()],
     server: {
       // I dev proxier vi til football-data.org for å unngå CORS. Nøkkelen
       // legges på server-side her, så den eksponeres aldri i nettleseren.

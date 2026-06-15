@@ -103,10 +103,12 @@ tippekonk/                          # repo-root
 │   │   ├── api/
 │   │   │   ├── matches.js          # proxy mot football-data.org (bulk-liste, server-side nøkkel)
 │   │   │   ├── matchdetail.js      # proxy mot enkeltkamp /v4/matches/{id} (deep data: mål/kort)
+│   │   │   ├── stats.js            # aggregert turneringsstatistikk (mål/assist/kort) m/KV-cache
 │   │   │   └── state.js            # delt admin-data (Upstash KV): GET offentlig / POST m/passord
 │   │   ├── src/
 │   │   │   ├── components/         # Leaderboard, ProgressionChart, MatchList, MatchRow, FeaturedMatch,
-│   │   │   │                       # MatchEvents, TipChips, BonusQuestions, AdminPanel, TeamLogo, BroadcasterBadge
+│   │   │   │                       # MatchEvents, TipChips, BonusQuestions, GroupTables, TeamCards,
+│   │   │   │                       # PlayerStats, AdminPanel, TeamLogo, BroadcasterBadge
 │   │   │   ├── data/
 │   │   │   │   ├── participants.ts     # gruppespill- + krydder-tips per deltaker (auto-generert)
 │   │   │   │   ├── bonusQuestions.ts    # de 17 krydderspørsmålene (auto-generert)
@@ -115,9 +117,10 @@ tippekonk/                          # repo-root
 │   │   │   │   └── broadcasters.json    # apiId → "NRK" | "TV2"
 │   │   │   ├── hooks/
 │   │   │   │   ├── useMatches.ts        # henter/cacher resultater, polling, reconcile
-│   │   │   │   └── useMatchEvents.ts    # deep data per kamp (mål/kort), poller 20s + modul-cache
-│   │   │   ├── utils/                   # scoring, progression, teamNames, teamLogos, storage,
-│   │   │   │                            # remoteStore, reconcile, labels, broadcasters, apiClient
+│   │   │   │   ├── useMatchEvents.ts    # deep data per kamp (mål/kort), poller 20s + modul-cache
+│   │   │   │   └── useStats.ts          # aggregert turneringsstatistikk fra /api/stats
+│   │   │   ├── utils/                   # scoring, progression, groupTables, teamNames, teamLogos,
+│   │   │   │                            # storage, remoteStore, reconcile, labels, broadcasters, apiClient
 │   │   │   ├── config.ts                # app-spesifikk (groupName, storageSuffix) – SKILLER appene
 │   │   │   ├── types.ts
 │   │   │   └── App.tsx
@@ -265,13 +268,15 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   det); manuell refresh ligger i admin.
 - **Faner:** fire (Stilling / Kamper / Krydder / Stats), én sentrert kolonne. Standard landingsfane er
   **Kamper**. «Stilling» har en under-toggle `Stilling | Graf` (tabell vs. utviklingsgraf).
-- **Stats-fanen:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
-  gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper per
-  rad**, kompakt (logo + navn + ± + P). **Dårligste lag så langt** (færrest poeng → lavest målforskjell →
-  færrest mål, blant lag som har spilt) markeres med rød rad. Planlagt utvidelse: sub-toggle
-  `Lagstats | Spillerstats` (som Stilling sin `Tabell | Graf`); **Lagstats** = grupper + lag-kort,
-  **Spillerstats** = toppscorer/assistkonge/råtass (mål, assist `goal.assist`, gule+røde kort, med
-  posisjon fra `lineup` + landlogo). Krever en aggregator over alle kamper (inkl. live) – se «Deep data».
+- **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Graf`).
+  - **Lagstats:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
+    gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper
+    per rad**, kompakt (logo + navn + ± + P). **Dårligste lag så langt** (færrest poeng → lavest
+    målforskjell → færrest mål, blant lag som har spilt) markeres med rød rad. Under: **kort per lag**
+    (`TeamCards`) fra aggregatoren.
+  - **Spillerstats:** toppscorer, assistkonge og råtass (`PlayerStats`): `# logo navn posisjon tall`.
+    Posisjon (Keeper/Forsvar/Midt/Angrep) fra `lineup`, landlogo fra laget. Fra **stats-aggregatoren**
+    (`/api/stats` + `useStats`), inkl. live – se «Deep data».
 - **Leaderboard:** kompakte rader `#  navn  plasserings-pil  grønn·gul·rød  sum`. Trykk på navn →
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
@@ -374,10 +379,19 @@ også for selvmål (US 4–1 Paraguay: selvmål av Bobadilla har `team: Paraguay
 - **Visning (`FeaturedMatch`):** selvmål teller for motstanderen, så det vises i **motstanderens**
   kolonne (`g.team === opponent`), slik at hver kolonne summerer til lagets stilling.
 
+**Stats-aggregator (`api/stats.js` + `hooks/useStats.ts`):** aggregerer mål/assist/kort + posisjon på
+tvers av alle relevante kamper (FINISHED + live). Per-kamp-uttrekket caches i **KV** (`stats:v1`) –
+ferdige kamper hentes kun én gang, live-kamper re-hentes når `lastUpdated` endres (→ live toppliste).
+Henter maks `BATCH`=10 kamp-detaljer per kall (skåner rategrensen) og varmer opp inkrementelt over et
+par poll; edge-cache `s-maxage=30`. Returnerer `{ topScorers, topAssists, topCards, teamCards, coverage }`
+(rå engelske lagnavn + rå posisjon – klienten lokaliserer). **Selv-inneholdt handler** så Vite-dev-proxyen
+gjenbruker den (`statsApiPlugin` i `vite.config.ts`, leser nøkler fra `process.env`). Ingen ny
+miljøvariabel (gjenbruker `FOOTBALL_API_KEY` + KV-nøklene). Banet vei for auto-krydder.
+
 **Planlagt (auto-krydder):** utlede fasit + per-lag-datoer automatisk fra deep data der mulig:
 q7 (rødt kort ← `bookings` RED), q8 (selvmål ← `goals` OWN, lag = `goal.team`), evt.
-q5/q9/q11/q12/q14/q17. Krever en aggregator som skanner ferdige kamper inkrementelt (Hobby har ikke
-hyppig cron → batch-henting med KV-cache). Admin skal fortsatt kunne overstyre.
+q5/q9/q11/q12/q14/q17. Aggregatoren over finnes allerede – gjenbruk caching-mønsteret. Admin skal
+fortsatt kunne overstyre.
 
 ---
 
