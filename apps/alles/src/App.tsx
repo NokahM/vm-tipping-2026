@@ -293,7 +293,9 @@ export default function App() {
         )}
         {view === 'stats' && (
           <div className="space-y-2">
-            <p className="px-1 text-center text-[11px] text-slate-500">Gruppetabeller</p>
+            <p className="px-1 text-center text-[11px] text-slate-500">
+              Gruppetabeller · ± målforskjell · P poeng
+            </p>
             <GroupTables results={results} />
           </div>
         )}

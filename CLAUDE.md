@@ -265,9 +265,13 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   det); manuell refresh ligger i admin.
 - **Faner:** fire (Stilling / Kamper / Krydder / Stats), én sentrert kolonne. Standard landingsfane er
   **Kamper**. «Stilling» har en under-toggle `Stilling | Graf` (tabell vs. utviklingsgraf).
-- **Stats-fanen:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra
-  ferdigspilte gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Tiltenkt
-  utvidet med toppscorere/assist/kort fra deep data (krever aggregator over alle kamper – se «Deep data»).
+- **Stats-fanen:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
+  gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper per
+  rad**, kompakt (logo + navn + ± + P). **Dårligste lag så langt** (færrest poeng → lavest målforskjell →
+  færrest mål, blant lag som har spilt) markeres med rød rad. Planlagt utvidelse: sub-toggle
+  `Lagstats | Spillerstats` (som Stilling sin `Tabell | Graf`); **Lagstats** = grupper + lag-kort,
+  **Spillerstats** = toppscorer/assistkonge/råtass (mål, assist `goal.assist`, gule+røde kort, med
+  posisjon fra `lineup` + landlogo). Krever en aggregator over alle kamper (inkl. live) – se «Deep data».
 - **Leaderboard:** kompakte rader `#  navn  plasserings-pil  grønn·gul·rød  sum`. Trykk på navn →
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
