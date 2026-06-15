@@ -3,10 +3,23 @@ import type { MatchResult } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
 import { useMatchEvents } from '../hooks/useMatchEvents';
 
-/** Korter ned «Julián Quiñones» → «Quiñones» for kompakt visning. */
-function lastName(full: string): string {
-  const parts = full.trim().split(/\s+/);
-  return parts.length ? parts[parts.length - 1] : full;
+/**
+ * Viser fullt spillernavn, men forkorter fornavn(ene) til initial når navnet blir for
+ * langt for kolonnen («Vinicius Junior» → «V. Junior», «Luis Alberto Suárez» → «L. A. Suárez»).
+ * Ett-ords navn røres ikke. `truncate` på elementet er siste sikring mot overflyt.
+ */
+const NAME_MAX = 16;
+function displayName(full: string): string {
+  const name = full.trim().replace(/\s+/g, ' ');
+  if (name.length <= NAME_MAX) return name;
+  const parts = name.split(' ');
+  if (parts.length < 2) return name;
+  const last = parts[parts.length - 1];
+  const initials = parts
+    .slice(0, -1)
+    .map((p) => `${p[0].toUpperCase()}.`)
+    .join(' ');
+  return `${initials} ${last}`;
 }
 
 type Side = 'home' | 'away';
@@ -22,7 +35,7 @@ function SideCell({ row, side }: { row: EventRow; side: Side }) {
   if (row.side !== side) return <div />;
   const name = (
     <span className={`truncate ${row.kind === 'goal' ? 'text-slate-200' : 'text-red-300'}`}>
-      {row.name}
+      {displayName(row.name)}
       {row.kind === 'own' && ' (selvm.)'}
     </span>
   );
@@ -84,7 +97,7 @@ export default function MatchEvents({ match }: Props) {
       g.type === 'OWN' ? (g.team === home ? away : g.team === away ? home : g.team) : g.team;
     const side = sideOf(benefitTeam);
     if (!side) continue;
-    const name = lastName(g.scorer);
+    const name = g.scorer;
     const key = `${side}:${kind}:${name}`;
     const existing = groups.get(key);
     if (existing) existing.minutes.push(g.minute);
@@ -95,7 +108,7 @@ export default function MatchEvents({ match }: Props) {
   // Røde kort: alltid egen rad (ikke gruppert), på spillerens lag-side.
   const reds: EventRow[] = redCards.flatMap((b) => {
     const side = sideOf(b.team);
-    return side ? [{ side, kind: 'red' as const, name: lastName(b.player), minutes: [b.minute] }] : [];
+    return side ? [{ side, kind: 'red' as const, name: b.player, minutes: [b.minute] }] : [];
   });
 
   const firstMin = (e: EventRow) => e.minutes[0] ?? 999;

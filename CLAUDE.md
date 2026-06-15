@@ -352,7 +352,9 @@ Abonnementet er oppgradert til **Free + Deep Data** (30 kall/min) som gir per-ka
 - **`MatchEvents`** (delt komponent): en **sentrert tidslinje** (3-kolonners grid `1fr auto 1fr`) av
   ⚽ målscorere og 🟥 røde kort, én rad per hendelse, kronologisk. **Minuttet står i midten**; ikonet
   ligger på siden til laget som fikk det, og spillernavnet på samme side (hjemme venstre, borte høyre).
-  Lagnavn vises ikke i selve tidslinjen – logo + navn står allerede i kort-headeren over.
+  Navnet vises **fullt** («Vinicius Junior»), men fornavn(ene) forkortes til initial når det blir for
+  langt (`displayName`, > `NAME_MAX` tegn → «V. Junior»); `truncate` er siste sikring. Lagnavn vises
+  ikke i selve tidslinjen – logo + navn står allerede i kort-headeren over.
   Flerlagsmål per spiller slås sammen til én rad (`7', 90'` i midten, én ⚽ per mål);
   røde kort står alltid alene. Selvmål havner på **motstanderens** side (så siden summerer til
   stillingen), merket «(selvm.)». Rendres tomt om detaljer mangler. Brukes i **både** `FeaturedMatch`
