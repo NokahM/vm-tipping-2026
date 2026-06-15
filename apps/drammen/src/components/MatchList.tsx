@@ -103,9 +103,6 @@ export default function MatchList({ results, participants }: Props) {
   // Fase-velger: følger den aktuelle kampens fase som standard, men låses til
   // brukerens valg så snart han trykker på en knapp.
   const [override, setOverride] = useState<Phase | null>(null);
-  const defaultPhase: Phase =
-    featured[0] && featured[0].stage !== 'GROUP_STAGE' ? 'sluttspill' : 'gruppespill';
-  const phase = override ?? defaultPhase;
 
   const groupMatches = known.filter((m) => m.stage === 'GROUP_STAGE').sort(byDate);
   // Sluttspill viser ALLE kampene (også TBD vs TBD med klokkeslett) – lag og stilling
@@ -114,6 +111,14 @@ export default function MatchList({ results, participants }: Props) {
     stage,
     matches: results.filter((m) => m.stage === stage).sort(byDate),
   })).filter((s) => s.matches.length > 0);
+
+  // Default-fase: gruppespill mens det pågår, men sluttspill så snart hele gruppespillet
+  // er ferdigspilt (eller en sluttspillkamp er aktuell). Brukervalg overstyrer.
+  const groupStageDone =
+    groupMatches.length > 0 && groupMatches.every((m) => m.status === 'FINISHED');
+  const featuredKnockout = featured[0] !== undefined && featured[0].stage !== 'GROUP_STAGE';
+  const defaultPhase: Phase = groupStageDone || featuredKnockout ? 'sluttspill' : 'gruppespill';
+  const phase = override ?? defaultPhase;
 
   if (groupMatches.length === 0 && knockoutStages.length === 0 && featured.length === 0) {
     return <p className="px-1 text-sm text-slate-400">Ingen kamper å vise ennå.</p>;
