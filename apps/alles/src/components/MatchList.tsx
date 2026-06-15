@@ -134,9 +134,12 @@ export default function MatchList({ results, participants }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Aktuelt + Siste – fremhevet øverst i rød-kantede bokser, samme kort-format. */}
-      <FeaturedSection title="Aktuelt" matches={featured} participants={participants} />
-      <FeaturedSection title="Siste" matches={recent} participants={participants} />
+      {/* Aktuelt + Siste – fremhevet øverst i rød-kantede bokser, samme kort-format.
+          Tettere spacing mellom de to seksjonene enn mot resten. */}
+      <div className="space-y-2">
+        <FeaturedSection title="Aktuelt" matches={featured} participants={participants} />
+        <FeaturedSection title="Siste" matches={recent} participants={participants} />
+      </div>
 
       {/* Fase-velger: gruppespill ↔ sluttspill */}
       <div className="flex gap-1.5">
