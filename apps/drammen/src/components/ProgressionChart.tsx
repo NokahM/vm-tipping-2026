@@ -28,7 +28,7 @@ function niceStep(max: number, target = 5): number {
   const pow = Math.pow(10, Math.floor(Math.log10(raw)));
   const norm = raw / pow;
   const step = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
-  return step * pow;
+  return Math.max(1, step * pow); // minst 1 (heltall) for poeng
 }
 
 export default function ProgressionChart({ progression }: Props) {
@@ -58,7 +58,8 @@ export default function ProgressionChart({ progression }: Props) {
   // Y-akse: pent steg/maks for jevne merker.
   const maxTotal = Math.max(1, ...series.map((s) => s.final));
   const step = niceStep(maxTotal);
-  const yMax = Math.max(step, Math.ceil(maxTotal / step) * step);
+  // Alltid ett helt steg over lederscoren, så toppstreken aldri stanger i taket.
+  const yMax = (Math.floor(maxTotal / step) + 1) * step;
   const yTicks: number[] = [];
   for (let v = 0; v <= yMax; v += step) yTicks.push(v);
 
