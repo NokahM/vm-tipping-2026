@@ -101,6 +101,13 @@ export default function MatchList({ results, participants }: Props) {
   const known = results.filter(isKnown);
   const featured = pickFeatured(known);
 
+  // «Siste»: de to sist ferdigspilte kampene, men ikke de som alt vises i «Aktuelt».
+  const featuredIds = new Set(featured.map((m) => m.apiId));
+  const recent = known
+    .filter((m) => m.status === 'FINISHED' && !featuredIds.has(m.apiId))
+    .sort((a, b) => b.utcDate.localeCompare(a.utcDate))
+    .slice(0, 2);
+
   // Fase-velger: følger den aktuelle kampens fase som standard, men låses til
   // brukerens valg så snart han trykker på en knapp.
   const [override, setOverride] = useState<Phase | null>(null);
@@ -127,19 +134,9 @@ export default function MatchList({ results, participants }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Aktuelle kamper – inntil to fremhevet øverst i én rød-kantet boks med delelinje. */}
-      {featured.length > 0 && (
-        <section>
-          <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-white">
-            Aktuelt
-          </h2>
-          <div className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-wc-red/50 bg-slate-800 ring-1 ring-wc-red/20">
-            {featured.map((m) => (
-              <FeaturedMatch key={m.apiId} match={m} participants={participants} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Aktuelt + Siste – fremhevet øverst i rød-kantede bokser, samme kort-format. */}
+      <FeaturedSection title="Aktuelt" matches={featured} participants={participants} />
+      <FeaturedSection title="Siste" matches={recent} participants={participants} />
 
       {/* Fase-velger: gruppespill ↔ sluttspill */}
       <div className="flex gap-1.5">
@@ -174,6 +171,29 @@ export default function MatchList({ results, participants }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Fremhevet seksjon (Aktuelt / Siste): rød-kantet boks med inntil to FeaturedMatch-kort. */
+function FeaturedSection({
+  title,
+  matches,
+  participants,
+}: {
+  title: string;
+  matches: MatchResult[];
+  participants: Participant[];
+}) {
+  if (matches.length === 0) return null;
+  return (
+    <section>
+      <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-white">{title}</h2>
+      <div className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-wc-red/50 bg-slate-800 ring-1 ring-wc-red/20">
+        {matches.map((m) => (
+          <FeaturedMatch key={m.apiId} match={m} participants={participants} />
+        ))}
+      </div>
+    </section>
   );
 }
 
