@@ -35,13 +35,13 @@ export default function FeaturedMatch({ match, participants }: Props) {
       <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="w-full px-4 pt-3 pb-2 text-left active:bg-slate-700/30"
+          className="w-full px-4 pt-1.5 pb-1.5 text-left active:bg-slate-700/30"
           aria-expanded={open}
         >
           <div className="flex items-center gap-2">
             {/* Hjemmelag: logo med navn under */}
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <TeamLogo name={home} className="h-9 w-9" />
+              <TeamLogo name={home} className="mt-1.5 h-9 w-9" />
               <span className="w-full truncate text-center font-semibold leading-tight text-slate-100">{home}</span>
             </div>
 
@@ -74,7 +74,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
 
             {/* Bortelag: logo med navn under */}
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <TeamLogo name={away} className="h-9 w-9" />
+              <TeamLogo name={away} className="mt-1.5 h-9 w-9" />
               <span className="w-full truncate text-center font-semibold leading-tight text-slate-100">{away}</span>
             </div>
           </div>
