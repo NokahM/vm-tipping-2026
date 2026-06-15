@@ -30,6 +30,14 @@ export default function MatchRow({ match, participants }: Props) {
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
 
+  // Kampklokke fra API-et (oppdateres ved polling). PAUSE = «Pause», ellers minutt (+ tilleggstid).
+  const liveLabel =
+    match.status === 'PAUSED'
+      ? 'Pause'
+      : match.minute != null
+        ? `${match.minute}${match.injuryTime ? `+${match.injuryTime}` : ''}'`
+        : 'LIVE';
+
   return (
     <li>
       <button
@@ -44,8 +52,8 @@ export default function MatchRow({ match, participants }: Props) {
           <span className="truncate text-sm text-slate-100">{home}</span>
         </div>
 
-        {/* Stilling alltid sentrert; LIVE legges absolutt rett etter uten å flytte stillingen */}
-        <div className="relative flex shrink-0 items-center justify-center px-1 leading-tight">
+        {/* Stilling sentrert; kampklokka stables under (skifter ikke horisontal plassering) */}
+        <div className="flex shrink-0 flex-col items-center justify-center px-1 leading-tight">
           {played ? (
             <span className="text-sm font-bold tabular-nums text-slate-100">
               {match.homeGoals}
@@ -57,11 +65,10 @@ export default function MatchRow({ match, participants }: Props) {
           )}
           {liveNow && (
             <span
-              className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 text-[10px] text-red-400"
-              title="Live"
+              className="whitespace-nowrap text-[9px] font-semibold tabular-nums text-red-400"
               aria-label="Live"
             >
-              ●
+              <span className="animate-pulse">●</span> {liveLabel}
             </span>
           )}
         </div>
