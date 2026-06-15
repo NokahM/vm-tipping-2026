@@ -173,10 +173,10 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
   const groups = [...new Set(matches.map((m) => m.group).filter(Boolean))] as string[];
   groups.sort();
 
-  // Én felles rød ramme rundt ALLE gruppene, men med luft mellom hver gruppe: den ytre
-  // rammen er litt mørkere, så de luftadskilte gruppe-kortene flyter tydelig inni.
+  // Én felles rød ramme rundt ALLE gruppene, med GJENNOMSIKTIG luft mellom hver gruppe:
+  // rammen har ingen bakgrunn, så den fargerike side-bakgrunnen synes mellom kortene.
   return (
-    <div className="space-y-3 overflow-hidden rounded-xl border border-wc-red/50 bg-slate-900 p-2 ring-1 ring-wc-red/20">
+    <div className="space-y-3 rounded-xl border border-wc-red/50 p-2 ring-1 ring-wc-red/20">
       {groups.map((g) => (
         <div key={g}>
           <h3
