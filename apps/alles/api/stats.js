@@ -4,7 +4,7 @@
 //
 // Selv-inneholdt (ingen lokale imports) så den samme handleren kan kalles fra Vite-dev-proxyen.
 
-const CACHE_KEY = 'stats:v3'; // v3: lagrer også stage/dommer/spilte spillere (auto-krydder q11/q16)
+const CACHE_KEY = 'stats:v4'; // v4: lagrer også mål-minutt (q6 raskeste mål)
 const BATCH = 10; // maks antall kamp-detaljer å hente per kall (skåner rategrensen)
 const LIVE = ['FINISHED', 'IN_PLAY', 'PAUSED'];
 const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000; // 10:00 UTC = 12:00 norsk – samme som matchDayKey
@@ -45,6 +45,7 @@ function extractMatch(d) {
     name: g.scorer?.name ?? '',
     team: g.team?.name ?? '',
     type: g.type || 'REGULAR',
+    minute: g.minute ?? null,
     assistId: g.assist?.id ?? null,
     assistName: g.assist?.name ?? '',
   }));
@@ -209,11 +210,22 @@ async function computeStats(apiKey, kvUrl, kvToken) {
   if (kvUrl && kvToken) await kvCmd(kvUrl, kvToken, ['SET', CACHE_KEY, JSON.stringify(cache)]);
 
   const finalMatch = Object.values(cache.matches).find((m) => m.stage === 'FINAL');
+  // q6: raskeste mål så langt (lavest minutt). Sekunder finnes ikke i API-et – kun pekepinn.
+  let fastestGoal = null;
+  for (const m of Object.values(cache.matches)) {
+    for (const g of m.goals || []) {
+      if (g.minute == null) continue;
+      if (!fastestGoal || g.minute < fastestGoal.minute) {
+        fastestGoal = { minute: g.minute, scorer: g.name, team: g.team };
+      }
+    }
+  }
   return {
     ...aggregate(cache),
     autoBonus: autoBonusFrom(cache),
     playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
     finalReferee: finalMatch?.referee || null, // for q11
+    fastestGoal, // for q6 live-indikator
     coverage: { cached: Object.keys(cache.matches).length, relevant: relevant.length },
     updatedAt: Date.now(),
   };

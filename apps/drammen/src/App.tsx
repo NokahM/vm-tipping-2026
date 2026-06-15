@@ -332,7 +332,12 @@ export default function App() {
             <p className="px-1 text-center text-[11px] text-slate-500">
               Trykk på et spørsmål for å se alle svar
             </p>
-            <BonusQuestions questions={questions} participants={participants} results={results} />
+            <BonusQuestions
+              questions={questions}
+              participants={participants}
+              results={results}
+              fastestGoal={stats?.fastestGoal}
+            />
           </div>
         )}
         {view === 'stats' && (

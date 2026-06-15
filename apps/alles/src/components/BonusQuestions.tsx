@@ -11,16 +11,30 @@ import { worstTeamSoFar, type GroupRow } from '../utils/groupTables';
 import { normalizeTeamName } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
+interface FastestGoal {
+  minute: number;
+  scorer: string;
+  team: string;
+}
+
 interface Props {
   questions: BonusQuestion[];
   participants: Participant[];
   results: MatchResult[];
+  fastestGoal?: FastestGoal | null;
 }
 
 const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – ±5 av projeksjonen = full pott
 const GOAL_MARGIN = 5;
 const GROUP_GOALS_QUESTION_ID = 'q9'; // hvilken gruppe scorer flest mål – leder-gruppen
 const WORST_TEAM_QUESTION_ID = 'q10'; // VMs dårligste lag – dårligst-så-langt
+const FASTEST_GOAL_QUESTION_ID = 'q6'; // raskeste mål – pekepinn (eksakt tid settes manuelt)
+
+/** «Julián Quiñones» → «Quiñones» for kompakt visning. */
+function lastName(full: string): string {
+  const parts = full.trim().split(/\s+/);
+  return parts.length ? parts[parts.length - 1] : full;
+}
 
 const NEUTRAL = 'border-slate-700/40 bg-slate-800/40 text-slate-500';
 const GREEN = 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
@@ -52,7 +66,7 @@ function groupLetters(text: string | null): string[] {
   return text.toUpperCase().match(/\b[A-L]\b/g) ?? [];
 }
 
-export default function BonusQuestions({ questions, participants, results }: Props) {
+export default function BonusQuestions({ questions, participants, results, fastestGoal }: Props) {
   const projection = useMemo(() => projectTotalGoals(results), [results]);
   const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
   const worst = useMemo(() => worstTeamSoFar(results), [results]);
@@ -71,6 +85,7 @@ export default function BonusQuestions({ questions, participants, results }: Pro
           projection={projection}
           groupLeaders={groupLeaders}
           worst={worst}
+          fastestGoal={fastestGoal ?? null}
         />
       ))}
     </ul>
@@ -83,23 +98,28 @@ function BonusRow({
   projection,
   groupLeaders,
   worst,
+  fastestGoal,
 }: {
   question: BonusQuestion;
   participants: Participant[];
   projection: GoalProjection | null;
   groupLeaders: GroupGoalStanding | null;
   worst: GroupRow | null;
+  fastestGoal: FastestGoal | null;
 }) {
   const [open, setOpen] = useState(false);
   const hasFasit = question.answer !== null;
   const points = scoreBonusQuestion(participants, question);
   const fasit = Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
 
-  // Live-moduser, kun før fasit: q5 nærmest projeksjonen, q9 leder-gruppen, q10 dårligst så langt.
+  // Live-moduser, kun før fasit: q5 nærmest projeksjonen, q9 leder-gruppen, q10 dårligst så langt,
+  // q6 raskeste mål så langt (pekepinn – eksakt tid settes manuelt).
   const goalProj = question.id === GOAL_QUESTION_ID && !hasFasit ? projection : null;
   const groupLead = question.id === GROUP_GOALS_QUESTION_ID && !hasFasit ? groupLeaders : null;
   const worstLead = question.id === WORST_TEAM_QUESTION_ID && !hasFasit ? worst : null;
   const worstName = worstLead ? normalizeTeamName(worstLead.team) : null;
+  const fastestLead =
+    question.id === FASTEST_GOAL_QUESTION_ID && !hasFasit ? fastestGoal : null;
 
   return (
     <li>
@@ -134,6 +154,11 @@ function BonusRow({
                 {' '}
                 · {worstLead.points} p · {worstLead.gd > 0 ? `+${worstLead.gd}` : worstLead.gd} mål
               </span>
+            </p>
+          ) : fastestLead ? (
+            <p className="mt-0.5 text-xs text-wc-yellow">
+              Raskeste mål så langt: {fastestLead.minute}' {lastName(fastestLead.scorer)}
+              <span className="text-slate-500"> · foreløpig (eksakt tid settes manuelt)</span>
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>

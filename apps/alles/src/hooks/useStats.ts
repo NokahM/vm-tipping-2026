@@ -32,6 +32,7 @@ export interface StatsData {
   goalsByPlayer?: Record<string, number>; // spiller-id → mål (for q13)
   playedIds?: number[]; // spillere m/ spilletid (for q16)
   finalReferee?: string | null; // for q11
+  fastestGoal?: { minute: number; scorer: string; team: string } | null; // for q6
   coverage?: { cached: number; relevant: number };
   updatedAt?: number;
 }

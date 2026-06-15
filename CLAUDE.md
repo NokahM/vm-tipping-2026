@@ -210,9 +210,12 @@ tippekonk/                          # repo-root
 - **q9 (flest mål-gruppe):** eksakt gruppe-match. Krydder-fanen viser også **live-leder** av gruppene
   (`groupGoalLeaders`, mål per gruppe så langt inkl. live) og fargekoder tippene grønt for den/de
   ledende gruppen(e) (kun visuelt).
-- **q10 (dårligste lag):** eksakt lag-match (manuell fasit). Krydder-fanen viser også **dårligst så
-  langt** (`worstTeamSoFar`: færrest poeng → lavest målforskjell → færrest mål blant lag som har spilt)
-  og fargekoder tippene grønt for det laget (kun visuelt – fasiten settes manuelt).
+- **q10 (dårligste lag):** eksakt lag-match. Krydder-fanen viser også **dårligst så langt**
+  (`worstTeamSoFar`: færrest poeng → lavest målforskjell → færrest mål blant lag som har spilt) og
+  fargekoder tippene grønt for det laget (kun visuelt).
+- **q6 (raskeste mål):** ±15 sek fra fasit. Krydder-fanen viser **raskeste mål så langt**
+  (`stats.fastestGoal`: minutt + scorer, fra aggregatoren) som pekepinn – **foreløpig**, siden det kan
+  slås helt til finalen, og API-et har kun minutt (eksakt mm:ss settes manuelt av admin).
 - **q6 (raskeste mål):** innenfor ±15 sekunder fra fasit (parses som mm:ss / hh:mm:ss).
 - **q7 / q8 (rødt kort / selvmål):** **2p per korrekt nevnt lag, maks 4p** (`maxPoints: 4`, deltaker
   nevner 2 lag). Styres av `PER_TEAM_IDS`. Fasit settes som komma-separert liste over **alle** lag som
@@ -411,15 +414,18 @@ så løpende auto-scoring er alltid riktig, og datoene mater grafen per lag. **A
 verdier** (`bonusManual`, uten auto) i panelet, så auto-fasit «fryses» aldri ved lagring. `useStats`
 hentes nå **alltid** (ikke bare på Stats-fanen) siden auto-krydder trenger det.
 
-**Planlagt (auto-krydder pulje B/C):**
-- **B – «lås når avgjort»** (slutt-tilstand, må ikke auto-scores for tidlig): q1 (finalevinner), q3
-  (toppscorer), q5 (antall mål), q9 (gruppe flest mål), q10 (dårligste lag), q11 (finaledommer), q17
-  (Norge). Krever «fase ferdig»-deteksjon.
-- **C – trenger referansedata:** q12 (øynasjon-liste), q14 (afrikansk-land-liste), q13 (Ronaldo+Messi
-  spiller-ID/navn), q16 (tre Bodø/Glimt-spillere).
-- **Manuelt:** q2, q4, q6 (kun minutt i API), q15.
-- **TODO (UX):** vis auto-verdien i admin-panelet (read-only hint) så admin ser hva som auto-settes og
-  kan overstyre, uten å fryse den.
+**Auto-krydder – implementert (13 av 17):** all auto-utledning ligger i `utils/autoDerive.ts`
+(`deriveDecidedBonus(results)` + `deriveStatsBonus(stats, results)`) og `api/stats.js` (`autoBonus`).
+- **Akkumulerende (alltid riktig, scorer løpende):** q7 (rødt kort), q8 (selvmål), q16 (Bodø/Glimt
+  «Ja» når alle tre har spilt).
+- **Lås når avgjort** (aldri auto-score på en midlertidig leder): q9/q10 (gruppespill ferdig), q5 (alle
+  kamper ferdig), q1/q3/q13 (finalen ferdig), q11 (finaledommer kjent), q12/q14/q17 (turneringsslutt;
+  «kommer lengst» via stage-rangering, likt på toppen → alle).
+- **Live-indikator (visuelt, eksakt fasit manuelt):** q5, q6 (raskeste mål), q9, q10.
+- **Format-robust scoring:** q9 (`groupLetters`), q17 (`parseStage`). q13/q3 inkluderer etternavn for treff.
+- **Manuelt:** q2 (Gullball), q4 (Young Player), q15 (kjendis). q6 sin eksakte mm:ss (API har kun minutt).
+- Alt flettes UNDER manuell KV: `{ …innbakt, …auto, …decidedOnly(KV) }` – avhuket admin-svar overstyrer.
+- **TODO (UX):** vis auto-verdien i admin-panelet (read-only hint) så admin ser hva som auto-settes.
 
 ---
 
