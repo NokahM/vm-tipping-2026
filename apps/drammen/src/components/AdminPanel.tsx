@@ -541,11 +541,11 @@ function BonusTab({
             <label className="flex items-center gap-1.5 text-xs text-slate-200">
               <input
                 type="checkbox"
-                checked={decidedDraft[q.id] ?? true}
+                checked={decidedDraft[q.id] ?? false}
                 onChange={(e) => setDecided(q.id, e.target.checked)}
                 className="h-4 w-4 accent-emerald-500"
               />
-              Avgjort <span className="text-slate-500">(teller i tabellen)</span>
+              Avgjort
             </label>
             <button
               type="button"
@@ -554,7 +554,6 @@ function BonusTab({
             >
               {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
             </button>
-            {!showDate[q.id] && <span className="text-[10px] text-slate-600">dato = i dag</span>}
           </div>
           {showDate[q.id] &&
             (isList ? (
