@@ -31,6 +31,14 @@ export default function FeaturedMatch({ match, participants }: Props) {
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
 
+  // Kampklokke fra API-et (oppdateres ved polling). PAUSE = «Pause», ellers minutt (+ tilleggstid).
+  const liveLabel =
+    match.status === 'PAUSED'
+      ? 'Pause'
+      : match.minute != null
+        ? `${match.minute}${match.injuryTime ? `+${match.injuryTime}` : ''}'`
+        : 'LIVE';
+
   return (
     <div>
       <button
@@ -61,7 +69,8 @@ export default function FeaturedMatch({ match, participants }: Props) {
               )}
               {liveNow ? (
                 <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-red-400">
-                  <span>● LIVE</span>
+                  <span className="animate-pulse">●</span>
+                  <span className="tabular-nums">{liveLabel}</span>
                   <BroadcasterBadge apiId={match.apiId} className="h-3.5" />
                 </div>
               ) : finished ? (

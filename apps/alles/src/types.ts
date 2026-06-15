@@ -21,6 +21,8 @@ export interface MatchResult {
   awayGoals: number | null;
   status: MatchStatus;
   utcDate: string;
+  minute?: number | null; // kampminutt mens den spilles (kun live)
+  injuryTime?: number | null; // tilleggstid (f.eks. 90+3)
 }
 
 export interface GroupTip {

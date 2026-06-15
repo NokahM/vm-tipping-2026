@@ -17,6 +17,8 @@ interface RawMatch {
   status: string;
   stage: string;
   group: string | null;
+  minute?: number | null;
+  injuryTime?: number | null;
   homeTeam: { id: number | null; name: string | null; tla: string | null };
   awayTeam: { id: number | null; name: string | null; tla: string | null };
   score: {
@@ -141,5 +143,7 @@ function mapMatch(m: RawMatch): MatchResult {
     awayGoals: m.score.fullTime.away,
     status: m.status as MatchResult['status'],
     utcDate: m.utcDate,
+    minute: m.minute ?? null,
+    injuryTime: m.injuryTime ?? null,
   };
 }

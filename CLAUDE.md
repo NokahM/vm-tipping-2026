@@ -141,8 +141,9 @@ tippekonk/                          # repo-root
 
 ## Datamodell (`src/types.ts`)
 
-- `MatchResult` – `apiId, stage, group?, homeTeam, awayTeam, homeGoals, awayGoals, status, utcDate`.
-  (`homeGoals/awayGoals` kan i praksis være `null` før/under kamp selv om typen sier `number`.)
+- `MatchResult` – `apiId, stage, group?, homeTeam, awayTeam, homeGoals, awayGoals, status, utcDate,
+  minute?, injuryTime?`. (`homeGoals/awayGoals` kan i praksis være `null` før/under kamp selv om typen
+  sier `number`. `minute`/`injuryTime` finnes i bulk-lista mens kampen spilles → kampklokke.)
 - `Participant` – `name, groupTips[], bonusTips[], knockoutTips[]`.
 - `GroupTip` (matches via lagnavn+gruppe), `KnockoutTip` (matches via `apiId`).
 - `BonusTip` – `questionId, answer: string | string[]` (array for q7/q8 og andre liste-svar).
@@ -286,7 +287,8 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
   styres av `FEATURED_LIMIT` i `MatchList.tsx`). Format: `logo  lag  stilling  lag  logo`; dato+klokke
-  før avspark, rød prikk / «● LIVE» under kamp. Klikkbar → alle tips (`TipChips`), fargekodet – og
+  før avspark, under kamp **pulserende rød prikk + kampklokke** (`minute`/`injuryTime` fra API-et, f.eks.
+  «● 67'» / «● 90+3'» / «● Pause», oppdateres ved polling). Klikkbar → alle tips (`TipChips`), fargekodet – og
   **foreløpig fargekoding mens kampen pågår** (`~Xp` + «● Foreløpige poeng»-hint).
 - **Lag-logoer:** `public/teams/<slug>.png`; `teamLogos.ts` mapper norsk lagnavn → slug; `TeamLogo`
   faller elegant tilbake om logo mangler.
