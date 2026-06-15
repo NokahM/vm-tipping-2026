@@ -91,3 +91,47 @@ body {
       #b188fc 126px 144px
     );
 }
+
+/* Kort-rammer (gruppespill/sluttspill/tabell/krydder): én solid kant-farge som ruller
+   subtilt gjennom de offisielle VM-fargene i samme rekkefølge som bakgrunnsstripene,
+   og løkker sømløst tilbake til rød. Aktuelt-kortet bruker fortsatt en fast rød ramme. */
+.wc-frame {
+  border: 1px solid #e21602;
+  animation: wc-frame-cycle 32s linear infinite;
+}
+
+@keyframes wc-frame-cycle {
+  0% {
+    border-color: #e21602;
+  }
+  12.5% {
+    border-color: #e84b09;
+  }
+  25% {
+    border-color: #e8fc4a;
+  }
+  37.5% {
+    border-color: #afe905;
+  }
+  50% {
+    border-color: #66fbda;
+  }
+  62.5% {
+    border-color: #324dfb;
+  }
+  75% {
+    border-color: #6001e6;
+  }
+  87.5% {
+    border-color: #b188fc;
+  }
+  100% {
+    border-color: #e21602;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wc-frame {
+    animation: none;
+  }
+}
