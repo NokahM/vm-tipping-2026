@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant, ParticipantScore } from '../types';
 import { computeRankDeltas, participantBreakdown, type ScoringItem } from '../utils/scoring';
+import { wcFrameStyle } from '../utils/wcFrame';
 
 interface Props {
   standings: ParticipantScore[];
@@ -25,9 +26,10 @@ export default function Leaderboard({ standings, participants, results, question
     () => computeRankDeltas(standings, participants, results, questions),
     [standings, participants, results, questions],
   );
+  const frameStyle = useMemo(wcFrameStyle, []);
 
   return (
-    <section className="wc-frame overflow-hidden rounded-xl bg-slate-800">
+    <section style={frameStyle} className="wc-frame overflow-hidden rounded-xl bg-slate-800">
       <header className="flex items-center gap-2 border-b border-slate-700 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
         <span className="w-5 text-center">#</span>
         <span className="flex-1">Navn</span>

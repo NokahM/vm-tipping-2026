@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { STAGE_LABELS, STAGE_ORDER, groupLabel } from '../utils/labels';
+import { wcFrameStyle } from '../utils/wcFrame';
 import MatchRow from './MatchRow';
 import FeaturedMatch from './FeaturedMatch';
 
@@ -199,8 +200,12 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
 }
 
 function MatchCard({ matches, participants }: { matches: MatchResult[]; participants: Participant[] }) {
+  const frameStyle = useMemo(wcFrameStyle, []);
   return (
-    <ul className="wc-frame divide-y divide-slate-700/70 overflow-hidden rounded-xl bg-slate-800">
+    <ul
+      style={frameStyle}
+      className="wc-frame divide-y divide-slate-700/70 overflow-hidden rounded-xl bg-slate-800"
+    >
       {matches.map((m) => (
         <MatchRow key={m.apiId} match={m} participants={participants} />
       ))}

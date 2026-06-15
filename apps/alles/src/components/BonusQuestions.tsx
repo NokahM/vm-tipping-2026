@@ -7,6 +7,7 @@ import {
   type GoalProjection,
   type GroupGoalStanding,
 } from '../utils/scoring';
+import { wcFrameStyle } from '../utils/wcFrame';
 
 interface Props {
   questions: BonusQuestion[];
@@ -50,9 +51,13 @@ function groupLetters(text: string | null): string[] {
 export default function BonusQuestions({ questions, participants, results }: Props) {
   const projection = useMemo(() => projectTotalGoals(results), [results]);
   const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
+  const frameStyle = useMemo(wcFrameStyle, []);
 
   return (
-    <ul className="wc-frame divide-y divide-slate-700/70 overflow-hidden rounded-xl bg-slate-800">
+    <ul
+      style={frameStyle}
+      className="wc-frame divide-y divide-slate-700/70 overflow-hidden rounded-xl bg-slate-800"
+    >
       {questions.map((q) => (
         <BonusRow
           key={q.id}
