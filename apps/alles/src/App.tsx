@@ -31,6 +31,7 @@ import PlayerStats from './components/PlayerStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
+import { deriveDecidedBonus } from './utils/autoDerive';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
 
@@ -136,11 +137,13 @@ export default function App() {
   // Admin ser/redigerer kun manuelle verdier (innbakt + KV) – auto flettes ikke inn her, så
   // auto-fasit «fryses» aldri ved lagring.
   const bonusManual = useMemo(() => ({ ...BONUS_BAKED, ...bonusStore }), [bonusStore]);
-  // Auto-krydder (q7/q8) fra aggregatoren, lagt UNDER manuell fasit (manuell KV overstyrer auto).
+  // Auto-krydder, lagt UNDER manuell fasit (manuell KV overstyrer alltid auto):
+  // q7/q8 fra aggregatoren (akkumulerende), q1/q5/q10 fra resultatene (låses når avgjort).
   const autoBonusStore = useMemo(() => autoBonusToStore(stats?.autoBonus), [stats?.autoBonus]);
+  const autoDecided = useMemo(() => deriveDecidedBonus(results), [results]);
   const bonusMerged = useMemo(
-    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...bonusStore }),
-    [autoBonusStore, bonusStore],
+    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...bonusStore }),
+    [autoBonusStore, autoDecided, bonusStore],
   );
 
   const participants = useMemo(

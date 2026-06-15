@@ -19,6 +19,7 @@ import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
+import { deriveDecidedBonus } from '../apps/drammen/src/utils/autoDerive';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
 
 let failures = 0;
@@ -304,6 +305,43 @@ assert('q8 ett riktig = 2p', scoreBonusQuestion(PARTICIPANTS, { ...q8q, answer: 
 assert('q8 begge riktige = 4p', scoreBonusQuestion(PARTICIPANTS, { ...q8q, answer: ['Curacao', 'Kapp Verde'] }).get('Erling'), 4);
 assert('q15 kjendis i lista = 3p', scoreBonusQuestion(PARTICIPANTS, { ...q15q, answer: ['Prinsesse Astrid', 'Pave Frans'] }).get('Erling'), 3);
 assert('q15 kjendis ikke i lista = 0p', scoreBonusQuestion(PARTICIPANTS, { ...q15q, answer: ['Pave Frans'] }).get('Erling'), 0);
+
+// 4b) Auto-krydder pulje B (deriveDecidedBonus) – låses kun når avgjort
+console.log('\nderiveDecidedBonus (lås når avgjort):');
+const mk = (o: Partial<MatchResult>): MatchResult => ({
+  apiId: 0,
+  stage: 'GROUP_STAGE',
+  homeTeam: 'TBD',
+  awayTeam: 'TBD',
+  homeGoals: null,
+  awayGoals: null,
+  status: 'SCHEDULED',
+  utcDate: '2026-06-20T18:00:00Z',
+  ...o,
+});
+// Gruppespill IKKE ferdig → q10 ikke satt
+const gsPartial = [
+  mk({ stage: 'GROUP_STAGE', group: 'GROUP_A', homeTeam: 'Mexico', awayTeam: 'South Africa', homeGoals: 2, awayGoals: 0, status: 'FINISHED' }),
+  mk({ stage: 'GROUP_STAGE', group: 'GROUP_A', homeTeam: 'South Korea', awayTeam: 'Czechia', status: 'SCHEDULED' }),
+];
+assert('q10 ikke satt før gruppespill ferdig', deriveDecidedBonus(gsPartial).q10, undefined);
+// Lite, komplett «gruppespill» (alle ferdige) → q10 = dårligste (South Africa, 0p)
+const gsDone = [
+  mk({ stage: 'GROUP_STAGE', group: 'GROUP_A', homeTeam: 'Mexico', awayTeam: 'South Africa', homeGoals: 2, awayGoals: 0, status: 'FINISHED', utcDate: '2026-06-11T18:00:00Z' }),
+  mk({ stage: 'GROUP_STAGE', group: 'GROUP_A', homeTeam: 'South Korea', awayTeam: 'Mexico', homeGoals: 1, awayGoals: 1, status: 'FINISHED', utcDate: '2026-06-12T18:00:00Z' }),
+];
+const dDone = deriveDecidedBonus(gsDone);
+assert('q10 satt når gruppespill ferdig', typeof dDone.q10 === 'object' && (dDone.q10 as { answer: string }).answer, 'Sør-Afrika');
+assert('q10 dato = siste gruppedag', (dDone.q10 as { at: string }).at, '2026-06-12T12:00:00.000Z');
+assert('q5 satt når alt ferdig (4 mål)', (dDone.q5 as { answer: string }).answer, '4');
+// q1: finale ferdig (ikke uavgjort)
+const withFinal = [
+  mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-19T18:00:00Z' }),
+];
+assert('q1 = finalevinner (Frankrike)', (deriveDecidedBonus(withFinal).q1 as { answer: string }).answer, 'Frankrike');
+// q1: uavgjort finale (straffer) → ikke auto
+const drawFinal = [mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 1, awayGoals: 1, status: 'FINISHED' })];
+assert('q1 ikke satt ved uavgjort finale', deriveDecidedBonus(drawFinal).q1, undefined);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
