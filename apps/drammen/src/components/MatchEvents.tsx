@@ -54,8 +54,9 @@ interface Props {
 
 /**
  * Tidslinje for én kamp (deep data): minuttet i midten, ikon (⚽/🟥) på siden til laget
- * som fikk det, spillernavn under lagnavnet. Henter kun for live/ferdige kamper og rendres
- * tomt (null) ellers. Tenkt brukt inni en åpnet kamp-visning (skjult bak et trykk).
+ * som fikk det, spillernavnet på samme side (hjemme venstre, borte høyre – lagnavn står
+ * allerede i kort-headeren over). Henter kun for live/ferdige kamper og rendres tomt (null)
+ * ellers. Tenkt brukt inni en åpnet kamp-visning (skjult bak et trykk).
  */
 export default function MatchEvents({ match }: Props) {
   const liveNow =
@@ -103,12 +104,8 @@ export default function MatchEvents({ match }: Props) {
   return (
     <div className="mb-3 border-b border-slate-700/50 pb-3">
       <div className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-x-2 text-xs">
-        {/* Lagnavn-overskrifter */}
-        <div className="truncate pb-1 text-right text-[11px] font-semibold text-slate-400">{home}</div>
-        <div />
-        <div className="truncate pb-1 text-left text-[11px] font-semibold text-slate-400">{away}</div>
-
-        {/* Én rad per hendelse, kronologisk; minutt i midten */}
+        {/* Én rad per hendelse, kronologisk; minutt i midten. Lagnavn vises ikke her –
+            logo + navn står allerede i kort-headeren over. Hjemme venstre, borte høyre. */}
         {rows.map((r, i) => (
           <Fragment key={i}>
             <SideCell row={r} side="home" />
