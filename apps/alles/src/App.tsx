@@ -29,9 +29,28 @@ import GroupTables from './components/GroupTables';
 import TeamCards from './components/TeamCards';
 import PlayerStats from './components/PlayerStats';
 import AdminPanel from './components/AdminPanel';
-import { useStats } from './hooks/useStats';
+import { useStats, type AutoBonus } from './hooks/useStats';
+import { normalizeTeamName } from './utils/teamNames';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
+
+/** Auto-krydder fra aggregatoren → BonusStore-form (norske lagnavn + per-lag-datoer). */
+function autoBonusToStore(auto: AutoBonus | undefined): BonusStore {
+  const store: BonusStore = {};
+  for (const qid of ['q7', 'q8'] as const) {
+    const byTeam = auto?.[qid];
+    if (!byTeam) continue;
+    const ats: Record<string, string> = {};
+    const answer: string[] = [];
+    for (const [team, iso] of Object.entries(byTeam)) {
+      const no = normalizeTeamName(team);
+      if (!answer.includes(no)) answer.push(no);
+      ats[no] = iso;
+    }
+    if (answer.length > 0) store[qid] = { answer, ats };
+  }
+  return store;
+}
 
 // Innbakt (delt) admin-data fra repoet. localStorage legges oppå som live-overstyring.
 const KNOCKOUT_BAKED = knockoutBaked as KnockoutStore;
@@ -46,7 +65,8 @@ export default function App() {
   const [view, setView] = useState<View>('kamper');
   const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
   const [statsView, setStatsView] = useState<'lag' | 'spiller'>('lag');
-  const { data: stats } = useStats(view === 'stats');
+  // Hentes alltid (ikke bare på Stats-fanen): brukes også til auto-krydder (q7/q8).
+  const { data: stats } = useStats(true);
   const [adminOpen, setAdminOpen] = useState(isAdminUrl);
 
   // Initialiseres fra localStorage-cache (rask visning), oppdateres så fra KV (delt sannhet).
@@ -113,7 +133,15 @@ export default function App() {
 
   // Innbakt data + lokale (admin) overstyringer. localStorage vinner ved konflikt.
   const knockoutMerged = useMemo(() => ({ ...KNOCKOUT_BAKED, ...knockoutStore }), [knockoutStore]);
-  const bonusMerged = useMemo(() => ({ ...BONUS_BAKED, ...bonusStore }), [bonusStore]);
+  // Admin ser/redigerer kun manuelle verdier (innbakt + KV) – auto flettes ikke inn her, så
+  // auto-fasit «fryses» aldri ved lagring.
+  const bonusManual = useMemo(() => ({ ...BONUS_BAKED, ...bonusStore }), [bonusStore]);
+  // Auto-krydder (q7/q8) fra aggregatoren, lagt UNDER manuell fasit (manuell KV overstyrer auto).
+  const autoBonusStore = useMemo(() => autoBonusToStore(stats?.autoBonus), [stats?.autoBonus]);
+  const bonusMerged = useMemo(
+    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...bonusStore }),
+    [autoBonusStore, bonusStore],
+  );
 
   const participants = useMemo(
     () => mergeKnockoutTips(PARTICIPANTS, knockoutMerged),
@@ -153,7 +181,7 @@ export default function App() {
         participants={PARTICIPANTS}
         questions={BONUS_QUESTIONS}
         knockoutStore={knockoutMerged}
-        bonusStore={bonusMerged}
+        bonusStore={bonusManual}
         loading={loading}
         onSaveKnockout={(s, password) => {
           setKnockoutStore(s);

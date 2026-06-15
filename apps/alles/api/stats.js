@@ -4,9 +4,18 @@
 //
 // Selv-inneholdt (ingen lokale imports) så den samme handleren kan kalles fra Vite-dev-proxyen.
 
-const CACHE_KEY = 'stats:v1';
+const CACHE_KEY = 'stats:v2'; // v2: lagrer også utcDate per kamp (for auto-krydder-datoer)
 const BATCH = 10; // maks antall kamp-detaljer å hente per kall (skåner rategrensen)
 const LIVE = ['FINISHED', 'IN_PLAY', 'PAUSED'];
+const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000; // 10:00 UTC = 12:00 norsk – samme som matchDayKey
+
+// Noon-ISO for kampens «matchday» (samme 12:00-grense som resten av appen). Brukt som
+// dato et lag «fikk rødt kort / scoret selvmål» i auto-krydder.
+function matchDayIso(utcDate) {
+  if (!utcDate) return null;
+  const day = new Date(Date.parse(utcDate) - MATCHDAY_BOUNDARY_MS).toISOString().slice(0, 10);
+  return `${day}T12:00:00.000Z`;
+}
 
 let memCache = null; // fallback hvis KV mangler (lever per varm funksjons-instans)
 
@@ -45,7 +54,31 @@ function extractMatch(d) {
     team: b.team?.name ?? '',
     card: b.card || 'YELLOW',
   }));
-  return { lastUpdated: d.lastUpdated, goals, bookings };
+  return { lastUpdated: d.lastUpdated, utcDate: d.utcDate, goals, bookings };
+}
+
+/**
+ * Auto-krydder fra deep data (akkumulerende, alltid korrekt):
+ * q7 = lag med rødt kort (RED/YELLOW_RED), q8 = lag som scoret selvmål (goal.team for OWN).
+ * Verdien er tidligste matchday-dato (noon-ISO) laget gjorde det → mater grafen per lag.
+ * Engelske lagnavn; klienten normaliserer til norsk før fletting.
+ */
+function autoBonusFrom(cache) {
+  const q7 = {};
+  const q8 = {};
+  const earliest = (map, team, iso) => {
+    if (team && iso && (!map[team] || iso < map[team])) map[team] = iso;
+  };
+  for (const m of Object.values(cache.matches)) {
+    const iso = matchDayIso(m.utcDate);
+    for (const b of m.bookings) {
+      if (b.card === 'RED' || b.card === 'YELLOW_RED') earliest(q7, b.team, iso);
+    }
+    for (const g of m.goals) {
+      if (g.type === 'OWN') earliest(q8, g.team, iso);
+    }
+  }
+  return { q7, q8 };
 }
 
 /** Bygger spiller-id → posisjon fra oppstilling + benk (stabil per spiller). */
@@ -160,6 +193,7 @@ async function computeStats(apiKey, kvUrl, kvToken) {
 
   return {
     ...aggregate(cache),
+    autoBonus: autoBonusFrom(cache),
     coverage: { cached: Object.keys(cache.matches).length, relevant: relevant.length },
     updatedAt: Date.now(),
   };

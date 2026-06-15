@@ -395,10 +395,24 @@ par poll; edge-cache `s-maxage=30`. Returnerer `{ topScorers, topAssists, topCar
 gjenbruker den (`statsApiPlugin` i `vite.config.ts`, leser nøkler fra `process.env`). Ingen ny
 miljøvariabel (gjenbruker `FOOTBALL_API_KEY` + KV-nøklene). Banet vei for auto-krydder.
 
-**Planlagt (auto-krydder):** utlede fasit + per-lag-datoer automatisk fra deep data der mulig:
-q7 (rødt kort ← `bookings` RED), q8 (selvmål ← `goals` OWN, lag = `goal.team`), evt.
-q5/q9/q11/q12/q14/q17. Aggregatoren over finnes allerede – gjenbruk caching-mønsteret. Admin skal
-fortsatt kunne overstyre.
+**Auto-krydder (pulje A – implementert): q7 + q8.** Aggregatoren returnerer `autoBonus` = `{ q7, q8 }`
+der hver er `{ engelskLagnavn: tidligste-noon-ISO-dato }` (q7 = RED/YELLOW_RED i `bookings`, q8 = OWN i
+`goals`, lag = `goal.team`). `App.autoBonusToStore` normaliserer lagnavn til norsk og bygger
+`{ answer, ats }` per spørsmål. **Fletting med presedens:** `bonusMerged = { …innbakt, …auto, …KV }` –
+manuell KV-fasit **overstyrer alltid** auto. Auto akkumulerer (et lag som har gjort det *har* gjort det),
+så løpende auto-scoring er alltid riktig, og datoene mater grafen per lag. **Admin ser kun manuelle
+verdier** (`bonusManual`, uten auto) i panelet, så auto-fasit «fryses» aldri ved lagring. `useStats`
+hentes nå **alltid** (ikke bare på Stats-fanen) siden auto-krydder trenger det.
+
+**Planlagt (auto-krydder pulje B/C):**
+- **B – «lås når avgjort»** (slutt-tilstand, må ikke auto-scores for tidlig): q1 (finalevinner), q3
+  (toppscorer), q5 (antall mål), q9 (gruppe flest mål), q10 (dårligste lag), q11 (finaledommer), q17
+  (Norge). Krever «fase ferdig»-deteksjon.
+- **C – trenger referansedata:** q12 (øynasjon-liste), q14 (afrikansk-land-liste), q13 (Ronaldo+Messi
+  spiller-ID/navn), q16 (tre Bodø/Glimt-spillere).
+- **Manuelt:** q2, q4, q6 (kun minutt i API), q15.
+- **TODO (UX):** vis auto-verdien i admin-panelet (read-only hint) så admin ser hva som auto-settes og
+  kan overstyre, uten å fryse den.
 
 ---
 

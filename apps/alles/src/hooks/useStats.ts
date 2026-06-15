@@ -17,11 +17,18 @@ export interface TeamCard {
   red: number;
 }
 
+/** Auto-utledet krydder-fasit (engelske lagnavn → tidligste noon-ISO-dato). */
+export interface AutoBonus {
+  q7?: Record<string, string>; // rødt kort: lag → dato
+  q8?: Record<string, string>; // selvmål: lag → dato
+}
+
 export interface StatsData {
   topScorers: StatPlayer[];
   topAssists: StatPlayer[];
   topCards: StatPlayer[];
   teamCards: TeamCard[];
+  autoBonus?: AutoBonus;
   coverage?: { cached: number; relevant: number };
   updatedAt?: number;
 }
