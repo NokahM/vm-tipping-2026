@@ -338,12 +338,14 @@ Abonnementet er oppgradert til **Free + Deep Data** (30 kall/min) som gir per-ka
   ingen ny miljøvariabel.
 - `apiClient.fetchMatchEvents(id)` → `{ goals, bookings }` (lagnavn normalisert til norsk).
 - `hooks/useMatchEvents(id, enabled)` poller hvert 20s, kun når `enabled` (live/nettopp ferdig).
-- **`MatchEvents`** (delt komponent): to-kolonne visning (hjemmelag venstre, bortelag høyre) av
-  ⚽ målscorere og 🟥 røde kort, kronologisk vevd sammen. Flerlagsmål per spiller slås sammen til
-  én linje (`7', 90' Ayari`) med én ⚽ per mål; røde kort står alltid alene. Selvmål vises i
-  **motstanderens** kolonne (så kolonnen summerer til stillingen), merket «(selvm.)». Rendres tomt
-  om detaljer mangler. Brukes i **både** `FeaturedMatch` (Aktuelt) og `MatchRow` (alle gruppespill-
-  + sluttspill-kamper) – ligger skjult bak «Vis mer»/klikk, så det henter kun ved åpning.
+- **`MatchEvents`** (delt komponent): en **sentrert tidslinje** (3-kolonners grid `1fr auto 1fr`) av
+  ⚽ målscorere og 🟥 røde kort, én rad per hendelse, kronologisk. **Minuttet står i midten**; ikonet
+  ligger på siden til laget som fikk det, og spillernavnet under lagnavn-overskriften (hjemme venstre,
+  borte høyre). Flerlagsmål per spiller slås sammen til én rad (`7', 90'` i midten, én ⚽ per mål);
+  røde kort står alltid alene. Selvmål havner på **motstanderens** side (så siden summerer til
+  stillingen), merket «(selvm.)». Rendres tomt om detaljer mangler. Brukes i **både** `FeaturedMatch`
+  (Aktuelt) og `MatchRow` (alle gruppespill- + sluttspill-kamper) – skjult bak «Vis mer»/klikk, så det
+  henter kun ved åpning.
 
 **Selvmål-attribusjon (verifisert mot ekte data):** API-et setter `goal.team` = **scorerens lag**,
 også for selvmål (US 4–1 Paraguay: selvmål av Bobadilla har `team: Paraguay`). Konsekvenser:
