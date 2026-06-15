@@ -190,7 +190,9 @@ tippekonk/                          # repo-root
 | 17 | Hvor langt kommer Norge? | 2p |
 
 **Spesialregler (`scoreBonusQuestion`):**
-- **q5 (antall mål):** nærmest fasit vinner; ved likt får alle nærmeste poeng (krever hele feltet).
+- **q5 (antall mål totalt):** full pott hvis tippet er innenfor **±5 mål** av fasit (`GOAL_MARGIN`).
+  Krydder-fanen viser også en **live-projeksjon** av totalen (`projectTotalGoals`, mål-per-kamp så
+  langt × 104, inkl. live) og fargekoder tippene grønt/rødt ±5 mot projeksjonen (kun visuelt).
 - **q6 (raskeste mål):** innenfor ±15 sekunder fra fasit (parses som mm:ss / hh:mm:ss).
 - **q7 / q8 (rødt kort / selvmål):** **2p per korrekt nevnt lag, maks 4p** (`maxPoints: 4`, deltaker
   nevner 2 lag). Styres av `PER_TEAM_IDS`. Fasit settes som komma-separert liste over **alle** lag som

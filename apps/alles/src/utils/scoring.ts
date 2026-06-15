@@ -138,6 +138,9 @@ function bonusAnswerOf(tip: BonusTip): string[] {
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
 
+// q5 (antall mål totalt): full pott hvis tippet er innenfor ±5 mål av fasit.
+const GOAL_MARGIN = 5;
+
 /**
  * Krydderpoeng for ett spørsmål, for alle deltakere (navn → poeng).
  * Alle får 0 hvis fasit ikke er satt. q5 «nærmest» krever hele feltet samtidig.
@@ -153,21 +156,15 @@ export function scoreBonusQuestion(
   const tipFor = (p: Participant) => p.bonusTips.find((t) => t.questionId === q.id);
 
   if (q.id === 'q5') {
-    // Antall mål totalt: nærmest vinner. Ved likt: alle nærmeste får poeng.
+    // Antall mål totalt: full pott hvis innenfor ±GOAL_MARGIN mål av fasit.
     const fasit = firstNumber(String(q.answer));
     if (Number.isNaN(fasit)) return points;
-    const dist = new Map<string, number>();
-    let best = Infinity;
     for (const p of participants) {
       const tip = tipFor(p);
       if (!tip) continue;
       const guess = firstNumber(bonusAnswerOf(tip)[0] ?? '');
-      if (Number.isNaN(guess)) continue;
-      const d = Math.abs(guess - fasit);
-      dist.set(p.name, d);
-      best = Math.min(best, d);
+      if (!Number.isNaN(guess) && Math.abs(guess - fasit) <= GOAL_MARGIN) add(p.name, q.maxPoints);
     }
-    for (const [name, d] of dist) if (d === best) add(name, q.maxPoints);
     return points;
   }
 
@@ -304,6 +301,35 @@ export function tipForMatch(p: Participant, match: MatchResult): Goals | null {
 export function pointsForTip(tip: Goals, match: MatchResult): number | null {
   if (!isPlayed(match)) return null;
   return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
+}
+
+export interface GoalProjection {
+  goalsSoFar: number; // mål i ferdige + pågående kamper
+  matchesCounted: number; // antall kamper som har startet (ferdige + live)
+  totalMatches: number; // totalt antall kamper i VM (104)
+  projected: number; // ekstrapolert totalt antall mål
+}
+
+/**
+ * Live-projeksjon av totalt antall mål i hele VM, basert på mål-per-kamp så langt
+ * (ferdige + pågående kamper, inkl. ekstraomganger via score.fullTime). Brukes KUN til
+ * visuell projeksjon/fargekoding av q5 – påvirker ikke poeng (q5 scores mot faktisk
+ * fasit når VM er ferdig).
+ */
+export function projectTotalGoals(results: MatchResult[]): GoalProjection | null {
+  let goalsSoFar = 0;
+  let matchesCounted = 0;
+  for (const m of results) {
+    const started =
+      m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    if (!started || m.homeGoals === null || m.awayGoals === null) continue;
+    goalsSoFar += m.homeGoals + m.awayGoals;
+    matchesCounted += 1;
+  }
+  if (matchesCounted === 0) return null;
+  const totalMatches = results.length || matchesCounted;
+  const projected = Math.round((goalsSoFar / matchesCounted) * totalMatches);
+  return { goalsSoFar, matchesCounted, totalMatches, projected };
 }
 
 /**

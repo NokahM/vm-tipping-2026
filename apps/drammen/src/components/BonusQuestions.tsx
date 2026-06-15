@@ -1,40 +1,70 @@
-import { useState } from 'react';
-import type { BonusQuestion, BonusTip, Participant } from '../types';
-import { scoreBonusQuestion } from '../utils/scoring';
+import { useMemo, useState } from 'react';
+import type { BonusQuestion, BonusTip, MatchResult, Participant } from '../types';
+import { projectTotalGoals, scoreBonusQuestion, type GoalProjection } from '../utils/scoring';
 
 interface Props {
   questions: BonusQuestion[];
   participants: Participant[];
+  results: MatchResult[];
 }
+
+// q5 = «hvor mange mål scores det totalt i VM?». Får live-projeksjon + ±5-fargekoding.
+const GOAL_QUESTION_ID = 'q5';
+const GOAL_MARGIN = 5;
 
 function answerText(tip: BonusTip | undefined): string | null {
   if (!tip) return null;
   return Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer;
 }
 
+const NEUTRAL = 'border-slate-700/40 bg-slate-800/40 text-slate-500';
+const GREEN = 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
+const AMBER = 'border-amber-600/40 bg-amber-500/15 text-amber-300';
+const RED = 'border-red-700/40 bg-red-500/15 text-red-300';
+
 function chipClasses(hasFasit: boolean, hasAnswer: boolean, points: number, max: number): string {
-  if (!hasAnswer) return 'border-slate-700/40 bg-slate-800/40 text-slate-500';
+  if (!hasAnswer) return NEUTRAL;
   if (!hasFasit) return 'border-slate-600/40 bg-slate-700/30 text-slate-300';
-  if (points >= max) return 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
-  if (points > 0) return 'border-amber-600/40 bg-amber-500/15 text-amber-300';
-  return 'border-red-700/40 bg-red-500/15 text-red-300';
+  if (points >= max) return GREEN;
+  if (points > 0) return AMBER;
+  return RED;
 }
 
-export default function BonusQuestions({ questions, participants }: Props) {
+function parseGoals(text: string | null): number | null {
+  if (text === null) return null;
+  const n = parseInt(text.replace(/[^\d]/g, ''), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+export default function BonusQuestions({ questions, participants, results }: Props) {
+  const projection = useMemo(() => projectTotalGoals(results), [results]);
+
   return (
     <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
       {questions.map((q) => (
-        <BonusRow key={q.id} question={q} participants={participants} />
+        <BonusRow key={q.id} question={q} participants={participants} projection={projection} />
       ))}
     </ul>
   );
 }
 
-function BonusRow({ question, participants }: { question: BonusQuestion; participants: Participant[] }) {
+function BonusRow({
+  question,
+  participants,
+  projection,
+}: {
+  question: BonusQuestion;
+  participants: Participant[];
+  projection: GoalProjection | null;
+}) {
   const [open, setOpen] = useState(false);
   const hasFasit = question.answer !== null;
   const points = scoreBonusQuestion(participants, question);
   const fasit = Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
+
+  // Live-projeksjon vises kun for mål-spørsmålet, og kun før fasit er satt.
+  const goalProjection =
+    question.id === GOAL_QUESTION_ID && !hasFasit && projection ? projection : null;
 
   return (
     <li>
@@ -48,6 +78,15 @@ function BonusRow({ question, participants }: { question: BonusQuestion; partici
           <p className="text-sm text-slate-100">{question.question}</p>
           {hasFasit ? (
             <p className="mt-0.5 text-xs text-emerald-400">Fasit: {fasit}</p>
+          ) : goalProjection ? (
+            <p className="mt-0.5 text-xs text-wc-yellow">
+              Projeksjon nå: ~{goalProjection.projected} mål
+              <span className="text-slate-500">
+                {' '}
+                · {goalProjection.goalsSoFar} på {goalProjection.matchesCounted} kamper · ±
+                {GOAL_MARGIN} mål = full pott
+              </span>
+            </p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>
           )}
@@ -75,6 +114,33 @@ function BonusRow({ question, participants }: { question: BonusQuestion; partici
             const tip = p.bonusTips.find((t) => t.questionId === question.id);
             const text = answerText(tip);
             const pts = points.get(p.name) ?? 0;
+
+            // Mål-projeksjon: fargelegg ±5 mot projeksjonen og vis avstanden (foreløpig).
+            if (goalProjection) {
+              const guess = parseGoals(text);
+              const diff = guess === null ? null : guess - goalProjection.projected;
+              const cls =
+                guess === null ? NEUTRAL : Math.abs(diff as number) <= GOAL_MARGIN ? GREEN : RED;
+              return (
+                <div
+                  key={p.name}
+                  className={`flex items-baseline justify-between gap-2 rounded border px-2 py-1 text-xs ${cls}`}
+                >
+                  <span className="shrink-0 font-medium">{p.name}</span>
+                  <span className="truncate text-right">
+                    {text ?? '–'}
+                    {diff !== null && (
+                      <span className="opacity-70">
+                        {' '}
+                        · {diff > 0 ? '+' : ''}
+                        {diff}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={p.name}

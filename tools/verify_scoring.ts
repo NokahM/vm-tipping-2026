@@ -11,6 +11,7 @@ import {
   computeStandings,
   displayPointsForTip,
   participantBreakdown,
+  projectTotalGoals,
   scoreBonusQuestion,
 } from '../apps/drammen/src/utils/scoring';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
@@ -42,6 +43,36 @@ assert('live eksakt = 3p (foreløpig)', displayPointsForTip({ home: 2, away: 1 }
 assert('live utfall = 1p (foreløpig)', displayPointsForTip({ home: 1, away: 0 }, liveMatch), 1);
 assert('ikke startet = null', displayPointsForTip({ home: 1, away: 0 }, schedMatch), null);
 assert('ferdig teller fortsatt', displayPointsForTip({ home: 0, away: 0 }, finishedMatch), 3);
+
+// 1c) projectTotalGoals: live-projeksjon av totale VM-mål
+console.log('projectTotalGoals:');
+const gm = (status: string, hg: number | null, ag: number | null): MatchResult =>
+  ({ status, homeGoals: hg, awayGoals: ag } as unknown as MatchResult);
+const projResults: MatchResult[] = [
+  gm('FINISHED', 2, 1),
+  gm('FINISHED', 1, 1),
+  gm('IN_PLAY', 1, 0),
+  gm('TIMED', null, null),
+];
+const proj = projectTotalGoals(projResults)!;
+assert('mål så langt (inkl. live)', proj.goalsSoFar, 6);
+assert('kamper talt (ferdige + live)', proj.matchesCounted, 3);
+assert('projeksjon 6/3 × 4 = 8', proj.projected, 8);
+assert('ingen startede kamper → null', projectTotalGoals([gm('TIMED', null, null)]), null);
+
+// 1d) q5: full pott innenfor ±5 mål av fasit (grensetilfeller)
+console.log('q5 ±5-regel:');
+const q5q = BONUS_QUESTIONS.find((q) => q.id === 'q5')!;
+const mkP = (name: string, goals: string): Participant =>
+  ({ name, groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q5', answer: goals }] }) as Participant;
+const q5score = scoreBonusQuestion(
+  [mkP('A', '305'), mkP('B', '295'), mkP('C', '306'), mkP('D', '294')],
+  { ...q5q, answer: '300' },
+);
+assert('+5 = full pott', q5score.get('A'), q5q.maxPoints);
+assert('-5 = full pott', q5score.get('B'), q5q.maxPoints);
+assert('+6 = 0', q5score.get('C'), 0);
+assert('-6 = 0', q5score.get('D'), 0);
 
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');
@@ -84,7 +115,7 @@ assert('bonusPoints (ingen fasit)', erling.bonusPoints, 0);
 // 4) Krydderpoeng med syntetisk fasit (tester alle regelgrener)
 const fasit: BonusQuestion[] = BONUS_QUESTIONS.map((q) => {
   if (q.id === 'q1') return { ...q, answer: 'Frankrike' }; // eksakt match
-  if (q.id === 'q5') return { ...q, answer: '300' }; // nærmest: Tore 299 (d=1)
+  if (q.id === 'q5') return { ...q, answer: '300' }; // ±5: 299 innenfor → full pott
   if (q.id === 'q6') return { ...q, answer: '00:34' }; // ±15s: Erling 00:35
   if (q.id === 'q7') return { ...q, answer: ['Nederland', 'Irak'] }; // Erling traff Nederland
   return q;

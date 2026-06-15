@@ -197,7 +197,7 @@ export default function App() {
         )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}
         {view === 'krydder' && (
-          <BonusQuestions questions={questions} participants={participants} />
+          <BonusQuestions questions={questions} participants={participants} results={results} />
         )}
       </main>
     </div>
