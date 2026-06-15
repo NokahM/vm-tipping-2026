@@ -386,11 +386,25 @@ function BonusTab({
     }
     return d;
   });
+  // «Avgjort»-dato (yyyy-mm-dd) per spørsmål; native dato-velger viser dd.mm.åååå på norsk.
+  const [dateDraft, setDateDraft] = useState<Record<string, string>>(() => {
+    const d: Record<string, string> = {};
+    for (const [id, val] of Object.entries(store)) {
+      const at = bonusDateOf(val);
+      if (at) d[id] = at.slice(0, 10);
+    }
+    return d;
+  });
   const [status, setStatus] = useState<SaveState>('idle');
   const [errMsg, setErrMsg] = useState('');
 
   function setVal(id: string, v: string) {
     setDraft((d) => ({ ...d, [id]: v }));
+    setStatus('idle');
+  }
+
+  function setDate(id: string, v: string) {
+    setDateDraft((d) => ({ ...d, [id]: v }));
     setStatus('idle');
   }
 
@@ -410,8 +424,12 @@ function BonusTab({
       } else {
         answer = raw;
       }
-      // Behold eksisterende «avgjort»-dato; ellers stemple nå (default = i dag) for grafen.
-      const at = bonusDateOf(store[q.id] ?? '') ?? new Date().toISOString();
+      // «Avgjort»-dato for grafen: bruk admin sitt valg, ellers behold eksisterende, ellers
+      // i dag. Lagres kl. 12 UTC så den havner på riktig kalenderdag uansett tidssone.
+      const picked = dateDraft[q.id];
+      const at = picked
+        ? `${picked}T12:00:00.000Z`
+        : (bonusDateOf(store[q.id] ?? '') ?? new Date().toISOString());
       next[q.id] = { answer, at };
     }
     return next;
@@ -456,6 +474,16 @@ function BonusTab({
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
+          <div className="mt-2 flex items-center gap-2">
+            <span className="shrink-0 text-[11px] text-slate-400">Avgjort:</span>
+            <input
+              type="date"
+              value={dateDraft[q.id] ?? ''}
+              onChange={(e) => setDate(q.id, e.target.value)}
+              className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+            />
+            <span className="text-[11px] text-slate-600">tom = i dag</span>
+          </div>
         </div>
       ))}
 
