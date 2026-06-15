@@ -75,6 +75,22 @@ export default function App() {
     };
   }, []);
 
+  // Skjul tittel-båndet (logo/tittel/klokke/tannhjul) ved scroll nedover – fanene blir
+  // værende. Scroll litt opp (eller helt til topps) → hele headeren kommer tilbake.
+  const [hideTitle, setHideTitle] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 64) setHideTitle(false);
+      else if (y > lastY + 4) setHideTitle(true);
+      else if (y < lastY - 4) setHideTitle(false);
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Innbakt data + lokale (admin) overstyringer. localStorage vinner ved konflikt.
   const knockoutMerged = useMemo(() => ({ ...KNOCKOUT_BAKED, ...knockoutStore }), [knockoutStore]);
   const bonusMerged = useMemo(() => ({ ...BONUS_BAKED, ...bonusStore }), [bonusStore]);
@@ -132,7 +148,11 @@ export default function App() {
             className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/80 to-slate-950/55"
             aria-hidden="true"
           />
-          <div className="relative mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+          <div
+            className={`relative mx-auto flex max-w-2xl items-center justify-between gap-3 overflow-hidden px-4 transition-all duration-300 ${
+              hideTitle ? 'max-h-0 py-0 opacity-0' : 'max-h-24 py-3 opacity-100'
+            }`}
+          >
             <div className="flex min-w-0 items-center gap-3">
               <img
                 src="/wc-logo.png"
