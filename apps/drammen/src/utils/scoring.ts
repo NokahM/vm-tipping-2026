@@ -413,11 +413,14 @@ export function participantBreakdown(
     const pts = scoreBonusQuestion(participants, q).get(participant.name) ?? 0;
     if (pts <= 0) continue;
     const tip = participant.bonusTips.find((t) => t.questionId === q.id);
-    const answer = tip
-      ? Array.isArray(tip.answer)
-        ? tip.answer.join(' + ')
-        : tip.answer
-      : '';
+    let answer = tip ? (Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer) : '';
+    // q7/q8 (rødt kort / selvmål): vis kun lagene som faktisk ga poeng (de i fasiten),
+    // så det er tydelig hvilket av de to lagene man fikk +2p for.
+    if (tip && PER_TEAM_IDS.has(q.id) && Array.isArray(q.answer)) {
+      const actual = new Set(q.answer.map(norm));
+      const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a)));
+      if (hits.length) answer = hits.join(' + ');
+    }
     items.push({ kind: 'bonus', question: q.question, answer, points: pts });
   }
 

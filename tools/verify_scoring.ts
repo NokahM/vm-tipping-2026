@@ -92,6 +92,24 @@ assert('leder = B', gl.leaders.join(','), 'B');
 assert('topp-mål = 5', gl.topGoals, 5);
 assert('ingen gruppemål → null', groupGoalLeaders([ggm('GROUP_A', 0, 0, 'TIMED')]), null);
 
+// 1f) q7/q8 breakdown: maks 4p (ikke 8), og viser kun laget/lagene som ga poeng
+console.log('breakdown q7/q8 (hvilket lag):');
+const q7full = BONUS_QUESTIONS.find((q) => q.id === 'q7')!;
+const bdP: Participant = {
+  name: 'X',
+  groupTips: [],
+  knockoutTips: [],
+  bonusTips: [{ questionId: 'q7', answer: ['Nederland', 'Portugal'] }],
+};
+const bdOne = participantBreakdown(bdP, [bdP], [], [{ ...q7full, answer: ['Nederland'] }]);
+const bdOneItem = bdOne.find((i) => i.kind === 'bonus');
+assert('viser kun riktig lag', bdOneItem?.kind === 'bonus' ? bdOneItem.answer : '', 'Nederland');
+assert('ett lag = 2p', bdOneItem?.points, 2);
+const bdBoth = participantBreakdown(bdP, [bdP], [], [{ ...q7full, answer: ['Nederland', 'Portugal'] }]);
+const bdBothItem = bdBoth.find((i) => i.kind === 'bonus');
+assert('begge lag = 4p (ikke 8)', bdBothItem?.points, 4);
+assert('viser begge lag', bdBothItem?.kind === 'bonus' ? bdBothItem.answer : '', 'Nederland + Portugal');
+
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');
 assert('Czechia', normalizeTeamName('Czechia'), 'Tsjekkia');
