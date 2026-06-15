@@ -39,7 +39,7 @@ function isAdminUrl(): boolean {
 
 export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
-  const [view, setView] = useState<View>('tabell');
+  const [view, setView] = useState<View>('kamper');
   const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
   const [adminOpen, setAdminOpen] = useState(isAdminUrl);
 
