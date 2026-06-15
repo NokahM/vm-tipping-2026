@@ -321,6 +321,39 @@ Sluttspill-tips matches mot resultat via `apiId`. «Backup JSON» kan limes inn 
 
 ---
 
+## Deep data (football-data.org «Free + Deep Data», fra 2026-06-15)
+
+Abonnementet er oppgradert til **Free + Deep Data** (30 kall/min) som gir per-kamp-detaljer:
+`goals` (med `type: REGULAR|OWN|PENALTY` + `scorer`), `bookings` (`card: YELLOW|RED|YELLOW_RED`
++ `player`), `substitutions`, `lineups`. Detaljene ligger i **enkeltkamp-endepunktet**
+`/v4/matches/{id}`, ikke i bulk-lista.
+
+**Implementert (live-kort):**
+- Proxy `api/matchdetail.js` (Vercel) + Vite dev-proxy `/api/matchdetail?id=…` (samme mønster som
+  `/api/matches`; nøkkel server-side; edge-cache `s-maxage=15`). Gjenbruker `FOOTBALL_API_KEY` –
+  ingen ny miljøvariabel.
+- `apiClient.fetchMatchEvents(id)` → `{ goals, bookings }` (lagnavn normalisert til norsk).
+- `hooks/useMatchEvents(id, enabled)` poller hvert 20s, kun når `enabled` (live/nettopp ferdig).
+- **`MatchEvents`** (delt komponent): to-kolonne visning (hjemmelag venstre, bortelag høyre) av
+  ⚽ målscorere og 🟥 røde kort, kronologisk vevd sammen. Flerlagsmål per spiller slås sammen til
+  én linje (`7', 90' Ayari`) med én ⚽ per mål; røde kort står alltid alene. Selvmål vises i
+  **motstanderens** kolonne (så kolonnen summerer til stillingen), merket «(selvm.)». Rendres tomt
+  om detaljer mangler. Brukes i **både** `FeaturedMatch` (Aktuelt) og `MatchRow` (alle gruppespill-
+  + sluttspill-kamper) – ligger skjult bak «Vis mer»/klikk, så det henter kun ved åpning.
+
+**Selvmål-attribusjon (verifisert mot ekte data):** API-et setter `goal.team` = **scorerens lag**,
+også for selvmål (US 4–1 Paraguay: selvmål av Bobadilla har `team: Paraguay`). Konsekvenser:
+- **q8 (selvmål):** laget som «scoret selvmål» = `goal.team` direkte (Paraguay).
+- **Visning (`FeaturedMatch`):** selvmål teller for motstanderen, så det vises i **motstanderens**
+  kolonne (`g.team === opponent`), slik at hver kolonne summerer til lagets stilling.
+
+**Planlagt (auto-krydder):** utlede fasit + per-lag-datoer automatisk fra deep data der mulig:
+q7 (rødt kort ← `bookings` RED), q8 (selvmål ← `goals` OWN, lag = `goal.team`), evt.
+q5/q9/q11/q12/q14/q17. Krever en aggregator som skanner ferdige kamper inkrementelt (Hobby har ikke
+hyppig cron → batch-henting med KV-cache). Admin skal fortsatt kunne overstyre.
+
+---
+
 ## Backlog (fremtid)
 
 - **Sluttspills-visning for «Kamper»-fanen:** når gruppespillet er over, skal «Kamper» føre rett til

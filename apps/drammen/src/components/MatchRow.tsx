@@ -4,6 +4,7 @@ import { normalizeTeamName } from '../utils/teamNames';
 import { formatKickoff } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
+import MatchEvents from './MatchEvents';
 import BroadcasterBadge from './BroadcasterBadge';
 
 interface Props {
@@ -80,6 +81,7 @@ export default function MatchRow({ match, participants }: Props) {
               <BroadcasterBadge apiId={match.apiId} className="h-4" />
             </div>
           )}
+          <MatchEvents match={match} />
           <TipChips match={match} participants={participants} />
         </div>
       )}

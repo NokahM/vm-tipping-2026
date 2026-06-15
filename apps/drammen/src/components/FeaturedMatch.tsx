@@ -4,6 +4,7 @@ import { normalizeTeamName } from '../utils/teamNames';
 import { formatKickoff } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
+import MatchEvents from './MatchEvents';
 import BroadcasterBadge from './BroadcasterBadge';
 
 interface Props {
@@ -80,12 +81,13 @@ export default function FeaturedMatch({ match, participants }: Props) {
           </div>
 
           <div className="-mt-2 text-center text-[11px] text-slate-500">
-            {open ? 'Skjul tips ▲' : 'Vis tips ▼'}
+            {open ? 'Skjul ▲' : 'Vis mer ▼'}
           </div>
         </button>
 
         {open && (
           <div className="border-t border-slate-700/70 px-3 pb-3 pt-2">
+            <MatchEvents match={match} />
             <TipChips match={match} participants={participants} />
           </div>
         )}

@@ -100,6 +100,20 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        // Enkeltkamp-detaljer (deep data: goals, bookings). /api/matchdetail?id=123
+        '/api/matchdetail': {
+          target: 'https://api.football-data.org',
+          changeOrigin: true,
+          rewrite: (path) => {
+            const m = path.match(/id=(\d+)/);
+            return m ? `/v4/matches/${m[1]}` : path;
+          },
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              if (apiKey) proxyReq.setHeader('X-Auth-Token', apiKey);
+            });
+          },
+        },
       },
     },
   };
