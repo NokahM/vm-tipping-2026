@@ -37,6 +37,11 @@ const LIST_ANSWER_IDS = new Set(['q7', 'q8', 'q15']);
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
+/** Dagens dato i NORSK tid (yyyy-mm-dd), uavhengig av enhetens tidssone. sv-SE gir ISO-format. */
+function todayOsloYMD(): string {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Oslo' });
+}
+
 type Tab = 'sluttspill' | 'krydder' | 'oppdater';
 type SaveState = 'idle' | 'saving' | 'ok' | 'error';
 
@@ -433,8 +438,10 @@ function BonusTab({
 
   function buildStore(): BonusStore {
     const next: BonusStore = {};
-    // Lagres kl. 12 UTC så datoen havner på riktig kalenderdag uansett tidssone.
+    // Dato lagres kl. 12 UTC så den havner på riktig kalenderdag uansett tidssone.
+    // Default (ikke valgt) = dagens NORSKE dato, så det ikke hopper til gårsdagen ved midnatt.
     const toIso = (ymd: string) => `${ymd}T12:00:00.000Z`;
+    const today = toIso(todayOsloYMD());
     for (const q of questions) {
       const raw = (draft[q.id] ?? '').trim();
       if (!raw) continue;
@@ -444,18 +451,16 @@ function BonusTab({
           .map((s) => s.trim())
           .filter(Boolean);
         if (!arr.length) continue;
-        // Per-lag-dato: admin sitt valg, ellers i dag.
+        // Per-lag-dato: admin sitt valg, ellers i dag (norsk).
         const ats: Record<string, string> = {};
         for (const team of arr) {
           const dv = itemDates[q.id]?.[team];
-          ats[team] = dv ? toIso(dv) : new Date().toISOString();
+          ats[team] = dv ? toIso(dv) : today;
         }
         next[q.id] = { answer: arr, ats };
       } else {
         const picked = dateDraft[q.id];
-        const at = picked
-          ? toIso(picked)
-          : (bonusDateOf(store[q.id] ?? '') ?? new Date().toISOString());
+        const at = picked ? toIso(picked) : (bonusDateOf(store[q.id] ?? '') ?? today);
         next[q.id] = { answer: raw, at };
       }
     }
