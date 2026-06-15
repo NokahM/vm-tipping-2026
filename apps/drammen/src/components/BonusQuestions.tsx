@@ -15,7 +15,8 @@ interface Props {
   results: MatchResult[];
 }
 
-const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – nærmest projeksjonen vinner
+const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – ±5 av projeksjonen = full pott
+const GOAL_MARGIN = 5;
 const GROUP_GOALS_QUESTION_ID = 'q9'; // hvilken gruppe scorer flest mål – leder-gruppen
 
 const NEUTRAL = 'border-slate-700/40 bg-slate-800/40 text-slate-500';
@@ -91,17 +92,6 @@ function BonusRow({
   const goalProj = question.id === GOAL_QUESTION_ID && !hasFasit ? projection : null;
   const groupLead = question.id === GROUP_GOALS_QUESTION_ID && !hasFasit ? groupLeaders : null;
 
-  // q5: minste avstand til projeksjonen blant alle tipp (nærmest «vinner» foreløpig).
-  const minDist = useMemo(() => {
-    if (!goalProj) return null;
-    let min = Infinity;
-    for (const p of participants) {
-      const g = parseGoals(answerText(p.bonusTips.find((t) => t.questionId === question.id)));
-      if (g !== null) min = Math.min(min, Math.abs(g - goalProj.projected));
-    }
-    return Number.isFinite(min) ? min : null;
-  }, [goalProj, participants, question.id]);
-
   return (
     <li>
       <button
@@ -119,7 +109,8 @@ function BonusRow({
               Projeksjon nå: ~{goalProj.projected} mål
               <span className="text-slate-500">
                 {' '}
-                · {goalProj.goalsSoFar} på {goalProj.matchesCounted} kamper · nærmest vinner
+                · {goalProj.goalsSoFar} på {goalProj.matchesCounted} kamper · ±{GOAL_MARGIN} mål = full
+                pott
               </span>
             </p>
           ) : groupLead ? (
@@ -156,14 +147,14 @@ function BonusRow({
             let cls: string;
             let suffix: string | null = null;
 
-            if (goalProj && minDist !== null) {
-              // q5: nærmest projeksjonen = grønn, vis avstanden.
+            if (goalProj) {
+              // q5: innenfor ±5 av projeksjonen = grønn (full pott), vis avstanden.
               const guess = parseGoals(text);
               if (guess === null) {
                 cls = NEUTRAL;
               } else {
                 const diff = guess - goalProj.projected;
-                cls = Math.abs(diff) === minDist ? GREEN : RED;
+                cls = Math.abs(diff) <= GOAL_MARGIN ? GREEN : RED;
                 suffix = `${diff > 0 ? '+' : ''}${diff}`;
               }
             } else if (groupLead) {

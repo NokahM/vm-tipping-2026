@@ -138,6 +138,9 @@ function bonusAnswerOf(tip: BonusTip): string[] {
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
 
+// q5 (antall mål totalt): full pott til ALLE som er innenfor ±5 mål av fasit.
+const GOAL_MARGIN = 5;
+
 /**
  * Krydderpoeng for ett spørsmål, for alle deltakere (navn → poeng).
  * Alle får 0 hvis fasit ikke er satt. q5 «nærmest» krever hele feltet samtidig.
@@ -153,21 +156,15 @@ export function scoreBonusQuestion(
   const tipFor = (p: Participant) => p.bonusTips.find((t) => t.questionId === q.id);
 
   if (q.id === 'q5') {
-    // Antall mål totalt: nærmest fasit vinner. Ved likt (eller eksakt): alle nærmeste deler.
+    // Antall mål totalt: full pott til alle innenfor ±GOAL_MARGIN mål av fasit.
     const fasit = firstNumber(String(q.answer));
     if (Number.isNaN(fasit)) return points;
-    const dist = new Map<string, number>();
-    let best = Infinity;
     for (const p of participants) {
       const tip = tipFor(p);
       if (!tip) continue;
       const guess = firstNumber(bonusAnswerOf(tip)[0] ?? '');
-      if (Number.isNaN(guess)) continue;
-      const d = Math.abs(guess - fasit);
-      dist.set(p.name, d);
-      best = Math.min(best, d);
+      if (!Number.isNaN(guess) && Math.abs(guess - fasit) <= GOAL_MARGIN) add(p.name, q.maxPoints);
     }
-    for (const [name, d] of dist) if (d === best) add(name, q.maxPoints);
     return points;
   }
 
