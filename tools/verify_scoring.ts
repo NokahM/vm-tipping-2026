@@ -10,6 +10,7 @@ import {
   computeRankDeltas,
   computeStandings,
   displayPointsForTip,
+  groupGoalLeaders,
   participantBreakdown,
   projectTotalGoals,
   scoreBonusQuestion,
@@ -60,19 +61,36 @@ assert('kamper talt (ferdige + live)', proj.matchesCounted, 3);
 assert('projeksjon 6/3 × 4 = 8', proj.projected, 8);
 assert('ingen startede kamper → null', projectTotalGoals([gm('TIMED', null, null)]), null);
 
-// 1d) q5: full pott innenfor ±5 mål av fasit (grensetilfeller)
-console.log('q5 ±5-regel:');
+// 1d) q5: nærmest fasit vinner; likt langt unna (eller eksakt) deler
+console.log('q5 nærmest-regel:');
 const q5q = BONUS_QUESTIONS.find((q) => q.id === 'q5')!;
 const mkP = (name: string, goals: string): Participant =>
   ({ name, groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q5', answer: goals }] }) as Participant;
-const q5score = scoreBonusQuestion(
-  [mkP('A', '305'), mkP('B', '295'), mkP('C', '306'), mkP('D', '294')],
+const q5near = scoreBonusQuestion(
+  [mkP('A', '305'), mkP('B', '290'), mkP('C', '298')], // fasit 300: C nærmest (d=2)
   { ...q5q, answer: '300' },
 );
-assert('+5 = full pott', q5score.get('A'), q5q.maxPoints);
-assert('-5 = full pott', q5score.get('B'), q5q.maxPoints);
-assert('+6 = 0', q5score.get('C'), 0);
-assert('-6 = 0', q5score.get('D'), 0);
+assert('nærmest (298) = full pott', q5near.get('C'), q5q.maxPoints);
+assert('lengre unna (305) = 0', q5near.get('A'), 0);
+const q5tie = scoreBonusQuestion(
+  [mkP('A', '305'), mkP('B', '295')], // begge 5 unna → deler
+  { ...q5q, answer: '300' },
+);
+assert('likt unna deler (A)', q5tie.get('A'), q5q.maxPoints);
+assert('likt unna deler (B)', q5tie.get('B'), q5q.maxPoints);
+
+// 1e) groupGoalLeaders: hvilken gruppe leder på mål nå (ferdige + live)
+console.log('groupGoalLeaders:');
+const ggm = (group: string, hg: number, ag: number, status = 'FINISHED'): MatchResult =>
+  ({ stage: 'GROUP_STAGE', group, homeGoals: hg, awayGoals: ag, status }) as unknown as MatchResult;
+const gl = groupGoalLeaders([
+  ggm('GROUP_A', 2, 1), // A: 3
+  ggm('GROUP_B', 3, 2), // B: 5
+  ggm('GROUP_C', 1, 0, 'IN_PLAY'), // C: 1 (live teller)
+])!;
+assert('leder = B', gl.leaders.join(','), 'B');
+assert('topp-mål = 5', gl.topGoals, 5);
+assert('ingen gruppemål → null', groupGoalLeaders([ggm('GROUP_A', 0, 0, 'TIMED')]), null);
 
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');
@@ -115,7 +133,7 @@ assert('bonusPoints (ingen fasit)', erling.bonusPoints, 0);
 // 4) Krydderpoeng med syntetisk fasit (tester alle regelgrener)
 const fasit: BonusQuestion[] = BONUS_QUESTIONS.map((q) => {
   if (q.id === 'q1') return { ...q, answer: 'Frankrike' }; // eksakt match
-  if (q.id === 'q5') return { ...q, answer: '300' }; // ±5: 299 innenfor → full pott
+  if (q.id === 'q5') return { ...q, answer: '300' }; // nærmest: 299 (d=1) vinner
   if (q.id === 'q6') return { ...q, answer: '00:34' }; // ±15s: Erling 00:35
   if (q.id === 'q7') return { ...q, answer: ['Nederland', 'Irak'] }; // Erling traff Nederland
   return q;

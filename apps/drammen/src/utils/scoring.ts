@@ -138,9 +138,6 @@ function bonusAnswerOf(tip: BonusTip): string[] {
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
 
-// q5 (antall mål totalt): full pott hvis tippet er innenfor ±5 mål av fasit.
-const GOAL_MARGIN = 5;
-
 /**
  * Krydderpoeng for ett spørsmål, for alle deltakere (navn → poeng).
  * Alle får 0 hvis fasit ikke er satt. q5 «nærmest» krever hele feltet samtidig.
@@ -156,15 +153,21 @@ export function scoreBonusQuestion(
   const tipFor = (p: Participant) => p.bonusTips.find((t) => t.questionId === q.id);
 
   if (q.id === 'q5') {
-    // Antall mål totalt: full pott hvis innenfor ±GOAL_MARGIN mål av fasit.
+    // Antall mål totalt: nærmest fasit vinner. Ved likt (eller eksakt): alle nærmeste deler.
     const fasit = firstNumber(String(q.answer));
     if (Number.isNaN(fasit)) return points;
+    const dist = new Map<string, number>();
+    let best = Infinity;
     for (const p of participants) {
       const tip = tipFor(p);
       if (!tip) continue;
       const guess = firstNumber(bonusAnswerOf(tip)[0] ?? '');
-      if (!Number.isNaN(guess) && Math.abs(guess - fasit) <= GOAL_MARGIN) add(p.name, q.maxPoints);
+      if (Number.isNaN(guess)) continue;
+      const d = Math.abs(guess - fasit);
+      dist.set(p.name, d);
+      best = Math.min(best, d);
     }
+    for (const [name, d] of dist) if (d === best) add(name, q.maxPoints);
     return points;
   }
 
@@ -330,6 +333,36 @@ export function projectTotalGoals(results: MatchResult[]): GoalProjection | null
   const totalMatches = results.length || matchesCounted;
   const projected = Math.round((goalsSoFar / matchesCounted) * totalMatches);
   return { goalsSoFar, matchesCounted, totalMatches, projected };
+}
+
+export interface GroupGoalStanding {
+  goalsByGroup: Record<string, number>; // gruppe-bokstav (A–L) → mål så langt
+  leaders: string[]; // gruppe(r) med flest mål nå (kan være flere ved likt)
+  topGoals: number;
+}
+
+/**
+ * Live-status for «hvilken gruppe scorer flest mål?» (q9): mål per gruppe så langt
+ * (ferdige + pågående gruppespill-kamper), og hvem som leder nå. Kun visuelt – q9
+ * scores mot faktisk fasit. Returnerer null før noen gruppemål er scoret.
+ */
+export function groupGoalLeaders(results: MatchResult[]): GroupGoalStanding | null {
+  const goalsByGroup: Record<string, number> = {};
+  for (const m of results) {
+    if (m.stage !== 'GROUP_STAGE' || !m.group) continue;
+    const started = m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    if (!started || m.homeGoals === null || m.awayGoals === null) continue;
+    const letter = m.group.replace('GROUP_', '');
+    goalsByGroup[letter] = (goalsByGroup[letter] ?? 0) + m.homeGoals + m.awayGoals;
+  }
+  const entries = Object.entries(goalsByGroup);
+  if (entries.length === 0) return null;
+  const topGoals = Math.max(...entries.map(([, g]) => g));
+  const leaders = entries
+    .filter(([, g]) => g === topGoals)
+    .map(([k]) => k)
+    .sort();
+  return { goalsByGroup, leaders, topGoals };
 }
 
 /**

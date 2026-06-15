@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, BonusTip, MatchResult, Participant } from '../types';
-import { projectTotalGoals, scoreBonusQuestion, type GoalProjection } from '../utils/scoring';
+import {
+  groupGoalLeaders,
+  projectTotalGoals,
+  scoreBonusQuestion,
+  type GoalProjection,
+  type GroupGoalStanding,
+} from '../utils/scoring';
 
 interface Props {
   questions: BonusQuestion[];
@@ -8,19 +14,18 @@ interface Props {
   results: MatchResult[];
 }
 
-// q5 = «hvor mange mål scores det totalt i VM?». Får live-projeksjon + ±5-fargekoding.
-const GOAL_QUESTION_ID = 'q5';
-const GOAL_MARGIN = 5;
-
-function answerText(tip: BonusTip | undefined): string | null {
-  if (!tip) return null;
-  return Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer;
-}
+const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – nærmest projeksjonen vinner
+const GROUP_GOALS_QUESTION_ID = 'q9'; // hvilken gruppe scorer flest mål – leder-gruppen
 
 const NEUTRAL = 'border-slate-700/40 bg-slate-800/40 text-slate-500';
 const GREEN = 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
 const AMBER = 'border-amber-600/40 bg-amber-500/15 text-amber-300';
 const RED = 'border-red-700/40 bg-red-500/15 text-red-300';
+
+function answerText(tip: BonusTip | undefined): string | null {
+  if (!tip) return null;
+  return Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer;
+}
 
 function chipClasses(hasFasit: boolean, hasAnswer: boolean, points: number, max: number): string {
   if (!hasAnswer) return NEUTRAL;
@@ -36,13 +41,26 @@ function parseGoals(text: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Henter ut gruppe-bokstaver (A–L) som står alene i et q9-svar, f.eks. «I og L» → [I, L]. */
+function groupLetters(text: string | null): string[] {
+  if (!text) return [];
+  return text.toUpperCase().match(/\b[A-L]\b/g) ?? [];
+}
+
 export default function BonusQuestions({ questions, participants, results }: Props) {
   const projection = useMemo(() => projectTotalGoals(results), [results]);
+  const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
 
   return (
     <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
       {questions.map((q) => (
-        <BonusRow key={q.id} question={q} participants={participants} projection={projection} />
+        <BonusRow
+          key={q.id}
+          question={q}
+          participants={participants}
+          projection={projection}
+          groupLeaders={groupLeaders}
+        />
       ))}
     </ul>
   );
@@ -52,19 +70,32 @@ function BonusRow({
   question,
   participants,
   projection,
+  groupLeaders,
 }: {
   question: BonusQuestion;
   participants: Participant[];
   projection: GoalProjection | null;
+  groupLeaders: GroupGoalStanding | null;
 }) {
   const [open, setOpen] = useState(false);
   const hasFasit = question.answer !== null;
   const points = scoreBonusQuestion(participants, question);
   const fasit = Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
 
-  // Live-projeksjon vises kun for mål-spørsmålet, og kun før fasit er satt.
-  const goalProjection =
-    question.id === GOAL_QUESTION_ID && !hasFasit && projection ? projection : null;
+  // Live-moduser, kun før fasit: q5 nærmest projeksjonen, q9 leder-gruppen.
+  const goalProj = question.id === GOAL_QUESTION_ID && !hasFasit ? projection : null;
+  const groupLead = question.id === GROUP_GOALS_QUESTION_ID && !hasFasit ? groupLeaders : null;
+
+  // q5: minste avstand til projeksjonen blant alle tipp (nærmest «vinner» foreløpig).
+  const minDist = useMemo(() => {
+    if (!goalProj) return null;
+    let min = Infinity;
+    for (const p of participants) {
+      const g = parseGoals(answerText(p.bonusTips.find((t) => t.questionId === question.id)));
+      if (g !== null) min = Math.min(min, Math.abs(g - goalProj.projected));
+    }
+    return Number.isFinite(min) ? min : null;
+  }, [goalProj, participants, question.id]);
 
   return (
     <li>
@@ -78,14 +109,18 @@ function BonusRow({
           <p className="text-sm text-slate-100">{question.question}</p>
           {hasFasit ? (
             <p className="mt-0.5 text-xs text-emerald-400">Fasit: {fasit}</p>
-          ) : goalProjection ? (
+          ) : goalProj ? (
             <p className="mt-0.5 text-xs text-wc-yellow">
-              Projeksjon nå: ~{goalProjection.projected} mål
+              Projeksjon nå: ~{goalProj.projected} mål
               <span className="text-slate-500">
                 {' '}
-                · {goalProjection.goalsSoFar} på {goalProjection.matchesCounted} kamper · ±
-                {GOAL_MARGIN} mål = full pott
+                · {goalProj.goalsSoFar} på {goalProj.matchesCounted} kamper · nærmest vinner
               </span>
+            </p>
+          ) : groupLead ? (
+            <p className="mt-0.5 text-xs text-wc-yellow">
+              Leder nå: Gruppe {groupLead.leaders.join(', ')}
+              <span className="text-slate-500"> · {groupLead.topGoals} mål</span>
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>
@@ -113,48 +148,43 @@ function BonusRow({
           {participants.map((p) => {
             const tip = p.bonusTips.find((t) => t.questionId === question.id);
             const text = answerText(tip);
-            const pts = points.get(p.name) ?? 0;
+            let cls: string;
+            let suffix: string | null = null;
 
-            // Mål-projeksjon: fargelegg ±5 mot projeksjonen og vis avstanden (foreløpig).
-            if (goalProjection) {
+            if (goalProj && minDist !== null) {
+              // q5: nærmest projeksjonen = grønn, vis avstanden.
               const guess = parseGoals(text);
-              const diff = guess === null ? null : guess - goalProjection.projected;
-              const cls =
-                guess === null ? NEUTRAL : Math.abs(diff as number) <= GOAL_MARGIN ? GREEN : RED;
-              return (
-                <div
-                  key={p.name}
-                  className={`flex items-baseline justify-between gap-2 rounded border px-2 py-1 text-xs ${cls}`}
-                >
-                  <span className="shrink-0 font-medium">{p.name}</span>
-                  <span className="truncate text-right">
-                    {text ?? '–'}
-                    {diff !== null && (
-                      <span className="opacity-70">
-                        {' '}
-                        · {diff > 0 ? '+' : ''}
-                        {diff}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              );
+              if (guess === null) {
+                cls = NEUTRAL;
+              } else {
+                const diff = guess - goalProj.projected;
+                cls = Math.abs(diff) === minDist ? GREEN : RED;
+                suffix = `${diff > 0 ? '+' : ''}${diff}`;
+              }
+            } else if (groupLead) {
+              // q9: valgt en leder-gruppe = grønn.
+              const letters = groupLetters(text);
+              cls =
+                letters.length === 0
+                  ? NEUTRAL
+                  : letters.some((l) => groupLead.leaders.includes(l))
+                    ? GREEN
+                    : RED;
+            } else {
+              const pts = points.get(p.name) ?? 0;
+              cls = chipClasses(hasFasit, text !== null, pts, question.maxPoints);
+              if (hasFasit && text !== null) suffix = `${pts}p`;
             }
 
             return (
               <div
                 key={p.name}
-                className={`flex items-baseline justify-between gap-2 rounded border px-2 py-1 text-xs ${chipClasses(
-                  hasFasit,
-                  text !== null,
-                  pts,
-                  question.maxPoints,
-                )}`}
+                className={`flex items-baseline justify-between gap-2 rounded border px-2 py-1 text-xs ${cls}`}
               >
                 <span className="shrink-0 font-medium">{p.name}</span>
                 <span className="truncate text-right">
                   {text ?? '–'}
-                  {hasFasit && text !== null && <span className="opacity-70"> · {pts}p</span>}
+                  {suffix && <span className="opacity-70"> · {suffix}</span>}
                 </span>
               </div>
             );
