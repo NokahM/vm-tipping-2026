@@ -17,29 +17,33 @@ const LINE_COLORS = [
   '#6001e6',
 ];
 
-// viewBox-koordinater (skalerer til full bredde via w-full).
-const W = 340;
-const H = 168;
-const PAD = { left: 6, right: 6, top: 10, bottom: 16 };
-
 function fmtDay(day: string): string {
   return `${day.slice(8, 10)}.${day.slice(5, 7)}`;
+}
+
+/** Pent y-akse-steg (1/2/5 × 10ⁿ) for ~`target` merker. */
+function niceStep(max: number, target = 5): number {
+  if (max <= 0) return 1;
+  const raw = max / target;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / pow;
+  const step = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  return step * pow;
 }
 
 export default function ProgressionChart({ progression }: Props) {
   const { days, series } = progression;
 
-  // Stabil farge per deltaker (etter plassering i serien).
   const colorOf = useMemo(() => {
     const m = new Map<string, string>();
     series.forEach((s, i) => m.set(s.name, LINE_COLORS[i % LINE_COLORS.length]));
     return m;
   }, [series]);
 
-  // Default: topp 3 (de tre med høyest sluttsum).
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(series.slice(0, 3).map((s) => s.name)),
   );
+  const [fullscreen, setFullscreen] = useState(false);
 
   if (days.length === 0) {
     return (
@@ -49,12 +53,24 @@ export default function ProgressionChart({ progression }: Props) {
     );
   }
 
+  const shown = series.filter((s) => selected.has(s.name));
+
+  // Y-akse: pent steg/maks for jevne merker.
   const maxTotal = Math.max(1, ...series.map((s) => s.final));
-  const plotW = W - PAD.left - PAD.right;
-  const plotH = H - PAD.top - PAD.bottom;
-  const x = (i: number) => PAD.left + (days.length > 1 ? i / (days.length - 1) : 0.5) * plotW;
-  const y = (v: number) => PAD.top + (1 - v / maxTotal) * plotH;
-  const baseline = y(0);
+  const step = niceStep(maxTotal);
+  const yMax = Math.max(step, Math.ceil(maxTotal / step) * step);
+  const yTicks: number[] = [];
+  for (let v = 0; v <= yMax; v += step) yTicks.push(v);
+
+  // X-akse: opptil ~7 jevnt fordelte dato-merker.
+  const xCount = Math.min(days.length, 7);
+  const xTicks = [
+    ...new Set(
+      days.length <= 1
+        ? [0]
+        : Array.from({ length: xCount }, (_, k) => Math.round((k * (days.length - 1)) / (xCount - 1))),
+    ),
+  ];
 
   const toggle = (name: string) =>
     setSelected((prev) => {
@@ -64,72 +80,150 @@ export default function ProgressionChart({ progression }: Props) {
       return next;
     });
 
-  const shown = series.filter((s) => selected.has(s.name));
+  function renderSvg(vbW: number, vbH: number) {
+    const PAD = { left: 18, right: 52, top: 10, bottom: 20 };
+    const plotW = vbW - PAD.left - PAD.right;
+    const plotH = vbH - PAD.top - PAD.bottom;
+    const x = (i: number) => PAD.left + (days.length > 1 ? i / (days.length - 1) : 0.5) * plotW;
+    const y = (v: number) => PAD.top + (1 - v / yMax) * plotH;
 
-  return (
-    <section className="space-y-2">
+    return (
       <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        className="w-full"
         role="img"
         aria-label="Poengutvikling over tid"
       >
-        {/* Baselinje + maks-linje (diskré) */}
-        <line x1={PAD.left} y1={baseline} x2={W - PAD.right} y2={baseline} stroke="#475569" strokeWidth="0.5" />
-        <line x1={PAD.left} y1={y(maxTotal)} x2={W - PAD.right} y2={y(maxTotal)} stroke="#334155" strokeWidth="0.5" />
-        <text x={PAD.left} y={y(maxTotal) - 2} fill="#64748b" fontSize="8">
-          {maxTotal}p
-        </text>
+        {/* Y-gridlinjer + verdier */}
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line x1={PAD.left} y1={y(v)} x2={vbW - PAD.right} y2={y(v)} stroke="#334155" strokeWidth="0.4" />
+            <text x={PAD.left - 2} y={y(v) + 2.4} fill="#64748b" fontSize="6.5" textAnchor="end">
+              {v}
+            </text>
+          </g>
+        ))}
 
-        {/* Linjer for valgte deltakere */}
+        {/* X-datoer */}
+        {xTicks.map((i) => (
+          <text
+            key={i}
+            x={x(i)}
+            y={vbH - 6}
+            fill="#64748b"
+            fontSize="6.5"
+            textAnchor={i === 0 ? 'start' : i === days.length - 1 ? 'end' : 'middle'}
+          >
+            {fmtDay(days[i])}
+          </text>
+        ))}
+
+        {/* Linjer + sluttpunkt + navn (vinklet etter streken) */}
         {shown.map((s) => {
           const color = colorOf.get(s.name)!;
+          const n = s.totals.length;
           const pts = s.totals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+          const lx = x(n - 1);
+          const ly = y(s.final);
+          const angle =
+            n >= 2
+              ? (Math.atan2(y(s.totals[n - 1]) - y(s.totals[n - 2]), x(n - 1) - x(n - 2)) * 180) /
+                Math.PI
+              : 0;
           return (
             <g key={s.name}>
-              {days.length > 1 && (
-                <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+              {n > 1 && (
+                <polyline
+                  points={pts}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
               )}
-              <circle cx={x(days.length - 1)} cy={y(s.final)} r="2.4" fill={color} />
+              <circle cx={lx} cy={ly} r="2.2" fill={color} />
+              <text
+                x={lx + 3}
+                y={ly + 2.2}
+                fill={color}
+                fontSize="7"
+                fontWeight="600"
+                transform={`rotate(${angle} ${lx} ${ly})`}
+              >
+                {s.name}
+              </text>
             </g>
           );
         })}
-
-        {/* X-akse: første og siste dato */}
-        <text x={PAD.left} y={H - 4} fill="#64748b" fontSize="8">
-          {fmtDay(days[0])}
-        </text>
-        <text x={W - PAD.right} y={H - 4} fill="#64748b" fontSize="8" textAnchor="end">
-          {fmtDay(days[days.length - 1])}
-        </text>
       </svg>
+    );
+  }
 
-      {/* Spiller-velger: default topp 3, trykk for å vise/skjule. Sortert på sluttsum. */}
-      <div className="flex flex-wrap gap-1.5">
-        {series.map((s) => {
-          const active = selected.has(s.name);
-          const color = colorOf.get(s.name)!;
-          return (
-            <button
-              key={s.name}
-              type="button"
-              onClick={() => toggle(s.name)}
-              className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition ${
-                active
-                  ? 'border-slate-500 bg-slate-700/60 text-slate-100'
-                  : 'border-slate-700/60 bg-slate-800/40 text-slate-500'
-              }`}
-            >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: active ? color : '#475569' }}
-              />
-              <span className="truncate">{s.name}</span>
-              <span className="tabular-nums opacity-70">{s.final}</span>
-            </button>
-          );
-        })}
+  const legend = (
+    <div className="flex flex-wrap gap-1.5">
+      {series.map((s) => {
+        const active = selected.has(s.name);
+        const color = colorOf.get(s.name)!;
+        return (
+          <button
+            key={s.name}
+            type="button"
+            onClick={() => toggle(s.name)}
+            className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition ${
+              active
+                ? 'border-slate-500 bg-slate-700/60 text-slate-100'
+                : 'border-slate-700/60 bg-slate-800/40 text-slate-500'
+            }`}
+          >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: active ? color : '#475569' }}
+            />
+            <span className="truncate">{s.name}</span>
+            <span className="tabular-nums opacity-70">{s.final}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <section className="space-y-2">
+      <div className="relative overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+        {renderSvg(340, 240)}
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 text-white"
+          aria-label="Fullskjerm"
+          title="Fullskjerm"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M3 3h6v2H5v4H3V3zm8 0h6v6h-2V5h-4V3zM3 11h2v4h4v2H3v-6zm14 0v6h-6v-2h4v-4h2z" />
+          </svg>
+        </button>
       </div>
+      {legend}
+
+      {fullscreen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white">Utvikling</h2>
+            <button
+              type="button"
+              onClick={() => setFullscreen(false)}
+              className="rounded-lg bg-wc-red px-3 py-1.5 text-sm font-semibold text-white"
+            >
+              Lukk
+            </button>
+          </div>
+          <div className="flex min-h-0 flex-1 items-center overflow-auto rounded-xl border border-slate-700 bg-slate-800">
+            {renderSvg(340, 470)}
+          </div>
+          <div className="mt-2 max-h-32 overflow-auto">{legend}</div>
+        </div>
+      )}
     </section>
   );
 }
