@@ -195,7 +195,7 @@ export default function ProgressionChart({ progression }: Props) {
         <button
           type="button"
           onClick={() => setFullscreen(true)}
-          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 text-white"
+          className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-slate-950/60 text-white"
           aria-label="Fullskjerm"
           title="Fullskjerm"
         >
