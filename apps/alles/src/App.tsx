@@ -225,16 +225,26 @@ export default function App() {
 
         {/* Enkel mobil-stil layout på alle skjermstørrelser: én kolonne, valgt fane. */}
         {view === 'tabell' && (
-          <Leaderboard
-            standings={standings}
-            participants={participants}
-            results={results}
-            questions={questions}
-          />
+          <div className="space-y-2">
+            <p className="px-1 text-center text-[11px] text-slate-500">
+              Trykk på et navn for å se hvor poengene kom fra
+            </p>
+            <Leaderboard
+              standings={standings}
+              participants={participants}
+              results={results}
+              questions={questions}
+            />
+          </div>
         )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}
         {view === 'krydder' && (
-          <BonusQuestions questions={questions} participants={participants} results={results} />
+          <div className="space-y-2">
+            <p className="px-1 text-center text-[11px] text-slate-500">
+              Trykk på et spørsmål for å se alle svar
+            </p>
+            <BonusQuestions questions={questions} participants={participants} results={results} />
+          </div>
         )}
       </main>
     </div>
