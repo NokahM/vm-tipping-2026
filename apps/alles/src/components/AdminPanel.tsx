@@ -36,6 +36,9 @@ const PW_KEY = `${APP_CONFIG.storageSuffix}_admin_pw`;
 // q15 (kjendis som dør). q7/q8 gir poeng per korrekt lag; q15 full pott hvis kjendisen er i lista.
 const LIST_ANSWER_IDS = new Set(['q7', 'q8', 'q15']);
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
+// «Sett dato» vises kun for hendelsesbaserte spørsmål (skjer på en bestemt tidligere dag,
+// kan trenge tilbakedatering). Alt vi først vet ved VM-slutt får dagens/auto-dato uansett.
+const DATE_OVERRIDE_IDS = new Set(['q6', 'q7', 'q8', 'q15']);
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 /** Dagens dato i NORSK tid (yyyy-mm-dd), uavhengig av enhetens tidssone. sv-SE gir ISO-format. */
@@ -547,13 +550,15 @@ function BonusTab({
               />
               Avgjort
             </label>
-            <button
-              type="button"
-              onClick={() => setShowDate((s) => ({ ...s, [q.id]: !s[q.id] }))}
-              className="text-[11px] text-slate-400 hover:text-slate-200"
-            >
-              {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
-            </button>
+            {DATE_OVERRIDE_IDS.has(q.id) && (
+              <button
+                type="button"
+                onClick={() => setShowDate((s) => ({ ...s, [q.id]: !s[q.id] }))}
+                className="text-[11px] text-slate-400 hover:text-slate-200"
+              >
+                {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
+              </button>
+            )}
           </div>
           {showDate[q.id] &&
             (isList ? (
