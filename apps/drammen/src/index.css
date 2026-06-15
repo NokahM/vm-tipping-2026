@@ -135,3 +135,44 @@ body {
     animation: none;
   }
 }
+
+/* Portrett-lås: vis en «vend telefonen»-melding når en TELEFON er i landskap.
+   max-height: 500px skiller telefon-landskap fra nettbrett/desktop (som beholder bred visning). */
+.wc-rotate-lock {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .wc-rotate-lock {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    text-align: center;
+    background-color: #020617;
+    color: #e2e8f0;
+  }
+}
+
+.wc-rotate-lock svg {
+  width: 44px;
+  height: 44px;
+  color: #66fbda;
+}
+
+.wc-rotate-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.wc-rotate-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
