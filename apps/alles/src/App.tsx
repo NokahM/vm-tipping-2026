@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { STORAGE_KEYS } from './config';
 import { PARTICIPANTS } from './data/participants';
 import { BONUS_QUESTIONS } from './data/bonusQuestions';
@@ -75,6 +75,31 @@ export default function App() {
     };
   }, []);
 
+  // Skjul tittel-båndet ved scroll ned ved å gli HELE headeren opp med transform
+  // (GPU-komposittert → ingen reflow/hakking), nøyaktig tittel-høyden, så fanene blir
+  // liggende øverst. Scroll opp (eller til topps) → headeren glir ned igjen.
+  const titleRef = useRef<HTMLDivElement>(null);
+  const [titleH, setTitleH] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => setTitleH(titleRef.current?.offsetHeight ?? 0);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  const [hideTitle, setHideTitle] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 64) setHideTitle(false);
+      else if (y > lastY + 4) setHideTitle(true);
+      else if (y < lastY - 4) setHideTitle(false);
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Innbakt data + lokale (admin) overstyringer. localStorage vinner ved konflikt.
   const knockoutMerged = useMemo(() => ({ ...KNOCKOUT_BAKED, ...knockoutStore }), [knockoutStore]);
   const bonusMerged = useMemo(() => ({ ...BONUS_BAKED, ...bonusStore }), [bonusStore]);
@@ -124,7 +149,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen wc-page text-slate-100">
-      <header className="sticky top-0 z-10 border-b border-slate-700">
+      <header
+        className="sticky top-0 z-10 border-b border-slate-700 transition-transform duration-200 ease-out"
+        style={{ transform: `translateY(${hideTitle ? -titleH : 0}px)` }}
+      >
         {/* Tittel-bånd: diagonale offisielle farger + mørkt slør for lesbar hvit tekst */}
         <div className="relative overflow-hidden">
           <div className="wc-stripes absolute inset-0" aria-hidden="true" />
@@ -132,7 +160,10 @@ export default function App() {
             className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/80 to-slate-950/55"
             aria-hidden="true"
           />
-          <div className="relative mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+          <div
+            ref={titleRef}
+            className="relative mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3"
+          >
             <div className="flex min-w-0 items-center gap-3">
               <img
                 src="/wc-logo.png"

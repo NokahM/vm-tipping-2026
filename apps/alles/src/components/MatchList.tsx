@@ -226,7 +226,7 @@ function PhaseBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[40px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${
+      className={`min-h-[28px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${
         active
           ? 'wc-btn text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]'
           : 'bg-slate-800 text-slate-300'
