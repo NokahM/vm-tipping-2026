@@ -52,7 +52,7 @@ export default function BonusQuestions({ questions, participants, results }: Pro
   const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
 
   return (
-    <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+    <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-black bg-slate-800">
       {questions.map((q) => (
         <BonusRow
           key={q.id}

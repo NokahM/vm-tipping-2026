@@ -200,7 +200,7 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
 
 function MatchCard({ matches, participants }: { matches: MatchResult[]; participants: Participant[] }) {
   return (
-    <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-wc-red/50 bg-slate-800 ring-1 ring-wc-red/20">
+    <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-black bg-slate-800">
       {matches.map((m) => (
         <MatchRow key={m.apiId} match={m} participants={participants} />
       ))}
