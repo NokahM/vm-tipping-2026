@@ -15,6 +15,7 @@ import {
   projectTotalGoals,
   scoreBonusQuestion,
 } from '../apps/drammen/src/utils/scoring';
+import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
@@ -109,6 +110,34 @@ const bdBoth = participantBreakdown(bdP, [bdP], [], [{ ...q7full, answer: ['Nede
 const bdBothItem = bdBoth.find((i) => i.kind === 'bonus');
 assert('begge lag = 4p (ikke 8)', bdBothItem?.points, 4);
 assert('viser begge lag', bdBothItem?.kind === 'bonus' ? bdBothItem.answer : '', 'Nederland + Portugal');
+
+// 1g) computeProgression: kumulativ poengutvikling per dag (10:00 UTC-grense)
+console.log('computeProgression:');
+const pm = (h: string, a: string, hg: number, ag: number, g: string, date: string): MatchResult =>
+  ({
+    apiId: Math.floor(Math.random() * 1e9),
+    stage: 'GROUP_STAGE',
+    group: g,
+    homeTeam: h,
+    awayTeam: a,
+    homeGoals: hg,
+    awayGoals: ag,
+    status: 'FINISHED',
+    utcDate: date,
+  }) as MatchResult;
+const prog = computeProgression(
+  PARTICIPANTS,
+  [
+    pm('Mexico', 'South Africa', 2, 0, 'GROUP_A', '2026-06-11T19:00:00Z'), // Erling 2-0 eksakt = 3
+    pm('Brazil', 'Morocco', 1, 0, 'GROUP_C', '2026-06-14T19:00:00Z'), // Erling 2-0 → utfall = 1
+  ],
+  BONUS_QUESTIONS,
+  {},
+);
+assert('progresjon: to dager', prog.days.length, 2);
+const erlingProg = prog.series.find((s) => s.name === 'Erling')!;
+assert('Erling dag 1 = 3', erlingProg.totals[0], 3);
+assert('Erling dag 2 = 4 (kumulativt)', erlingProg.totals[1], 4);
 
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');

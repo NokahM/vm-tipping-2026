@@ -432,7 +432,7 @@ export function participantBreakdown(
 // seg over midnatt europeisk tid) i samme pulje. Vi forskyver tidspunktet 10 timer tilbake
 // før vi tar datoen, så grensen faller på 10:00 UTC i stedet for 00:00 UTC.
 const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000;
-function matchDayKey(utcDate: string): string {
+export function matchDayKey(utcDate: string): string {
   return new Date(Date.parse(utcDate) - MATCHDAY_BOUNDARY_MS).toISOString().slice(0, 10);
 }
 

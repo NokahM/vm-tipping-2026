@@ -6,6 +6,7 @@ import knockoutBaked from './data/knockoutTips.json';
 import bonusBaked from './data/bonusAnswers.json';
 import { useMatches } from './hooks/useMatches';
 import { computeStandings } from './utils/scoring';
+import { computeProgression } from './utils/progression';
 import { formatTime } from './utils/labels';
 import {
   applyBonusAnswers,
@@ -19,6 +20,7 @@ import {
 } from './utils/storage';
 import { fetchRemoteState, saveRemoteState } from './utils/remoteStore';
 import Leaderboard from './components/Leaderboard';
+import ProgressionChart from './components/ProgressionChart';
 import MatchList from './components/MatchList';
 import BonusQuestions from './components/BonusQuestions';
 import AdminPanel from './components/AdminPanel';
@@ -36,6 +38,7 @@ function isAdminUrl(): boolean {
 export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
   const [view, setView] = useState<View>('tabell');
+  const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
   const [adminOpen, setAdminOpen] = useState(isAdminUrl);
 
   // Initialiseres fra localStorage-cache (rask visning), oppdateres så fra KV (delt sannhet).
@@ -115,6 +118,12 @@ export default function App() {
 
   const standings = useMemo(
     () => computeStandings(participants, results, questions),
+    [participants, results, questions],
+  );
+
+  // Poengutvikling for grafen (kun kamp-poeng datert ennå; krydder-datering kommer).
+  const progression = useMemo(
+    () => computeProgression(participants, results, questions, {}),
     [participants, results, questions],
   );
 
@@ -226,15 +235,34 @@ export default function App() {
         {/* Enkel mobil-stil layout på alle skjermstørrelser: én kolonne, valgt fane. */}
         {view === 'tabell' && (
           <div className="space-y-2">
-            <p className="px-1 text-center text-[11px] text-slate-500">
-              Trykk på et navn for å se hvor poengene kom fra
-            </p>
-            <Leaderboard
-              standings={standings}
-              participants={participants}
-              results={results}
-              questions={questions}
-            />
+            <div className="flex gap-1.5">
+              <SubTab active={tableView === 'tabell'} onClick={() => setTableView('tabell')}>
+                Tabell
+              </SubTab>
+              <SubTab active={tableView === 'graf'} onClick={() => setTableView('graf')}>
+                Graf
+              </SubTab>
+            </div>
+            {tableView === 'tabell' ? (
+              <>
+                <p className="px-1 text-center text-[11px] text-slate-500">
+                  Trykk på et navn for å se hvor poengene kom fra
+                </p>
+                <Leaderboard
+                  standings={standings}
+                  participants={participants}
+                  results={results}
+                  questions={questions}
+                />
+              </>
+            ) : (
+              <>
+                <p className="px-1 text-center text-[11px] text-slate-500">
+                  Trykk på en spiller for å vise/skjule linja (standard: topp 3)
+                </p>
+                <ProgressionChart progression={progression} />
+              </>
+            )}
           </div>
         )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}
@@ -248,6 +276,30 @@ export default function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function SubTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-[28px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${
+        active
+          ? 'wc-btn text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]'
+          : 'bg-slate-800 text-slate-300'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
