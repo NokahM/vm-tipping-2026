@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { STAGE_LABELS, STAGE_ORDER, groupLabel } from '../utils/labels';
 import MatchRow from './MatchRow';
@@ -76,30 +77,51 @@ function groupColor(group: string): string {
   return GROUP_COLORS[i] ?? 'text-wc-lime';
 }
 
+// Sluttspill-runder får hver sin farge – samme stil som gruppe-overskriftene.
+const STAGE_COLORS: Record<string, string> = {
+  ROUND_OF_32: 'text-wc-red',
+  ROUND_OF_16: 'text-wc-orange',
+  QUARTER_FINALS: 'text-wc-yellow',
+  SEMI_FINALS: 'text-wc-mint',
+  THIRD_PLACE: 'text-wc-lavender',
+  FINAL: 'text-wc-lime',
+};
+
+const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
+
 /** Kamper med ukjente lag (TBD) skjules til oppsettet er klart. */
 function isKnown(m: MatchResult): boolean {
   return m.homeTeam !== 'TBD' && m.awayTeam !== 'TBD';
 }
 
+type Phase = 'gruppespill' | 'sluttspill';
+
 export default function MatchList({ results, participants }: Props) {
   const known = results.filter(isKnown);
   const featured = pickFeatured(known);
 
-  const stages = STAGE_ORDER.map((stage) => ({
+  // Fase-velger: følger den aktuelle kampens fase som standard, men låses til
+  // brukerens valg så snart han trykker på en knapp.
+  const [override, setOverride] = useState<Phase | null>(null);
+  const defaultPhase: Phase =
+    featured[0] && featured[0].stage !== 'GROUP_STAGE' ? 'sluttspill' : 'gruppespill';
+  const phase = override ?? defaultPhase;
+
+  const groupMatches = known.filter((m) => m.stage === 'GROUP_STAGE').sort(byDate);
+  const knockoutStages = KNOCKOUT_STAGES.map((stage) => ({
     stage,
     matches: known.filter((m) => m.stage === stage).sort(byDate),
   })).filter((s) => s.matches.length > 0);
 
-  if (stages.length === 0 && featured.length === 0) {
+  if (groupMatches.length === 0 && knockoutStages.length === 0 && featured.length === 0) {
     return <p className="px-1 text-sm text-slate-400">Ingen kamper å vise ennå.</p>;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Aktuelle kamper – inntil to fremhevet øverst i én rød-kantet boks med
-          subtil delelinje. Kampene vises fortsatt i sine runder under. */}
+    <div className="space-y-5">
+      {/* Aktuelle kamper – inntil to fremhevet øverst i én rød-kantet boks med delelinje. */}
       {featured.length > 0 && (
-        <section className="mb-5">
+        <section>
           <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-white">
             Aktuelt
           </h2>
@@ -111,19 +133,38 @@ export default function MatchList({ results, participants }: Props) {
         </section>
       )}
 
-      {stages.map(({ stage, matches }) => (
-        <section key={stage}>
-          {/* Gruppespill trenger ingen overskrift – gruppenavnene (Gruppe A …) avslører det. */}
-          {stage !== 'GROUP_STAGE' && (
-            <h2 className="mb-2 px-1 text-lg font-bold text-slate-100">{STAGE_LABELS[stage]}</h2>
-          )}
-          {stage === 'GROUP_STAGE' ? (
-            <GroupStage matches={matches} participants={participants} />
-          ) : (
-            <MatchCard matches={matches} participants={participants} />
-          )}
-        </section>
-      ))}
+      {/* Fase-velger: gruppespill ↔ sluttspill */}
+      <div className="flex gap-1.5">
+        <PhaseBtn active={phase === 'gruppespill'} onClick={() => setOverride('gruppespill')}>
+          Gruppespill
+        </PhaseBtn>
+        <PhaseBtn active={phase === 'sluttspill'} onClick={() => setOverride('sluttspill')}>
+          Sluttspill
+        </PhaseBtn>
+      </div>
+
+      {phase === 'gruppespill' ? (
+        <GroupStage matches={groupMatches} participants={participants} />
+      ) : knockoutStages.length === 0 ? (
+        <p className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-slate-400">
+          Sluttspillet er ikke trukket ennå – kampene dukker opp her automatisk når lagene er klare.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {knockoutStages.map(({ stage, matches }) => (
+            <div key={stage}>
+              <h3
+                className={`mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide ${
+                  STAGE_COLORS[stage] ?? 'text-wc-lime'
+                }`}
+              >
+                {STAGE_LABELS[stage]}
+              </h3>
+              <MatchCard matches={matches} participants={participants} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -150,10 +191,34 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
 
 function MatchCard({ matches, participants }: { matches: MatchResult[]; participants: Participant[] }) {
   return (
-    <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+    <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-wc-red/50 bg-slate-800 ring-1 ring-wc-red/20">
       {matches.map((m) => (
         <MatchRow key={m.apiId} match={m} participants={participants} />
       ))}
     </ul>
+  );
+}
+
+function PhaseBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-[40px] flex-1 rounded-lg px-3 text-sm font-semibold transition ${
+        active
+          ? 'wc-btn text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]'
+          : 'bg-slate-800 text-slate-300'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
