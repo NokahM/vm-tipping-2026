@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BonusQuestion, KnockoutTip, MatchResult, Participant, Stage } from '../types';
 import { APP_CONFIG } from '../config';
 import { STAGE_LABELS, STAGE_ORDER, formatKickoff } from '../utils/labels';
@@ -20,6 +20,7 @@ interface Props {
   knockoutStore: KnockoutStore;
   bonusStore: BonusStore;
   loading: boolean;
+  error: string | null;
   onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
   onSaveBonus: (store: BonusStore, password: string) => Promise<SaveResult>;
   onRefresh: () => void;
@@ -145,6 +146,7 @@ function AdminContent({
   knockoutStore,
   bonusStore,
   loading,
+  error,
   password,
   onSaveKnockout,
   onSaveBonus,
@@ -209,7 +211,12 @@ function AdminContent({
           />
         )}
         {tab === 'oppdater' && (
-          <RefreshTab loading={loading} onRefresh={onRefresh} onClearCache={onClearCache} />
+          <RefreshTab
+            loading={loading}
+            error={error}
+            onRefresh={onRefresh}
+            onClearCache={onClearCache}
+          />
         )}
       </main>
     </div>
@@ -612,13 +619,26 @@ function BonusTab({
 
 function RefreshTab({
   loading,
+  error,
   onRefresh,
   onClearCache,
 }: {
   loading: boolean;
+  error: string | null;
   onRefresh: () => void;
   onClearCache: () => void;
 }) {
+  const [pending, setPending] = useState(false);
+  const [result, setResult] = useState<null | 'ok' | 'error'>(null);
+
+  // Når en utløst henting er ferdig (loading false igjen), vis resultat.
+  useEffect(() => {
+    if (pending && !loading) {
+      setPending(false);
+      setResult(error ? 'error' : 'ok');
+    }
+  }, [pending, loading, error]);
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-400">
@@ -628,6 +648,8 @@ function RefreshTab({
         type="button"
         disabled={loading}
         onClick={() => {
+          setResult(null);
+          setPending(true);
           onClearCache();
           onRefresh();
         }}
@@ -635,6 +657,16 @@ function RefreshTab({
       >
         {loading ? 'Henter …' : 'Tøm cache og hent på nytt'}
       </button>
+      {result === 'ok' && (
+        <p className="rounded-lg border border-emerald-700/50 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-300">
+          Oppdatert ✓ – ferske resultater hentet.
+        </p>
+      )}
+      {result === 'error' && (
+        <p className="rounded-lg border border-red-800 bg-red-950/50 px-3 py-2 text-sm text-red-200">
+          Kunne ikke hente: {error ?? 'ukjent feil'}
+        </p>
+      )}
     </div>
   );
 }

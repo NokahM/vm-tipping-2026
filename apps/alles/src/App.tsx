@@ -33,6 +33,7 @@ import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
 import { deriveDecidedBonus, deriveStatsBonus } from './utils/autoDerive';
+import { clearMatchEventsCache } from './hooks/useMatchEvents';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
 
@@ -189,6 +190,7 @@ export default function App() {
         knockoutStore={knockoutMerged}
         bonusStore={bonusManual}
         loading={loading}
+        error={error}
         onSaveKnockout={(s, password) => {
           setKnockoutStore(s);
           saveKnockoutStore(s); // optimistisk lokal cache
@@ -200,7 +202,10 @@ export default function App() {
           return saveRemoteState(password, { bonusAnswers: s });
         }}
         onRefresh={() => void refresh()}
-        onClearCache={() => localStorage.removeItem(STORAGE_KEYS.results)}
+        onClearCache={() => {
+          localStorage.removeItem(STORAGE_KEYS.results);
+          clearMatchEventsCache();
+        }}
         onClose={() => {
           setAdminOpen(false);
           window.history.replaceState(null, '', window.location.pathname);

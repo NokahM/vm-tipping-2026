@@ -243,8 +243,9 @@ tippekonk/                          # repo-root
   «📅 sett dato»-toggle (kun for tilbakedatering, f.eks. q15). Fjern haken = lagret utkast som ikke
   scorer (og ikke overstyrer auto) – teksten beholdes. App-en fletter `{ …auto, …decidedOnly(KV) }`, så
   kun avgjorte manuelle svar scorer/overstyrer. Liste-svar (q7/q8/q15) tas som komma-separert liste.
-- **Oppdater-fanen:** tøm resultat-cache og hent på nytt (begrenset nytte – edge-cache + kildelag styrer
-  ferskheten uansett).
+- **Oppdater-fanen:** tøm resultat- + kamp-event-cache og hent på nytt, med **synlig bekreftelse**
+  (Oppdatert ✓ / feilmelding via `error` fra `useMatches`). Begrenset nytte – edge-cache + kildelag
+  styrer ferskheten uansett.
 - **«Lagre & publiser»:** skriver rett til den delte databasen → synlig for alle på sekunder (status:
   Publiserer… → Publisert ✓ / feil). **«Backup JSON»:** kopierer en snapshot til utklippstavla som
   valgfri, git-versjonert sikkerhetskopi.
@@ -371,7 +372,9 @@ Abonnementet er oppgradert til **Free + Deep Data** (30 kall/min) som gir per-ka
   `/api/matches`; nøkkel server-side; edge-cache `s-maxage=15`). Gjenbruker `FOOTBALL_API_KEY` –
   ingen ny miljøvariabel.
 - `apiClient.fetchMatchEvents(id)` → `{ goals, bookings }` (lagnavn normalisert til norsk).
-- `hooks/useMatchEvents(id, enabled)` poller hvert 20s, kun når `enabled` (live/nettopp ferdig).
+- `hooks/useMatchEvents(id, enabled, live)`: **live** → poll hvert 20s; **ferdig** → hentes kun ÉN
+  gang og lagres (modul-cache + **localStorage**, overlever reload), så ferdige kamper aldri hentes på
+  nytt ved klikk. `clearMatchEventsCache()` tømmer begge (kalt av admin «Tøm cache»).
 - **`MatchEvents`** (delt komponent): en **sentrert tidslinje** (3-kolonners grid `1fr auto 1fr`) av
   ⚽ målscorere og 🟥 røde kort, én rad per hendelse, kronologisk. **Minuttet står i midten**; ikonet
   ligger på siden til laget som fikk det, og spillernavnet på samme side (hjemme venstre, borte høyre).

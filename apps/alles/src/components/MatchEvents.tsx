@@ -78,7 +78,7 @@ export default function MatchEvents({ match }: Props) {
     (Date.parse(match.utcDate) <= Date.now() && match.status !== 'FINISHED');
   const finished = match.status === 'FINISHED';
 
-  const events = useMatchEvents(match.apiId, liveNow || finished);
+  const events = useMatchEvents(match.apiId, liveNow || finished, liveNow);
   const redCards = events?.bookings.filter((b) => b.card === 'RED' || b.card === 'YELLOW_RED') ?? [];
   const goals = events?.goals ?? [];
   if (goals.length === 0 && redCards.length === 0) return null;
