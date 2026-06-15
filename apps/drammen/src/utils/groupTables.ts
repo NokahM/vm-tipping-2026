@@ -93,3 +93,16 @@ export function computeGroupTables(results: MatchResult[]): GroupTable[] {
   tables.sort((a, b) => a.letter.localeCompare(b.letter));
   return tables;
 }
+
+/**
+ * «Dårligste lag så langt»: laget med færrest poeng → lavest målforskjell → færrest mål,
+ * blant lag som har spilt minst én kamp. Returnerer null før noen kamper er ferdige.
+ * Brukes som live-indikator for krydder-q10 (ikke en endelig fasit – den settes manuelt).
+ */
+export function worstTeamSoFar(results: MatchResult[]): GroupRow | null {
+  const played = computeGroupTables(results)
+    .flatMap((t) => t.rows)
+    .filter((r) => r.played > 0);
+  if (played.length === 0) return null;
+  return [...played].sort((a, b) => a.points - b.points || a.gd - b.gd || a.gf - b.gf)[0];
+}

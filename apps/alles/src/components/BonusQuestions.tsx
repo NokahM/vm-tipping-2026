@@ -7,6 +7,8 @@ import {
   type GoalProjection,
   type GroupGoalStanding,
 } from '../utils/scoring';
+import { worstTeamSoFar, type GroupRow } from '../utils/groupTables';
+import { normalizeTeamName } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
 const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – ±5 av projeksjonen = full pott
 const GOAL_MARGIN = 5;
 const GROUP_GOALS_QUESTION_ID = 'q9'; // hvilken gruppe scorer flest mål – leder-gruppen
+const WORST_TEAM_QUESTION_ID = 'q10'; // VMs dårligste lag – dårligst-så-langt
 
 const NEUTRAL = 'border-slate-700/40 bg-slate-800/40 text-slate-500';
 const GREEN = 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
@@ -52,6 +55,7 @@ function groupLetters(text: string | null): string[] {
 export default function BonusQuestions({ questions, participants, results }: Props) {
   const projection = useMemo(() => projectTotalGoals(results), [results]);
   const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
+  const worst = useMemo(() => worstTeamSoFar(results), [results]);
   const frameStyle = useMemo(wcFrameStyle, []);
 
   return (
@@ -66,6 +70,7 @@ export default function BonusQuestions({ questions, participants, results }: Pro
           participants={participants}
           projection={projection}
           groupLeaders={groupLeaders}
+          worst={worst}
         />
       ))}
     </ul>
@@ -77,20 +82,24 @@ function BonusRow({
   participants,
   projection,
   groupLeaders,
+  worst,
 }: {
   question: BonusQuestion;
   participants: Participant[];
   projection: GoalProjection | null;
   groupLeaders: GroupGoalStanding | null;
+  worst: GroupRow | null;
 }) {
   const [open, setOpen] = useState(false);
   const hasFasit = question.answer !== null;
   const points = scoreBonusQuestion(participants, question);
   const fasit = Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
 
-  // Live-moduser, kun før fasit: q5 nærmest projeksjonen, q9 leder-gruppen.
+  // Live-moduser, kun før fasit: q5 nærmest projeksjonen, q9 leder-gruppen, q10 dårligst så langt.
   const goalProj = question.id === GOAL_QUESTION_ID && !hasFasit ? projection : null;
   const groupLead = question.id === GROUP_GOALS_QUESTION_ID && !hasFasit ? groupLeaders : null;
+  const worstLead = question.id === WORST_TEAM_QUESTION_ID && !hasFasit ? worst : null;
+  const worstName = worstLead ? normalizeTeamName(worstLead.team) : null;
 
   return (
     <li>
@@ -117,6 +126,14 @@ function BonusRow({
             <p className="mt-0.5 text-xs text-wc-yellow">
               Leder nå: Gruppe {groupLead.leaders.join(', ')}
               <span className="text-slate-500"> · {groupLead.topGoals} mål</span>
+            </p>
+          ) : worstLead ? (
+            <p className="mt-0.5 text-xs text-wc-yellow">
+              Dårligst nå: {worstName}
+              <span className="text-slate-500">
+                {' '}
+                · {worstLead.points} p · {worstLead.gd > 0 ? `+${worstLead.gd}` : worstLead.gd} mål
+              </span>
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>
@@ -164,6 +181,14 @@ function BonusRow({
                 letters.length === 0
                   ? NEUTRAL
                   : letters.some((l) => groupLead.leaders.includes(l))
+                    ? GREEN
+                    : RED;
+            } else if (worstLead) {
+              // q10: tippet det dårligste laget så langt = grønn.
+              cls =
+                text === null
+                  ? NEUTRAL
+                  : normalizeTeamName(text) === normalizeTeamName(worstLead.team)
                     ? GREEN
                     : RED;
             } else {

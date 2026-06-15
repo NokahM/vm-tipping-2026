@@ -209,6 +209,9 @@ tippekonk/                          # repo-root
 - **q9 (flest mål-gruppe):** eksakt gruppe-match. Krydder-fanen viser også **live-leder** av gruppene
   (`groupGoalLeaders`, mål per gruppe så langt inkl. live) og fargekoder tippene grønt for den/de
   ledende gruppen(e) (kun visuelt).
+- **q10 (dårligste lag):** eksakt lag-match (manuell fasit). Krydder-fanen viser også **dårligst så
+  langt** (`worstTeamSoFar`: færrest poeng → lavest målforskjell → færrest mål blant lag som har spilt)
+  og fargekoder tippene grønt for det laget (kun visuelt – fasiten settes manuelt).
 - **q6 (raskeste mål):** innenfor ±15 sekunder fra fasit (parses som mm:ss / hh:mm:ss).
 - **q7 / q8 (rødt kort / selvmål):** **2p per korrekt nevnt lag, maks 4p** (`maxPoints: 4`, deltaker
   nevner 2 lag). Styres av `PER_TEAM_IDS`. Fasit settes som komma-separert liste over **alle** lag som
@@ -271,9 +274,7 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
 - **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Graf`).
   - **Lagstats:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
     gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper
-    per rad**, kompakt (logo + navn + ± + P). **Dårligste lag så langt** (færrest poeng → lavest
-    målforskjell → færrest mål, blant lag som har spilt) markeres med rød rad. Under: **kort per lag**
-    (`TeamCards`) fra aggregatoren.
+    per rad**, kompakt (logo + navn + ± + P). Under: **kort per lag** (`TeamCards`) fra aggregatoren.
   - **Spillerstats:** toppscorer, assistkonge og råtass (`PlayerStats`): `# logo navn posisjon tall`,
     med **delt plassering ved likhet** (1, 2, 2, 4 …, som tabellen). Råtass sorteres på **flest røde →
     flest gule** (RED + YELLOW_RED = rødt). Posisjon normaliseres til fire bøtter
