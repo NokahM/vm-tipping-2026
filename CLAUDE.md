@@ -37,12 +37,15 @@ Ingen personnavn ligger i denne dokumentasjonen; deltakerdata bor i `participant
 
 ## Datakilde: football-data.org
 
-**Betalt plan: «Free w/ Livescores» (€12/mnd)** → live in-play-stillinger + **20 kall/min**.
+**Betalt plan: «Free + Deep Data» (fra 2026-06-15) → 30 kall/min + per-kamp-detaljer**
+(mål/kort/oppstillinger). Tidligere på «Free w/ Livescores» (€12/mnd, 20/min) – oppgraderingen ga
+både høyere rategrense og deep data (se egen «Deep data»-seksjon nederst).
 (Gratis-tier ga kun 10/min og **ingen pålitelig live-data** – kamper hang på `TIMED` uten stilling
-til de var ferdige. Den betalte planen var nødvendig for at live-stillinger skal fungere.)
-Begge apper deler **samme** API-nøkkel, så samlet forbruk teller mot 20/min.
+til de var ferdige. Betalt plan var nødvendig for at live-stillinger skal fungere.)
+Begge apper deler **samme** API-nøkkel, så samlet forbruk teller mot 30/min.
 
-- Konkurranse-kode: `WC`. Hovedendepunkt: `GET /v4/competitions/WC/matches`. Auth: `X-Auth-Token`.
+- Konkurranse-kode: `WC`. Hovedendepunkt: `GET /v4/competitions/WC/matches` (bulk-liste).
+  Per-kamp-detaljer (deep data): `GET /v4/matches/{id}`. Auth: `X-Auth-Token`.
 - Statuser vi bruker: `SCHEDULED`/`TIMED` (kommende), `IN_PLAY`/`PAUSED` (live), `FINISHED`.
 - Live: `score.fullTime` oppdateres løpende mens kampen spilles.
 - **Stage-navn:** API-et bruker `LAST_32`/`LAST_16` for sekstendels-/åttendelsfinaler; `apiClient.ts`
@@ -54,16 +57,20 @@ Begge apper deler **samme** API-nøkkel, så samlet forbruk teller mot 20/min.
 ### CORS → proxy er nødvendig
 football-data.org svarer ikke med en brukbar CORS-header, så direkte nettleserkall blokkeres.
 Løsning – proxy på **samme origin**:
-- **Prod:** serverless-funksjon `api/matches.js` legger på nøkkelen server-side og videresender.
-- **Dev:** Vite dev-proxy i `vite.config.ts` gjør det samme.
-- Klienten kaller alltid `/api/matches?status=…&stage=…`. **Nøkkelen havner aldri i klient-bundelen.**
-- **Miljøvariabel:** `FOOTBALL_API_KEY` (server-side). Proxy + funksjon leser også `VITE_FOOTBALL_API_KEY`
-  som fallback.
+- **Prod:** serverless-funksjonene `api/matches.js` (bulk) og `api/matchdetail.js` (deep data) legger
+  på nøkkelen server-side og videresender.
+- **Dev:** Vite dev-proxy i `vite.config.ts` gjør det samme for `/api/matches` og `/api/matchdetail`.
+- Klienten kaller alltid `/api/matches?status=…&stage=…` eller `/api/matchdetail?id=…`. **Nøkkelen
+  havner aldri i klient-bundelen.**
+- **Miljøvariabel:** `FOOTBALL_API_KEY` (server-side, delt av begge proxyene). Leser også
+  `VITE_FOOTBALL_API_KEY` som fallback.
 
 ### Ferskhet & rategrense (edge-cache + polling)
 - `api/matches.js` setter `Cache-Control: s-maxage=8, stale-while-revalidate=60`. Vercels edge cacher
   responsen i 8 s, så **alle brukere deler samme cachede svar** – uansett antall brukere blir det kun
-  ~1 oppstrømskall per 8 s **per app** (~15/min for begge apper samlet, trygt under 20/min).
+  ~1 oppstrømskall per 8 s **per app** (~15/min for begge apper samlet, trygt under 30/min). Deep
+  data-kallene (`api/matchdetail.js`) har egen edge-cache (`s-maxage=15`) og hentes kun for åpnede
+  live/ferdige kamper, så de bidrar lite til forbruket.
 - Klienten (`useMatches`) poller hvert **10. sekund** mens fanen er synlig, og umiddelbart når brukeren
   kommer tilbake til fanen. Polling treffer edge-cachen, så den belaster **ikke** rategrensen mot
   football-data.org – kun Vercel «Edge Requests» (verdt et blikk i Usage-fanen under tunge kampkvelder;
@@ -178,7 +185,7 @@ tippekonk/                          # repo-root
 | 2 | Hvem vinner Gullballen (beste spiller)? | 5p |
 | 3 | Hvem vinner Gullstøvelen (toppscorer)? | 5p |
 | 4 | Hvem vinner FIFA Young Player of the Tournament? | 3p |
-| 5 | Hvor mange mål scores det totalt i VM? (nærmest vinner) | 2p |
+| 5 | Hvor mange mål scores det totalt i VM? (±5 mål = full pott) | 2p |
 | 6 | Hvilket tidspunkt scores det raskeste målet? (±15 sek.) | 2p |
 | 7 | Nevn to lag som får rødt kort i løpet av VM. | 4p (2p per lag) |
 | 8 | Nevn to lag som scorer selvmål i løpet av VM. | 4p (2p per lag) |
@@ -216,9 +223,12 @@ tippekonk/                          # repo-root
 Åpnes via `?admin=true` (eller det subtile tannhjul-ikonet i headeren). Tre faner: **Sluttspill**,
 **Krydder**, **Oppdater**.
 
-- **Passord-gate:** klient-side via `VITE_ADMIN_PASSWORD` (standard `vm2026`) – kun UI-skjul. Den **ekte**
-  låsen er server-side: skriving til databasen krever `ADMIN_PASSWORD`. Sett **begge til samme verdi**.
-  Passordet huskes i `<suffix>_admin_pw` (localStorage) så lagring virker etter reload.
+- **Passord-gate:** klient-side via `VITE_ADMIN_PASSWORD` (dev-standard `vm2026`) – kun UI-skjul. Den
+  **ekte** låsen er server-side: skriving til databasen krever `ADMIN_PASSWORD`. Sett **begge til samme
+  verdi**. Passordet huskes i `<suffix>_admin_pw` (localStorage) så lagring virker etter reload.
+  > ⚠️ **Repoet er offentlig:** dev-standarden `vm2026` er dermed allment kjent. I produksjon **må**
+  > `ADMIN_PASSWORD` + `VITE_ADMIN_PASSWORD` settes til noe annet på Vercel (ellers kan hvem som helst
+  > skrive til databasen). Verdien ligger kun som miljøvariabel, aldri i repoet.
 - **Sluttspill-fanen:** velg runde (nedtrekksmeny) → kampene hentes fra allerede-lastede `results`
   (filtrert på runde, kun kjente lag) → 2-talls tips per deltaker per kamp.
 - **Krydder-fanen:** ett felt per spørsmål. Liste-svar (q7/q8/q15) tas som komma-separert liste.
@@ -299,8 +309,9 @@ fra Excel-eksporterte CSV-er (`data/*.xlsx`). **Rediger dem ikke for hånd – k
 For hvert prosjekt (`apps/drammen` og `apps/alles` som **Root Directory**):
 1. **Add New Project** → importer repoet → sett Root Directory.
 2. **Environment Variables:**
-   - `FOOTBALL_API_KEY` – server-side nøkkel (brukt av `api/matches.js`).
-   - `ADMIN_PASSWORD` – server-side admin-passord (delt med admin-ansvarlig).
+   - `FOOTBALL_API_KEY` – server-side nøkkel (brukt av `api/matches.js` + `api/matchdetail.js`).
+   - `ADMIN_PASSWORD` – server-side admin-passord (delt med admin-ansvarlig). **Ikke** bruk dev-standarden
+     `vm2026` – repoet er offentlig.
    - `VITE_ADMIN_PASSWORD` – **samme verdi** (klient-gate).
    - KV-nøkler (`KV_REST_API_URL/TOKEN`) – **injiseres automatisk** når Upstash-storen kobles til
      prosjektet via Vercel → Storage (samme store kobles til begge prosjekter).

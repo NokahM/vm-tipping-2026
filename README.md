@@ -16,7 +16,8 @@ Se [CLAUDE.md](./CLAUDE.md) for full arkitektur- og prosjektbeskrivelse.
   kumulative poeng dag-for-dag (topp 3 default, togglebare spillere).
 - **Kamper** – kommende (dato/klokke + kanal NRK/TV2), live (● LIVE + stilling) og ferdige. «Aktuelt»
   fremhever inntil 2 live/nærmeste kamper. Trykk på en kamp for å se **alles tips** og – for
-  live/ferdige kamper – **målscorere + røde kort** (to kolonner, kronologisk; deep data).
+  live/ferdige kamper – **målscorere + røde kort** på en tidslinje (minutt i midten, ⚽/🟥 på lagets
+  side; deep data).
 - **Krydder** – 17 spesialspørsmål med egne poeng- og spesialregler. Live-projeksjoner for q5 (antall
   mål) og q9 (gruppe med flest mål).
 - **Admin-panel** (`?admin=true`) – legg inn sluttspill-tips, krydder-fasit (med dato per svar) og
@@ -73,6 +74,10 @@ På Vercel injiseres KV-nøklene automatisk når Upstash-storen kobles til prosj
 `ADMIN_PASSWORD` og `VITE_ADMIN_PASSWORD` settes manuelt per prosjekt. Samme `FOOTBALL_API_KEY` brukes
 av både `/api/matches` og `/api/matchdetail` – ingen ekstra variabel for deep data.
 
+> ⚠️ Dette repoet er offentlig. `VITE_ADMIN_PASSWORD` har en dev-standard (`vm2026`) som dermed er
+> allment kjent – sett et **eget** admin-passord i produksjon. Hemmeligheter (API-nøkkel, KV-token,
+> admin-passord) ligger kun som miljøvariabler, aldri i koden.
+
 ## Kommandoer (per app)
 
 | Kommando          | Beskrivelse                  |
@@ -93,3 +98,9 @@ Verktøy i `tools/` (kjøres fra repo-rot): `generate_data.py` (Excel → datala
 - Favicon/app-ikon fra VM-logoen; NRK/TV2-kanal for sluttspillsrundene.
 
 Se [CLAUDE.md](./CLAUDE.md) → «Backlog» for detaljer.
+
+## Om prosjektet
+
+Et personlig hobbyprosjekt laget for to vennegruppers VM-tipping – ikke et generelt produkt. `data/`
+inneholder deltakernes fornavn og tips. Koden deles som referanse/inspirasjon; ingen åpen lisens er
+satt (standard: all rights reserved). Ikke tilknyttet football-data.org eller FIFA.
