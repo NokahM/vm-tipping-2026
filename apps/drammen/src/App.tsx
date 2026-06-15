@@ -97,8 +97,8 @@ export default function App() {
     const onScroll = () => {
       const y = window.scrollY;
       if (y < 64) setHideTitle(false);
-      else if (y > lastY + 4) setHideTitle(true);
-      else if (y < lastY - 4) setHideTitle(false);
+      else if (y > lastY) setHideTitle(true); // skjul ved enhver nedover-scroll
+      else if (y < lastY) setHideTitle(false); // vis ved enhver oppover-scroll
       lastY = y;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
