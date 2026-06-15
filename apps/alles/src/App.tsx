@@ -224,7 +224,7 @@ export default function App() {
           {/* Faner – ligger inni stripe-båndet, så de deler header-bakgrunnen */}
           <div className="relative mx-auto flex max-w-2xl gap-1 px-4 pb-2">
             <TabButton active={view === 'tabell'} onClick={() => setView('tabell')}>
-              Tabell
+              Stilling
             </TabButton>
             <TabButton active={view === 'kamper'} onClick={() => setView('kamper')}>
               Kamper
