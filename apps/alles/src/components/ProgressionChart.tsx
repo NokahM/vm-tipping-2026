@@ -81,7 +81,7 @@ export default function ProgressionChart({ progression }: Props) {
       return next;
     });
 
-  function renderSvg(vbW: number, vbH: number) {
+  function renderSvg(vbW: number, vbH: number, fill = false) {
     const PAD = { left: 18, right: 52, top: 10, bottom: 20 };
     const plotW = vbW - PAD.left - PAD.right;
     const plotH = vbH - PAD.top - PAD.bottom;
@@ -91,7 +91,8 @@ export default function ProgressionChart({ progression }: Props) {
     return (
       <svg
         viewBox={`0 0 ${vbW} ${vbH}`}
-        className="w-full"
+        className={fill ? 'h-full w-full' : 'w-full'}
+        preserveAspectRatio={fill ? 'xMidYMid meet' : undefined}
         role="img"
         aria-label="Poengutvikling over tid"
       >
@@ -208,21 +209,35 @@ export default function ProgressionChart({ progression }: Props) {
       {legend}
 
       {fullscreen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white">Utvikling</h2>
-            <button
-              type="button"
-              onClick={() => setFullscreen(false)}
-              className="rounded-lg bg-wc-red px-3 py-1.5 text-sm font-semibold text-white"
-            >
-              Lukk
-            </button>
+        <div className="fixed inset-0 z-50 bg-slate-900">
+          {/* Roterer innholdet 90° til landskap: bredden = telefonens høyde. Snu telefonen. */}
+          <div
+            className="flex flex-col p-3"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '100%',
+              width: '100vh',
+              height: '100vw',
+              transformOrigin: 'top left',
+              transform: 'rotate(90deg)',
+            }}
+          >
+            <div className="mb-1 flex shrink-0 items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white">Utvikling</h2>
+              <button
+                type="button"
+                onClick={() => setFullscreen(false)}
+                className="rounded-lg bg-wc-red px-3 py-1 text-sm font-semibold text-white"
+              >
+                Lukk
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+              {renderSvg(560, 240, true)}
+            </div>
+            <div className="mt-1 max-h-16 shrink-0 overflow-auto">{legend}</div>
           </div>
-          <div className="flex min-h-0 flex-1 items-center overflow-auto rounded-xl border border-slate-700 bg-slate-800">
-            {renderSvg(340, 470)}
-          </div>
-          <div className="mt-2 max-h-32 overflow-auto">{legend}</div>
         </div>
       )}
     </section>
