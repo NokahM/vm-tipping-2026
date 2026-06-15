@@ -238,7 +238,11 @@ tippekonk/                          # repo-root
   > skrive til databasen). Verdien ligger kun som miljøvariabel, aldri i repoet.
 - **Sluttspill-fanen:** velg runde (nedtrekksmeny) → kampene hentes fra allerede-lastede `results`
   (filtrert på runde, kun kjente lag) → 2-talls tips per deltaker per kamp.
-- **Krydder-fanen:** ett felt per spørsmål. Liste-svar (q7/q8/q15) tas som komma-separert liste.
+- **Krydder-fanen:** ett felt per spørsmål + en **«Avgjort»-checkbox** (`decided`-flagget). Huket av =
+  svaret teller i tabellen, med **dagens norske dato automatisk**. Dato-velgeren er **skjult** bak en
+  «📅 sett dato»-toggle (kun for tilbakedatering, f.eks. q15). Fjern haken = lagret utkast som ikke
+  scorer (og ikke overstyrer auto) – teksten beholdes. App-en fletter `{ …auto, …decidedOnly(KV) }`, så
+  kun avgjorte manuelle svar scorer/overstyrer. Liste-svar (q7/q8/q15) tas som komma-separert liste.
 - **Oppdater-fanen:** tøm resultat-cache og hent på nytt (begrenset nytte – edge-cache + kildelag styrer
   ferskheten uansett).
 - **«Lagre & publiser»:** skriver rett til den delte databasen → synlig for alle på sekunder (status:
@@ -437,7 +441,7 @@ charting-bibliotek) som viser hver deltakers **kumulative totalsum dag-for-dag**
 **Krydder-datering (datamodell-utvidelse).** For at grafen skal plassere krydderpoeng på riktig dag
 er `BonusStore`-verdien utvidet (`utils/storage.ts`):
 ```ts
-type BonusValue = string | string[] | { answer: string | string[]; at?: string; ats?: Record<string,string> };
+type BonusValue = string | string[] | { answer: string | string[]; at?: string; ats?: Record<string,string>; decided?: boolean };
 ```
 - `at` = dato for når **hele** spørsmålet ble avgjort (enkelt-svar). `ats` = **dato per element**
   for liste-spørsmål (q7 rødt kort, q8 selvmål, q15 kjendis) – hvert lag/navn tikker inn på sin egen

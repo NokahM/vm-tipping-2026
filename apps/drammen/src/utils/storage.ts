@@ -13,7 +13,7 @@ export type KnockoutStore = Record<string, KnockoutTip[]>;
 export type BonusValue =
   | string
   | string[]
-  | { answer: string | string[]; at?: string; ats?: Record<string, string> };
+  | { answer: string | string[]; at?: string; ats?: Record<string, string>; decided?: boolean };
 
 /** Krydder-fasit lagt inn via admin: questionId → fasit (med valgfrie datoer). */
 export type BonusStore = Record<string, BonusValue>;
@@ -21,6 +21,22 @@ export type BonusStore = Record<string, BonusValue>;
 /** Selve svaret ut av en BonusValue (uten dato). */
 export function bonusAnswerOf(v: BonusValue): string | string[] {
   return typeof v === 'string' || Array.isArray(v) ? v : v.answer;
+}
+
+/**
+ * Er fasiten «avgjort» (skal score)? Admin styrer dette via «Avgjort»-checkboxen.
+ * Rene verdier + objekter uten flagg regnes som avgjort (bakoverkompatibelt).
+ * `decided: false` = lagret utkast som IKKE scorer (og ikke overstyrer auto).
+ */
+export function bonusDecidedOf(v: BonusValue): boolean {
+  return typeof v === 'string' || Array.isArray(v) ? true : v.decided !== false;
+}
+
+/** Manuell-store filtrert til kun avgjorte entries (for fletting/scoring). */
+export function decidedOnly(store: BonusStore): BonusStore {
+  const out: BonusStore = {};
+  for (const [id, v] of Object.entries(store)) if (bonusDecidedOf(v)) out[id] = v;
+  return out;
 }
 
 /** Spørsmålets «avgjort»-dato (ISO) hvis satt, ellers undefined. */

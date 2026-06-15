@@ -17,7 +17,7 @@ import {
 } from '../apps/drammen/src/utils/scoring';
 import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
-import { applyBonusAnswers, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
+import { applyBonusAnswers, decidedOnly, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
 import { deriveDecidedBonus, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
@@ -362,6 +362,12 @@ assert('q3 ikke satt før turnering ferdig', deriveStatsBonus({ ...baseStats, to
 const q13store = deriveStatsBonus({ ...baseStats, goalsByPlayer: { '44': 3, '3218': 1 } }, overResults);
 assert('q13 = Ronaldo når flest', (q13store.q13 as { answer: string[] }).answer.includes('Ronaldo'), true);
 assert('q13 ikke Messi når færre', (q13store.q13 as { answer: string[] }).answer.includes('Messi'), false);
+
+// 4d) Avgjort-flagg (decidedOnly)
+console.log('\ndecidedOnly (Avgjort-checkbox):');
+assert('avgjort entry beholdes', decidedOnly({ q1: { answer: 'X', decided: true } }).q1 !== undefined, true);
+assert('utkast (decided:false) filtreres bort', decidedOnly({ q1: { answer: 'X', decided: false } }).q1, undefined);
+assert('ren verdi regnes som avgjort', decidedOnly({ q1: 'X' }).q1, 'X');
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');

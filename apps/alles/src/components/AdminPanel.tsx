@@ -6,6 +6,7 @@ import { normalizeTeamName } from '../utils/teamNames';
 import {
   bonusAnswerOf,
   bonusDateOf,
+  bonusDecidedOf,
   bonusItemDatesOf,
   type BonusStore,
   type KnockoutStore,
@@ -418,11 +419,26 @@ function BonusTab({
     }
     return d;
   });
+  // «Avgjort»-status per spørsmål (checkbox). Avgjort = svaret teller i tabellen.
+  const [decidedDraft, setDecidedDraft] = useState<Record<string, boolean>>(() => {
+    const d: Record<string, boolean> = {};
+    for (const [id, val] of Object.entries(store)) d[id] = bonusDecidedOf(val);
+    return d;
+  });
+  // Hvilke spørsmål som har dato-velgeren utfoldet (kun UI). Skjult som standard.
+  const [showDate, setShowDate] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<SaveState>('idle');
   const [errMsg, setErrMsg] = useState('');
 
   function setVal(id: string, v: string) {
     setDraft((d) => ({ ...d, [id]: v }));
+    // Første gang man skriver inn et svar: huk av «Avgjort» automatisk (vanlig flyt).
+    setDecidedDraft((d) => (id in d ? d : { ...d, [id]: true }));
+    setStatus('idle');
+  }
+
+  function setDecided(id: string, v: boolean) {
+    setDecidedDraft((d) => ({ ...d, [id]: v }));
     setStatus('idle');
   }
 
@@ -457,11 +473,11 @@ function BonusTab({
           const dv = itemDates[q.id]?.[team];
           ats[team] = dv ? toIso(dv) : today;
         }
-        next[q.id] = { answer: arr, ats };
+        next[q.id] = { answer: arr, ats, decided: decidedDraft[q.id] ?? true };
       } else {
         const picked = dateDraft[q.id];
         const at = picked ? toIso(picked) : (bonusDateOf(store[q.id] ?? '') ?? today);
-        next[q.id] = { answer: raw, at };
+        next[q.id] = { answer: raw, at, decided: decidedDraft[q.id] ?? true };
       }
     }
     return next;
@@ -481,10 +497,10 @@ function BonusTab({
   return (
     <div className="space-y-3">
       <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
-        «Avgjort»-datoen bestemmer hvilken dag poengene dukker opp i utviklingsgrafen –{' '}
-        <span className="text-slate-300">datoen du velger = dagen i grafen</span>. Velger du ingen
-        dato, settes den til dagens dato (norsk tid). For liste-spørsmål settes datoen per lag/svar –
-        samme regel.
+        Huk av <span className="text-slate-300">«Avgjort»</span> når et spørsmål er bestemt – da
+        teller svaret i tabellen, med <span className="text-slate-300">dagens dato</span> (norsk tid)
+        automatisk. Fjern haken for å trekke svaret uten å miste teksten. Trenger du å tilbakedatere
+        (f.eks. q15), bruk «sett dato». Mange spørsmål fylles inn automatisk – la dem stå tomme.
       </p>
       {questions.map((q) => {
         const isList = LIST_ANSWER_IDS.has(q.id);
@@ -520,36 +536,59 @@ function BonusTab({
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
-          {isList ? (
-            teams.length > 0 && (
-              <div className="mt-2 space-y-1">
-                <p className="text-[11px] text-slate-400">Avgjort per svar (dato → grafen):</p>
-                {teams.map((team) => (
-                  <div key={team} className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate text-xs text-slate-200">{team}</span>
-                    <input
-                      type="date"
-                      value={itemDates[q.id]?.[team] ?? ''}
-                      onChange={(e) => setItemDate(q.id, team, e.target.value)}
-                      className="h-8 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
-                    />
-                  </div>
-                ))}
-                <p className="text-[10px] text-slate-600">tom = i dag</p>
-              </div>
-            )
-          ) : (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="shrink-0 text-[11px] text-slate-400">Avgjort:</span>
+          {/* «Avgjort»-checkbox + valgfri dato-overstyring */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <label className="flex items-center gap-1.5 text-xs text-slate-200">
               <input
-                type="date"
-                value={dateDraft[q.id] ?? ''}
-                onChange={(e) => setDate(q.id, e.target.value)}
-                className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+                type="checkbox"
+                checked={decidedDraft[q.id] ?? true}
+                onChange={(e) => setDecided(q.id, e.target.checked)}
+                className="h-4 w-4 accent-emerald-500"
               />
-              <span className="text-[11px] text-slate-600">tom = i dag</span>
-            </div>
-          )}
+              Avgjort <span className="text-slate-500">(teller i tabellen)</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowDate((s) => ({ ...s, [q.id]: !s[q.id] }))}
+              className="text-[11px] text-slate-400 hover:text-slate-200"
+            >
+              {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
+            </button>
+            {!showDate[q.id] && <span className="text-[10px] text-slate-600">dato = i dag</span>}
+          </div>
+          {showDate[q.id] &&
+            (isList ? (
+              teams.length > 0 ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-[11px] text-slate-400">Avgjort-dato per svar (→ grafen):</p>
+                  {teams.map((team) => (
+                    <div key={team} className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-xs text-slate-200">{team}</span>
+                      <input
+                        type="date"
+                        value={itemDates[q.id]?.[team] ?? ''}
+                        onChange={(e) => setItemDate(q.id, team, e.target.value)}
+                        className="h-8 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+                      />
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-slate-600">tom = i dag</p>
+                </div>
+              ) : (
+                <p className="mt-1 text-[11px] text-slate-600">Skriv inn svar først.</p>
+              )
+            ) : (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="shrink-0 text-[11px] text-slate-400">Avgjort-dato:</span>
+                <input
+                  type="date"
+                  value={dateDraft[q.id] ?? ''}
+                  onChange={(e) => setDate(q.id, e.target.value)}
+                  className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+                />
+                <span className="text-[11px] text-slate-600">tom = i dag</span>
+              </div>
+            ))}
         </div>
         );
       })}
