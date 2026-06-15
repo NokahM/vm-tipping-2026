@@ -159,7 +159,7 @@ export default function MatchList({ results, participants }: Props) {
           {knockoutStages.map(({ stage, matches }) => (
             <div key={stage}>
               <h3
-                className={`mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide ${
+                className={`mb-1.5 px-1 text-center text-sm font-semibold uppercase tracking-wide ${
                   STAGE_COLORS[stage] ?? 'text-wc-lime'
                 }`}
               >
@@ -187,7 +187,9 @@ function FeaturedSection({
   if (matches.length === 0) return null;
   return (
     <section>
-      <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-white">{title}</h2>
+      <h2 className="mb-2 px-1 text-center text-sm font-semibold uppercase tracking-wide text-white">
+        {title}
+      </h2>
       <div className="divide-y divide-slate-700/70 overflow-hidden rounded-xl border border-wc-red/50 bg-slate-800 ring-1 ring-wc-red/20">
         {matches.map((m) => (
           <FeaturedMatch key={m.apiId} match={m} participants={participants} />
@@ -208,7 +210,7 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
       {groups.map((g) => (
         <div key={g}>
           <h3
-            className={`mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
+            className={`mb-1.5 px-1 text-center text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
           >
             {groupLabel(g)}
           </h3>
