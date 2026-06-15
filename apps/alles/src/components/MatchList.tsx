@@ -81,7 +81,7 @@ function groupColor(group: string): string {
 // Sluttspill-runder får hver sin farge – samme stil som gruppe-overskriftene.
 const STAGE_COLORS: Record<string, string> = {
   ROUND_OF_32: 'text-wc-red',
-  ROUND_OF_16: 'text-wc-orange',
+  ROUND_OF_16: 'text-wc-blue',
   QUARTER_FINALS: 'text-wc-yellow',
   SEMI_FINALS: 'text-wc-mint',
   THIRD_PLACE: 'text-wc-lavender',

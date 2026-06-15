@@ -42,8 +42,9 @@ export default function App() {
   const [knockoutStore, setKnockoutStore] = useState<KnockoutStore>(loadKnockoutStore);
   const [bonusStore, setBonusStore] = useState<BonusStore>(loadBonusStore);
 
-  // Hent delt admin-data fra KV ved oppstart og når fanen blir synlig igjen.
-  // Cache i localStorage så reload viser siste kjente fasit umiddelbart.
+  // Hent delt admin-data fra KV ved oppstart, jevnlig (live), og når fanen blir synlig
+  // igjen. Cache i localStorage så reload viser siste kjente fasit umiddelbart. Slik
+  // dukker f.eks. ny selvmål-/rødt kort-fasit opp i tabellen LIVE – ikke først ved reload.
   useEffect(() => {
     let cancelled = false;
     const sync = async () => {
@@ -63,8 +64,13 @@ export default function App() {
       if (!document.hidden) void sync();
     };
     document.addEventListener('visibilitychange', onVisible);
+    // Poll KV hvert 20. s mens fanen er synlig (edge-cachet → billig).
+    const id = setInterval(() => {
+      if (!document.hidden) void sync();
+    }, 20000);
     return () => {
       cancelled = true;
+      clearInterval(id);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
@@ -217,7 +223,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[44px] flex-1 rounded-lg px-3 text-sm font-semibold transition [text-shadow:0_1px_2px_rgb(0_0_0/0.6)] ${
+      className={`min-h-[34px] flex-1 rounded-lg px-3 text-sm font-semibold transition [text-shadow:0_1px_2px_rgb(0_0_0/0.6)] ${
         active ? 'wc-btn text-white shadow-sm' : 'bg-slate-800 text-slate-300 [text-shadow:none]'
       }`}
     >
