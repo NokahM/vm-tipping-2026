@@ -50,13 +50,17 @@ Hver app er en frittstående Vite + React + TypeScript + Tailwind-app, deployet 
 Vercel-prosjekt. Appene er kodedelt – kun `config.ts`, `data/` og `public/teams` skiller dem; alle andre
 filer holdes **identiske** og kopieres mellom appene ved endring.
 
-## Komme i gang
+## Komme i gang (lokalt)
 
 ```bash
-cd apps/drammen        # eller apps/alles
+cd apps/drammen                 # eller apps/alles
+cp .env.example .env.local      # fyll inn FOOTBALL_API_KEY (se «Miljøvariabler»)
 npm install
 npm run dev
 ```
+
+Du trenger en API-nøkkel fra [football-data.org](https://www.football-data.org/client/register) for at
+kamper skal lastes. KV-nøklene (delt database) trengs kun hvis du også vil teste admin-lagring lokalt.
 
 ## Miljøvariabler
 
@@ -90,6 +94,24 @@ av både `/api/matches` og `/api/matchdetail` – ingen ekstra variabel for deep
 Verktøy i `tools/` (kjøres fra repo-rot): `generate_data.py` (Excel → datalag) og
 `verify_scoring.ts` (`npx tsx tools/verify_scoring.ts`, regresjonstester).
 
+## Deploy (Vercel + Upstash KV)
+
+Hver app deployes som sitt eget Vercel-prosjekt fra samme repo:
+
+1. **Database:** opprett én Upstash Redis-store (Vercel → Storage). **Samme** store kobles til begge
+   prosjektene – nøklene namespaces per app (`<suffix>:knockoutTips`, `<suffix>:bonusAnswers`), så de
+   deler ikke data.
+2. **Prosjekt:** «Add New Project» → importer repoet → sett **Root Directory** til `apps/drammen`.
+   Gjenta med et eget prosjekt for `apps/alles`.
+3. **Miljøvariabler** per prosjekt: `FOOTBALL_API_KEY`, `ADMIN_PASSWORD`, `VITE_ADMIN_PASSWORD`
+   (samme verdi som `ADMIN_PASSWORD` – og *ikke* dev-standarden `vm2026`). KV-nøklene injiseres
+   automatisk når storen kobles til prosjektet.
+4. Deploy. Etter første deploy trigger hver `git push` automatisk redeploy av begge.
+
+`api/matches.js` + `api/matchdetail.js` proxer football-data.org (nøkkel server-side), og `api/state.js`
+leser/skriver den delte databasen. Full detalj i [CLAUDE.md](./CLAUDE.md) → «Deploy» og
+«Datadeling: Upstash KV».
+
 ## Planlagt
 
 - **Auto-krydder fra deep data:** utlede fasit + datoer automatisk for q7 (rødt kort), q8 (selvmål) og
@@ -102,5 +124,10 @@ Se [CLAUDE.md](./CLAUDE.md) → «Backlog» for detaljer.
 ## Om prosjektet
 
 Et personlig hobbyprosjekt laget for to vennegruppers VM-tipping – ikke et generelt produkt. `data/`
-inneholder deltakernes fornavn og tips. Koden deles som referanse/inspirasjon; ingen åpen lisens er
-satt (standard: all rights reserved). Ikke tilknyttet football-data.org eller FIFA.
+inneholder deltakernes fornavn og tips. Koden deles under MIT-lisensen (se under) som
+referanse/inspirasjon. Ikke tilknyttet football-data.org eller FIFA.
+
+## Lisens
+
+[MIT](./LICENSE) © 2026 Håkon M. Du står fritt til å bruke, endre og dele koden så lenge
+copyright-/lisens-teksten følger med. (Deltakerdataene i `data/` er ikke ment for gjenbruk.)
