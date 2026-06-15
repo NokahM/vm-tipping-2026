@@ -94,25 +94,28 @@ tippekonk/                          # repo-root
 ├── apps/
 │   ├── drammen/                    # app 1 (Vercel-prosjekt 1)
 │   │   ├── api/
-│   │   │   ├── matches.js          # proxy mot football-data.org (server-side nøkkel)
+│   │   │   ├── matches.js          # proxy mot football-data.org (bulk-liste, server-side nøkkel)
+│   │   │   ├── matchdetail.js      # proxy mot enkeltkamp /v4/matches/{id} (deep data: mål/kort)
 │   │   │   └── state.js            # delt admin-data (Upstash KV): GET offentlig / POST m/passord
 │   │   ├── src/
-│   │   │   ├── components/         # Leaderboard, MatchList, MatchRow, FeaturedMatch,
-│   │   │   │                       # TipChips, BonusQuestions, AdminPanel, TeamLogo, BroadcasterBadge
+│   │   │   ├── components/         # Leaderboard, ProgressionChart, MatchList, MatchRow, FeaturedMatch,
+│   │   │   │                       # MatchEvents, TipChips, BonusQuestions, AdminPanel, TeamLogo, BroadcasterBadge
 │   │   │   ├── data/
 │   │   │   │   ├── participants.ts     # gruppespill- + krydder-tips per deltaker (auto-generert)
 │   │   │   │   ├── bonusQuestions.ts    # de 17 krydderspørsmålene (auto-generert)
 │   │   │   │   ├── knockoutTips.json    # innbakt sluttspill-tips (fallback for KV)
 │   │   │   │   ├── bonusAnswers.json    # innbakt krydder-fasit (fallback for KV)
 │   │   │   │   └── broadcasters.json    # apiId → "NRK" | "TV2"
-│   │   │   ├── hooks/useMatches.ts      # henter/cacher resultater, polling, reconcile
-│   │   │   ├── utils/                   # scoring, teamNames, teamLogos, storage,
+│   │   │   ├── hooks/
+│   │   │   │   ├── useMatches.ts        # henter/cacher resultater, polling, reconcile
+│   │   │   │   └── useMatchEvents.ts    # deep data per kamp (mål/kort), poller 20s + modul-cache
+│   │   │   ├── utils/                   # scoring, progression, teamNames, teamLogos, storage,
 │   │   │   │                            # remoteStore, reconcile, labels, broadcasters, apiClient
 │   │   │   ├── config.ts                # app-spesifikk (groupName, storageSuffix) – SKILLER appene
 │   │   │   ├── types.ts
 │   │   │   └── App.tsx
 │   │   ├── public/teams/<slug>.png      # lag-logoer (256px PNG)
-│   │   └── vite.config.ts               # dev-proxy for /api/matches + /api/state
+│   │   └── vite.config.ts               # dev-proxy for /api/matches + /api/matchdetail + /api/state
 │   └── alles/                       # app 2 (identisk kode, annen config.ts/data)
 ├── data/                           # kilde-Excel-filer (input til generatoren)
 ├── tools/
@@ -250,7 +253,8 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
 - **Header:** diagonale farger + mørkt slør, hvit VM-logo + tittel «Tippekonk». «Oppdatert hh:mm» +
   et **subtilt, gjennomsiktig tannhjul** (→ admin). Ingen offentlig refresh-knapp (auto-polling dekker
   det); manuell refresh ligger i admin.
-- **Faner:** tre (Tabell / Kamper / Krydder), én sentrert kolonne.
+- **Faner:** tre (Stilling / Kamper / Krydder), én sentrert kolonne. «Stilling» har en under-toggle
+  `Stilling | Graf` (tabell vs. utviklingsgraf).
 - **Leaderboard:** kompakte rader `#  navn  plasserings-pil  grønn·gul·rød  sum`. Trykk på navn →
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
@@ -354,6 +358,47 @@ hyppig cron → batch-henting med KV-cache). Admin skal fortsatt kunne overstyre
 
 ---
 
+## Utviklingsgraf + krydder-datering (implementert)
+
+**Graf (`Stilling`-fanen, under-toggle `Stilling | Graf`).** Lett, egen SVG-linjegraf (ingen
+charting-bibliotek) som viser hver deltakers **kumulative totalsum dag-for-dag**.
+- Hovedfanen het tidligere «Tabell» → nå **«Stilling»**; under den en under-toggle (`SubTab`)
+  `Stilling | Graf`. Grafen *er* tabellens utvikling over tid, så den bor under Stilling (ikke egen
+  hovedfane).
+- `utils/progression.ts` → `computeProgression(participants, results, questions, bonusInfo)`:
+  for hver matchday-key X (kronologisk) kjøres `computeStandings()` på et **filtrert** datasett –
+  FINISHED-kamper med `matchDayKey ≤ X` + krydder med dato `≤ X`. Gir én (dag, kumulativ total)-serie
+  per deltaker. Kun FINISHED/avgjort (aldri live), som tabellen. Prepender en **start-dag** der alle
+  står på 0.
+- Tidsakse: samme **10:00 UTC / 12:00 norsk**-grense som plasserings-pilene (`matchDayKey()`).
+- `components/ProgressionChart.tsx`: polylines i WC-palett, navn ved strek-enden (vinklet langs
+  siste segment), y-akse i «nice step» med alltid ett hakk klaring over lederen (stanger aldri i
+  taket), x-akse ≤ 7 datolabels (første + siste alltid med). Spiller-velger: **default topp 3** +
+  togglebare chips for resten (scrollbar rad – Alles har 26).
+
+**Krydder-datering (datamodell-utvidelse).** For at grafen skal plassere krydderpoeng på riktig dag
+er `BonusStore`-verdien utvidet (`utils/storage.ts`):
+```ts
+type BonusValue = string | string[] | { answer: string | string[]; at?: string; ats?: Record<string,string> };
+```
+- `at` = dato for når **hele** spørsmålet ble avgjort (enkelt-svar). `ats` = **dato per element**
+  for liste-spørsmål (q7 rødt kort, q8 selvmål, q15 kjendis) – hvert lag/navn tikker inn på sin egen
+  dag. Helpere: `bonusAnswerOf` / `bonusDateOf` / `bonusItemDatesOf`. **Bakoverkompatibelt:** rene
+  `string`/`string[]`-verdier (uten dato) faller tilbake til siste matchday.
+- Datoer lagres som `${yyyy-mm-dd}T12:00:00.000Z` (kl. 12 UTC → riktig kalenderdag via `matchDayKey`).
+  Admin setter dato i **Krydder**-fanen; tomt felt → **dagens dato i norsk tid**
+  (`toLocaleDateString('sv-SE', { timeZone: 'Europe/Oslo' })`). Liste-spørsmål får ett dato-felt per
+  innskrevet lag/navn.
+
+## Diverse UI-finpuss (implementert)
+
+- **Portrett-lås:** appen er portrett-først; en CSS-overlay (`.wc-rotate-lock`, vises kun i landscape
+  med lav høyde) ber brukeren snu telefonen. (Web kan ikke OS-låse rotasjon, særlig ikke iOS Safari.)
+- **Header skjules ved scroll ned:** headeren (tittel + faner) glir opp ved **enhver** nedover-scroll
+  og tilbake ved scroll opp / nær toppen (`translateY`, måles via `titleRef`).
+
+---
+
 ## Backlog (fremtid)
 
 - **Sluttspills-visning for «Kamper»-fanen:** når gruppespillet er over, skal «Kamper» føre rett til
@@ -365,34 +410,6 @@ hyppig cron → batch-henting med KV-cache). Admin skal fortsatt kunne overstyre
   tetthet på mobil (mer kompakte rader, eller kun så mange som faktisk er live samtidig).
 - **Favicon + app-ikon** fra VM-logoen.
 - **Kanal (NRK/TV2) for sluttspill:** fyll `broadcasters.json` per runde (gruppespillet er allerede fylt).
-
-- **Utviklingsgraf (poeng dag-for-dag per spiller).** Linjegraf som viser kumulativ totalsum over tid
-  per deltaker, så man ser hvem som klatret/falt gjennom turneringen.
-  - **Tidsakse / 12:00-grensen:** gjenbruk `matchDayKey()` (forskyver 10 t, så døgngrensen faller på
-    **10:00 UTC = 12:00 norsk sommertid** – samme grense som plasserings-pilene). Hver kamp sine poeng
-    bøttes til kampens matchday. X-aksen = sorterte matchday-nøkler fra VM-start til nå.
-  - **Krydder må tidfestes (datamodell-endring):** i dag har `BonusQuestion.answer` ingen dato, så
-    krydderpoeng kan ikke plasseres på tidslinjen. Løsning: lagre en **dato per krydder-fasit** (når
-    poenget «tikket inn»). Utvid `bonusAnswers.json` / `BonusStore` fra `questionId → answer` til
-    `questionId → { answer, decidedAt }` (eller en parallell `bonusAnswerDates`-map). Admin setter
-    datoen i Krydder-fanen (default = i dag) når fasiten publiseres. Uten dato: attribuere til settdato,
-    eller utelate fra grafen til dato er satt. Bøttes via `matchDayKey()` som kampene.
-  - **Beregning:** for hver matchday-key X (kronologisk), kjør `computeStandings()` på et **filtrert**
-    datasett – FINISHED-kamper med `matchDayKey ≤ X` + krydder med `decidedAt ≤ X` – og les ut hver
-    deltakers `total`. Det gir én (matchday, kumulativ total)-serie per deltaker. (Kun FINISHED/avgjort,
-    aldri live – som tabellen.)
-  - **Rendering – mobil-først, minimal bundle:** IKKE dra inn et tungt charting-bibliotek (bryter
-    «rask innlasting»). Bygg en **lett, egen SVG-linjegraf** (polylines): ~30 deltakere × ~30 dager er
-    trivielt. WC-palett-farger på linjene. På smal skjerm: sparse x-akse-labels (f.eks. hver N-te dato,
-    eller bare start/nå), evt. horisontal scroll hvis mange dager. Diskré akser/gridlines (clean).
-  - **Spiller-velger:** default **topp 3** (leselig på mobil); togglebare chips for resten (scrollbar
-    rad – Alles har 26). Mange overlappende linjer tidlig i turneringen er hovedutfordringen → topp 3
-    default + valgfri tilvalg holder det rent.
-  - **Plassering (avgjør ved implementering):** anbefalt en **under-toggle på Tabell-siden**
-    (`Tabell | Graf`, samme stil som fase-velgeren), siden grafen *er* tabellens utvikling over tid –
-    da slipper vi en 4. hovedfane som trenger plass i headeren. Alternativ: egen hovedfane «Graf».
-  - **Designprinsipper:** clean, mobil-først, touch-vennlig (tooltips på touch er fikkete – vurder å
-    droppe dem, eller vis verdier via den valgte spiller-chippen). Hold akse-pynt minimalt.
 
 ---
 
