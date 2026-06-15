@@ -175,24 +175,18 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
   const groups = [...new Set(matches.map((m) => m.group).filter(Boolean))] as string[];
   groups.sort();
 
-  // Én felles rød ramme rundt ALLE gruppene, med GJENNOMSIKTIG luft mellom hver gruppe:
-  // rammen har ingen bakgrunn, så den fargerike side-bakgrunnen synes mellom kortene.
+  // Samme stil som sluttspillet: hver gruppe er sitt eget rød-kantede kort med farget
+  // overskrift over, adskilt med luft.
   return (
-    <div className="space-y-3 rounded-xl border border-wc-red/50 p-2 ring-1 ring-wc-red/20">
+    <div className="space-y-4">
       {groups.map((g) => (
         <div key={g}>
           <h3
-            className={`mb-1 px-1 text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
+            className={`mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
           >
             {groupLabel(g)}
           </h3>
-          <ul className="divide-y divide-slate-700/70 overflow-hidden rounded-lg border border-slate-700/50 bg-slate-800">
-            {matches
-              .filter((m) => m.group === g)
-              .map((m) => (
-                <MatchRow key={m.apiId} match={m} participants={participants} />
-              ))}
-          </ul>
+          <MatchCard matches={matches.filter((m) => m.group === g)} participants={participants} />
         </div>
       ))}
     </div>
