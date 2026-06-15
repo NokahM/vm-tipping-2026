@@ -173,16 +173,24 @@ function GroupStage({ matches, participants }: { matches: MatchResult[]; partici
   const groups = [...new Set(matches.map((m) => m.group).filter(Boolean))] as string[];
   groups.sort();
 
+  // Én felles rød ramme rundt ALLE gruppene; hver gruppe er en seksjon med farget
+  // overskrift, adskilt fra forrige gruppe med en delelinje.
   return (
-    <div className="space-y-4">
-      {groups.map((g) => (
-        <div key={g}>
+    <div className="overflow-hidden rounded-xl border border-wc-red/50 bg-slate-800 ring-1 ring-wc-red/20">
+      {groups.map((g, i) => (
+        <div key={g} className={i > 0 ? 'border-t border-slate-700' : ''}>
           <h3
-            className={`mb-1.5 px-1 text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
+            className={`px-3 pb-1.5 pt-2.5 text-sm font-semibold uppercase tracking-wide ${groupColor(g)}`}
           >
             {groupLabel(g)}
           </h3>
-          <MatchCard matches={matches.filter((m) => m.group === g)} participants={participants} />
+          <ul className="divide-y divide-slate-700/70">
+            {matches
+              .filter((m) => m.group === g)
+              .map((m) => (
+                <MatchRow key={m.apiId} match={m} participants={participants} />
+              ))}
+          </ul>
         </div>
       ))}
     </div>
