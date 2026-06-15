@@ -333,6 +333,34 @@ Sluttspill-tips matches mot resultat via `apiId`. «Backup JSON» kan limes inn 
 - **Favicon + app-ikon** fra VM-logoen.
 - **Kanal (NRK/TV2) for sluttspill:** fyll `broadcasters.json` per runde (gruppespillet er allerede fylt).
 
+- **Utviklingsgraf (poeng dag-for-dag per spiller).** Linjegraf som viser kumulativ totalsum over tid
+  per deltaker, så man ser hvem som klatret/falt gjennom turneringen.
+  - **Tidsakse / 12:00-grensen:** gjenbruk `matchDayKey()` (forskyver 10 t, så døgngrensen faller på
+    **10:00 UTC = 12:00 norsk sommertid** – samme grense som plasserings-pilene). Hver kamp sine poeng
+    bøttes til kampens matchday. X-aksen = sorterte matchday-nøkler fra VM-start til nå.
+  - **Krydder må tidfestes (datamodell-endring):** i dag har `BonusQuestion.answer` ingen dato, så
+    krydderpoeng kan ikke plasseres på tidslinjen. Løsning: lagre en **dato per krydder-fasit** (når
+    poenget «tikket inn»). Utvid `bonusAnswers.json` / `BonusStore` fra `questionId → answer` til
+    `questionId → { answer, decidedAt }` (eller en parallell `bonusAnswerDates`-map). Admin setter
+    datoen i Krydder-fanen (default = i dag) når fasiten publiseres. Uten dato: attribuere til settdato,
+    eller utelate fra grafen til dato er satt. Bøttes via `matchDayKey()` som kampene.
+  - **Beregning:** for hver matchday-key X (kronologisk), kjør `computeStandings()` på et **filtrert**
+    datasett – FINISHED-kamper med `matchDayKey ≤ X` + krydder med `decidedAt ≤ X` – og les ut hver
+    deltakers `total`. Det gir én (matchday, kumulativ total)-serie per deltaker. (Kun FINISHED/avgjort,
+    aldri live – som tabellen.)
+  - **Rendering – mobil-først, minimal bundle:** IKKE dra inn et tungt charting-bibliotek (bryter
+    «rask innlasting»). Bygg en **lett, egen SVG-linjegraf** (polylines): ~30 deltakere × ~30 dager er
+    trivielt. WC-palett-farger på linjene. På smal skjerm: sparse x-akse-labels (f.eks. hver N-te dato,
+    eller bare start/nå), evt. horisontal scroll hvis mange dager. Diskré akser/gridlines (clean).
+  - **Spiller-velger:** default **topp 3** (leselig på mobil); togglebare chips for resten (scrollbar
+    rad – Alles har 26). Mange overlappende linjer tidlig i turneringen er hovedutfordringen → topp 3
+    default + valgfri tilvalg holder det rent.
+  - **Plassering (avgjør ved implementering):** anbefalt en **under-toggle på Tabell-siden**
+    (`Tabell | Graf`, samme stil som fase-velgeren), siden grafen *er* tabellens utvikling over tid –
+    da slipper vi en 4. hovedfane som trenger plass i headeren. Alternativ: egen hovedfane «Graf».
+  - **Designprinsipper:** clean, mobil-først, touch-vennlig (tooltips på touch er fikkete – vurder å
+    droppe dem, eller vis verdier via den valgte spiller-chippen). Hold akse-pynt minimalt.
+
 ---
 
 ## Kommandoer
