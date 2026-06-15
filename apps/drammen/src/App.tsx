@@ -6,11 +6,12 @@ import knockoutBaked from './data/knockoutTips.json';
 import bonusBaked from './data/bonusAnswers.json';
 import { useMatches } from './hooks/useMatches';
 import { computeStandings } from './utils/scoring';
-import { computeProgression } from './utils/progression';
+import { computeProgression, type BonusDateInfo } from './utils/progression';
 import { formatTime } from './utils/labels';
 import {
   applyBonusAnswers,
   bonusDateOf,
+  bonusItemDatesOf,
   loadBonusStore,
   loadKnockoutStore,
   mergeKnockoutTips,
@@ -122,20 +123,21 @@ export default function App() {
     [participants, results, questions],
   );
 
-  // Krydder-fasit sine datoer (questionId → ISO) for grafen; udaterte faller tilbake til siste dag.
-  const bonusDates = useMemo(() => {
-    const d: Record<string, string> = {};
+  // Krydder-fasit sine datoer for grafen (per spørsmål + per lag/element på liste-spørsmål).
+  const bonusInfo = useMemo(() => {
+    const m: Record<string, BonusDateInfo> = {};
     for (const [qid, v] of Object.entries(bonusMerged)) {
       const at = bonusDateOf(v);
-      if (at) d[qid] = at;
+      const ats = bonusItemDatesOf(v);
+      if (at || ats) m[qid] = { at, ats };
     }
-    return d;
+    return m;
   }, [bonusMerged]);
 
   // Poengutvikling for grafen.
   const progression = useMemo(
-    () => computeProgression(participants, results, questions, bonusDates),
-    [participants, results, questions, bonusDates],
+    () => computeProgression(participants, results, questions, bonusInfo),
+    [participants, results, questions, bonusInfo],
   );
 
   if (adminOpen) {

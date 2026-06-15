@@ -1,8 +1,11 @@
 import type { BonusQuestion, MatchResult, Participant } from '../types';
 import { computeStandings, matchDayKey } from './scoring';
 
-/** Krydder-fasit sin «avgjort»-dato (ISO-streng), nøklet på questionId. Brukes kun til grafen. */
-export type BonusDates = Record<string, string>;
+/** Datoer for en krydder-fasit (til grafen): hele spørsmålet og/eller per lag/element. */
+export interface BonusDateInfo {
+  at?: string; // ISO – når hele spørsmålet ble avgjort (enkelt-svar)
+  ats?: Record<string, string>; // lag/element → ISO (liste-spørsmål)
+}
 
 export interface ProgressionSeries {
   name: string;
@@ -17,15 +20,16 @@ export interface Progression {
 
 /**
  * Kumulativ poengutvikling per deltaker, dag for dag (samme 10:00 UTC / 12:00 norsk-grense
- * som plasserings-pilene). Kampe-poeng bøttes til kampens matchday; krydder-poeng til
- * `bonusDates[qid]` sin matchday – eller siste dag som fallback hvis fasiten ikke er datert.
- * Kun FINISHED/avgjort teller (aldri live), akkurat som tabellen.
+ * som plasserings-pilene). Kamp-poeng bøttes til kampens matchday. Krydder-poeng bøttes til
+ * sin «avgjort»-dato: enkelt-svar via `at`, og liste-spørsmål **per lag/element** via `ats`
+ * (så hvert selvmål/rødt kort/kjendis tikker inn på sin egen dag). Udatert → siste dag som
+ * fallback. Kun FINISHED/avgjort teller (aldri live), akkurat som tabellen.
  */
 export function computeProgression(
   participants: Participant[],
   results: MatchResult[],
   questions: BonusQuestion[],
-  bonusDates: BonusDates,
+  bonusInfo: Record<string, BonusDateInfo>,
 ): Progression {
   const finished = results.filter(
     (m) => m.status === 'FINISHED' && m.homeGoals !== null && m.awayGoals !== null,
@@ -35,27 +39,40 @@ export function computeProgression(
     ? matchDays[matchDays.length - 1]
     : matchDayKey(new Date().toISOString());
 
-  const answered = questions.filter((q) => q.answer !== null);
-  const bonusDay = (qid: string): string =>
-    bonusDates[qid] ? matchDayKey(bonusDates[qid]) : fallbackDay;
+  // Avgjort-dag for ett liste-element (eller hele enkelt-spørsmålet hvis item utelates).
+  const dayOf = (qid: string, item?: string): string => {
+    const info = bonusInfo[qid];
+    const raw = (item !== undefined ? info?.ats?.[item] : undefined) ?? info?.at;
+    return raw ? matchDayKey(raw) : fallbackDay;
+  };
 
-  const days = [
-    ...new Set([...matchDays, ...answered.map((q) => bonusDay(q.id))]),
-  ].sort();
+  const answered = questions.filter((q) => q.answer !== null);
+
+  // Alle hendelsesdager (kamper + hvert krydder-element).
+  const bonusDays: string[] = [];
+  for (const q of answered) {
+    if (Array.isArray(q.answer)) for (const item of q.answer) bonusDays.push(dayOf(q.id, item));
+    else bonusDays.push(dayOf(q.id));
+  }
+  const days = [...new Set([...matchDays, ...bonusDays])].sort();
 
   if (days.length === 0) {
     return { days: [], series: participants.map((p) => ({ name: p.name, totals: [], final: 0 })) };
   }
 
-  // For hver dag: standings beregnet på data t.o.m. den dagen.
   const totalsByName = new Map<string, number[]>(participants.map((p) => [p.name, []]));
   for (const day of days) {
     const resAsOf = finished.filter((m) => matchDayKey(m.utcDate) <= day);
-    const qAsOf = questions.map((q) =>
-      q.answer !== null && bonusDay(q.id) <= day ? q : { ...q, answer: null },
-    );
-    const standings = computeStandings(participants, resAsOf, qAsOf);
-    const byName = new Map(standings.map((s) => [s.name, s.total]));
+    const qAsOf = questions.map((q) => {
+      if (q.answer === null) return q;
+      if (Array.isArray(q.answer)) {
+        // Liste: behold kun elementene som er avgjort t.o.m. denne dagen.
+        const items = q.answer.filter((item) => dayOf(q.id, item) <= day);
+        return items.length ? { ...q, answer: items } : { ...q, answer: null };
+      }
+      return dayOf(q.id) <= day ? q : { ...q, answer: null };
+    });
+    const byName = new Map(computeStandings(participants, resAsOf, qAsOf).map((s) => [s.name, s.total]));
     for (const p of participants) totalsByName.get(p.name)!.push(byName.get(p.name) ?? 0);
   }
 

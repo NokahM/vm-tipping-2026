@@ -139,6 +139,23 @@ const erlingProg = prog.series.find((s) => s.name === 'Erling')!;
 assert('Erling dag 1 = 3', erlingProg.totals[0], 3);
 assert('Erling dag 2 = 4 (kumulativt)', erlingProg.totals[1], 4);
 
+// 1h) computeProgression: liste-spørsmål (q8 selvmål) datert PER LAG
+console.log('computeProgression per-lag-dato (q8):');
+const ownGoalP: Participant = {
+  name: 'X',
+  groupTips: [],
+  knockoutTips: [],
+  bonusTips: [{ questionId: 'q8', answer: ['Paraguay', 'Spania'] }],
+};
+const q8full = BONUS_QUESTIONS.find((q) => q.id === 'q8')!;
+const ogProg = computeProgression([ownGoalP], [], [{ ...q8full, answer: ['Paraguay', 'Spania'] }], {
+  q8: { ats: { Paraguay: '2026-06-13T12:00:00Z', Spania: '2026-06-15T12:00:00Z' } },
+});
+assert('per-lag: to dager', ogProg.days.length, 2);
+const ogS = ogProg.series.find((s) => s.name === 'X')!;
+assert('dag 1: kun Paraguay = 2p', ogS.totals[0], 2);
+assert('dag 2: begge lag = 4p', ogS.totals[1], 4);
+
 // 2) Navnenormalisering (API engelsk -> norsk)
 console.log('normalizeTeamName:');
 assert('Czechia', normalizeTeamName('Czechia'), 'Tsjekkia');

@@ -5,13 +5,17 @@ import { STORAGE_KEYS } from '../config';
 export type KnockoutStore = Record<string, KnockoutTip[]>;
 
 /**
- * En krydder-fasit: enten en ren verdi, eller `{ answer, at }` der `at` er ISO-datoen
- * fasiten ble avgjort (brukt av utviklingsgrafen). Ren verdi = ingen dato (bakoverkompatibelt
- * med eksisterende `bonusAnswers.json`).
+ * En krydder-fasit. Enten en ren verdi, eller et objekt med dato(er) brukt av
+ * utviklingsgrafen: `at` = når hele spørsmålet ble avgjort (enkelt-svar), `ats` = dato
+ * per lag/element (liste-spørsmål, så hvert selvmål/rødt kort tikker inn på sin egen dag).
+ * Ren verdi = ingen dato (bakoverkompatibelt med eksisterende `bonusAnswers.json`).
  */
-export type BonusValue = string | string[] | { answer: string | string[]; at?: string };
+export type BonusValue =
+  | string
+  | string[]
+  | { answer: string | string[]; at?: string; ats?: Record<string, string> };
 
-/** Krydder-fasit lagt inn via admin: questionId → fasit (med valgfri dato). */
+/** Krydder-fasit lagt inn via admin: questionId → fasit (med valgfrie datoer). */
 export type BonusStore = Record<string, BonusValue>;
 
 /** Selve svaret ut av en BonusValue (uten dato). */
@@ -19,9 +23,14 @@ export function bonusAnswerOf(v: BonusValue): string | string[] {
   return typeof v === 'string' || Array.isArray(v) ? v : v.answer;
 }
 
-/** «Avgjort»-datoen (ISO) hvis satt, ellers undefined. */
+/** Spørsmålets «avgjort»-dato (ISO) hvis satt, ellers undefined. */
 export function bonusDateOf(v: BonusValue): string | undefined {
   return typeof v === 'string' || Array.isArray(v) ? undefined : v.at;
+}
+
+/** Per-lag/element-datoer (lag → ISO) for liste-spørsmål, hvis satt. */
+export function bonusItemDatesOf(v: BonusValue): Record<string, string> | undefined {
+  return typeof v === 'string' || Array.isArray(v) ? undefined : v.ats;
 }
 
 function read<T>(key: string, fallback: T): T {

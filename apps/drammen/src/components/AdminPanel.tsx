@@ -3,7 +3,13 @@ import type { BonusQuestion, KnockoutTip, MatchResult, Participant, Stage } from
 import { APP_CONFIG } from '../config';
 import { STAGE_LABELS, STAGE_ORDER, formatKickoff } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
-import { bonusAnswerOf, bonusDateOf, type BonusStore, type KnockoutStore } from '../utils/storage';
+import {
+  bonusAnswerOf,
+  bonusDateOf,
+  bonusItemDatesOf,
+  type BonusStore,
+  type KnockoutStore,
+} from '../utils/storage';
 import type { SaveResult } from '../utils/remoteStore';
 
 interface Props {
@@ -386,12 +392,24 @@ function BonusTab({
     }
     return d;
   });
-  // «Avgjort»-dato (yyyy-mm-dd) per spørsmål; native dato-velger viser dd.mm.åååå på norsk.
+  // «Avgjort»-dato (yyyy-mm-dd) for enkelt-spørsmål; native velger viser dd.mm.åååå på norsk.
   const [dateDraft, setDateDraft] = useState<Record<string, string>>(() => {
     const d: Record<string, string> = {};
     for (const [id, val] of Object.entries(store)) {
       const at = bonusDateOf(val);
       if (at) d[id] = at.slice(0, 10);
+    }
+    return d;
+  });
+  // Per-lag/element-dato for liste-spørsmål: questionId → (svar → yyyy-mm-dd).
+  const [itemDates, setItemDates] = useState<Record<string, Record<string, string>>>(() => {
+    const d: Record<string, Record<string, string>> = {};
+    for (const [id, val] of Object.entries(store)) {
+      const ats = bonusItemDatesOf(val);
+      if (ats) {
+        d[id] = {};
+        for (const [team, iso] of Object.entries(ats)) d[id][team] = iso.slice(0, 10);
+      }
     }
     return d;
   });
@@ -408,29 +426,38 @@ function BonusTab({
     setStatus('idle');
   }
 
+  function setItemDate(id: string, team: string, v: string) {
+    setItemDates((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), [team]: v } }));
+    setStatus('idle');
+  }
+
   function buildStore(): BonusStore {
     const next: BonusStore = {};
+    // Lagres kl. 12 UTC så datoen havner på riktig kalenderdag uansett tidssone.
+    const toIso = (ymd: string) => `${ymd}T12:00:00.000Z`;
     for (const q of questions) {
       const raw = (draft[q.id] ?? '').trim();
       if (!raw) continue;
-      let answer: string | string[];
       if (LIST_ANSWER_IDS.has(q.id)) {
         const arr = raw
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean);
         if (!arr.length) continue;
-        answer = arr;
+        // Per-lag-dato: admin sitt valg, ellers i dag.
+        const ats: Record<string, string> = {};
+        for (const team of arr) {
+          const dv = itemDates[q.id]?.[team];
+          ats[team] = dv ? toIso(dv) : new Date().toISOString();
+        }
+        next[q.id] = { answer: arr, ats };
       } else {
-        answer = raw;
+        const picked = dateDraft[q.id];
+        const at = picked
+          ? toIso(picked)
+          : (bonusDateOf(store[q.id] ?? '') ?? new Date().toISOString());
+        next[q.id] = { answer: raw, at };
       }
-      // «Avgjort»-dato for grafen: bruk admin sitt valg, ellers behold eksisterende, ellers
-      // i dag. Lagres kl. 12 UTC så den havner på riktig kalenderdag uansett tidssone.
-      const picked = dateDraft[q.id];
-      const at = picked
-        ? `${picked}T12:00:00.000Z`
-        : (bonusDateOf(store[q.id] ?? '') ?? new Date().toISOString());
-      next[q.id] = { answer, at };
     }
     return next;
   }
@@ -448,7 +475,15 @@ function BonusTab({
 
   return (
     <div className="space-y-3">
-      {questions.map((q) => (
+      {questions.map((q) => {
+        const isList = LIST_ANSWER_IDS.has(q.id);
+        const teams = isList
+          ? (draft[q.id] ?? '')
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+        return (
         <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 p-3">
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm">{q.question}</p>
@@ -474,18 +509,39 @@ function BonusTab({
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="shrink-0 text-[11px] text-slate-400">Avgjort:</span>
-            <input
-              type="date"
-              value={dateDraft[q.id] ?? ''}
-              onChange={(e) => setDate(q.id, e.target.value)}
-              className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
-            />
-            <span className="text-[11px] text-slate-600">tom = i dag</span>
-          </div>
+          {isList ? (
+            teams.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-[11px] text-slate-400">Avgjort per svar (dato → grafen):</p>
+                {teams.map((team) => (
+                  <div key={team} className="flex items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate text-xs text-slate-200">{team}</span>
+                    <input
+                      type="date"
+                      value={itemDates[q.id]?.[team] ?? ''}
+                      onChange={(e) => setItemDate(q.id, team, e.target.value)}
+                      className="h-8 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+                    />
+                  </div>
+                ))}
+                <p className="text-[10px] text-slate-600">tom = i dag</p>
+              </div>
+            )
+          ) : (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="shrink-0 text-[11px] text-slate-400">Avgjort:</span>
+              <input
+                type="date"
+                value={dateDraft[q.id] ?? ''}
+                onChange={(e) => setDate(q.id, e.target.value)}
+                className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+              />
+              <span className="text-[11px] text-slate-600">tom = i dag</span>
+            </div>
+          )}
         </div>
-      ))}
+        );
+      })}
 
       <PublishBar
         label="Lagre & publiser"
