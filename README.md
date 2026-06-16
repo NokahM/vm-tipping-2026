@@ -12,19 +12,23 @@ Se [CLAUDE.md](./CLAUDE.md) for full arkitektur- og prosjektbeskrivelse.
 - **Live poengtabell** – 3p eksakt resultat / 1p riktig utfall / 0p feil. Teller kun ferdigspilte
   kamper; lik total deler plass. Trykk på et navn for poeng-breakdown, og plasserings-piler viser
   bevegelse siden forrige kampdag.
-- **Utviklingsgraf** – under-toggle `Stilling | Graf`: en lett egen SVG-linjegraf over hver deltakers
-  kumulative poeng dag-for-dag (topp 3 default, togglebare spillere).
+- **Utviklingsgraf** – under-toggle `Tabell | Utvikling`: en lett egen SVG-linjegraf over hver deltakers
+  kumulative poeng dag-for-dag (topp 3 default, togglebare spillere), med Treffsikkerhet + Poeng-kilde
+  under.
 - **Kamper** – kommende (dato/klokke + kanal NRK/TV2), live (● LIVE + stilling) og ferdige. «Aktuelt»
   fremhever inntil 2 live/nærmeste kamper. Trykk på en kamp for å se **alles tips** og – for
   live/ferdige kamper – **målscorere + røde kort** på en tidslinje (minutt i midten, ⚽/🟥 på lagets
   side; deep data).
-- **Krydder** – 17 spesialspørsmål med egne poeng- og spesialregler. Live-projeksjoner for q5 (antall
-  mål) og q9 (gruppe med flest mål).
-- **Stats** – sub-toggle `Lagstats | Spillerstats`: gruppetabeller (med markering av dårligste lag) +
-  kort per lag, og toppscorer/assistkonge/råtass med posisjon og landlogo. Aggregeres fra deep data på
-  tvers av alle kamper (inkl. live).
-- **Admin-panel** (`?admin=true`) – legg inn sluttspill-tips, krydder-fasit (med dato per svar) og
-  publiser til alle via den delte databasen. Passordbeskyttet server-side.
+- **Krydder** – 17 spesialspørsmål med egne poeng- og spesialregler, under-toggle `Liste | Grafisk`
+  (spørsmål/fasit vs. «folkets favoritt»-søyler). Mange spørsmål **auto-utledes** fra deep data
+  (rødt kort, selvmål, toppscorer, finaledommer m.fl.); live-projeksjoner for q5 (antall mål) og q9
+  (gruppe med flest mål).
+- **Stats** – sub-toggle `Lagstats | Spillerstats | Nerding`: gruppetabeller (med markering av dårligste
+  lag) + kort per lag, toppscorer/assistkonge/råtass med posisjon og landlogo, og mål-fordeling per
+  minutt/kampdag. Aggregeres fra deep data på tvers av alle kamper (inkl. live).
+- **Admin-panel** (`?admin=true`) – legg inn sluttspill-tips og krydder-fasit (med dato per svar) og
+  publiser til alle via den delte databasen. Auto-utledte svar vises som read-only hint per spørsmål
+  («Auto nå: …»), med «↺ Nullstill til auto». Passordbeskyttet server-side.
 
 ## Datakilde / API
 
@@ -118,8 +122,6 @@ leser/skriver den delte databasen. Full detalj i [CLAUDE.md](./CLAUDE.md) → «
 
 ## Planlagt
 
-- **Auto-krydder fra deep data:** utlede fasit + datoer automatisk for q7 (rødt kort), q8 (selvmål) og
-  flere, med admin-overstyring.
 - **Sluttspills-visning** for «Kamper»-fanen (bracket-følelse) når gruppespillet er over.
 - Favicon/app-ikon fra VM-logoen; NRK/TV2-kanal for sluttspillsrundene.
 

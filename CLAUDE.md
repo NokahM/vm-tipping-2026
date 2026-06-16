@@ -215,7 +215,9 @@ tippekonk/                          # repo-root
   fargekoder tippene grønt for det laget (kun visuelt).
 - **q6 (raskeste mål):** ±15 sek fra fasit. Krydder-fanen viser **raskeste mål så langt**
   (`stats.fastestGoal`: minutt + scorer, fra aggregatoren) som pekepinn – **foreløpig**, siden det kan
-  slås helt til finalen, og API-et har kun minutt (eksakt mm:ss settes manuelt av admin).
+  slås helt til finalen, og API-et har kun minutt (eksakt mm:ss settes manuelt av admin). Aggregatoren
+  returnerer også `fastestGoals` = **alle** mål på det laveste minuttet (API-et har ikke sekunder, så
+  flere kan dele «raskest») – admin-hintet lister dem som «Spiller – Lag».
 - **q6 (raskeste mål):** innenfor ±15 sekunder fra fasit (parses som mm:ss / hh:mm:ss).
 - **q7 / q8 (rødt kort / selvmål):** **2p per korrekt nevnt lag, maks 4p** (`maxPoints: 4`, deltaker
   nevner 2 lag). Styres av `PER_TEAM_IDS`. Fasit settes som komma-separert liste over **alle** lag som
@@ -241,11 +243,14 @@ tippekonk/                          # repo-root
   > skrive til databasen). Verdien ligger kun som miljøvariabel, aldri i repoet.
 - **Sluttspill-fanen:** velg runde (nedtrekksmeny) → kampene hentes fra allerede-lastede `results`
   (filtrert på runde, kun kjente lag) → 2-talls tips per deltaker per kamp.
-- **Krydder-fanen:** ett felt per spørsmål + en **«Avgjort»-checkbox** (`decided`-flagget). Huket av =
-  svaret teller i tabellen, med **dagens norske dato automatisk**. Dato-velgeren er **skjult** bak en
-  «📅 sett dato»-toggle (kun for tilbakedatering, f.eks. q15). Fjern haken = lagret utkast som ikke
-  scorer (og ikke overstyrer auto) – teksten beholdes. App-en fletter `{ …auto, …decidedOnly(KV) }`, så
-  kun avgjorte manuelle svar scorer/overstyrer. Liste-svar (q7/q8/q15) tas som komma-separert liste.
+- **Krydder-fanen:** ett felt per spørsmål, merket **automatisk** (API henter svaret – la stå tomt)
+  eller **manuell** (skriv inn fasit selv). **Ingen «Lås»/avgjort-checkbox** – modellen er enkel:
+  et utfylt + publisert svar **teller** (med dagens norske dato, eller «📅 sett dato» for
+  tilbakedatering) og **overstyrer auto**; tomt felt = auto/ingen. App-en fletter
+  `{ …innbakt, …auto, …KV }`, så ethvert manuelt KV-svar overstyrer auto. Per spørsmål vises et
+  **read-only auto-hint** «Auto nå: X» (eller «Auto nå: X – ikke avgjort ennå» for foreløpige verdier
+  fra `derivePreliminaryBonus`), og **«↺ Nullstill til auto»** tømmer et manuelt svar så auto overtar
+  igjen. Liste-svar (q7/q8/q15) tas som komma-separert liste.
 - **Oppdater-fanen:** tøm resultat- + kamp-event-cache og hent på nytt, med **synlig bekreftelse**
   (Oppdatert ✓ / feilmelding via `error` fra `useMatches`). Begrenset nytte – edge-cache + kildelag
   styrer ferskheten uansett.
@@ -279,15 +284,21 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   et **subtilt, gjennomsiktig tannhjul** (→ admin). Ingen offentlig refresh-knapp (auto-polling dekker
   det); manuell refresh ligger i admin.
 - **Faner:** fire (Stilling / Kamper / Krydder / Stats), én sentrert kolonne. Standard landingsfane er
-  **Kamper**. Under-toggles: «Stilling» → `Stilling | Graf | Deltagerne`; «Stats» → `Lagstats |
-  Spillerstats | Nerding`.
-  - **Deltagerne** (`ParticipantStats`): treffsikkerhet (eksakt/utfall/bom-søyler), poeng-kilde
-    (gruppe/sluttspill/krydder-søyler), folkets favoritt (fordeling av tipp på q1/q2/q3/q10/q13/q17).
+  **Kamper**. Under-toggles: «Stilling» → `Tabell | Utvikling`; «Krydder» → `Liste | Grafisk`; «Stats»
+  → `Lagstats | Spillerstats | Nerding`.
+  - **Utvikling** (`Stilling`-fanen): utviklingsgrafen (`ProgressionChart`) + under den
+    **Treffsikkerhet** og **Poeng-kilde** (`ParticipantStats`): treffsikkerhet = snitt poeng/kamp
+    (eksakt/utfall/bom-søyler, klikk → eksakte 3p-kamper), poeng-kilde = totalpoeng delt på
+    gruppe/sluttspill/krydder (klikk → krydder-treff). «Utvikling» dekker bevisst både grafen og disse
+    kortene.
+  - **Grafisk** (`Krydder`-fanen): **folkets favoritt** (`FolketsFavoritt`-eksport fra
+    `ParticipantStats`) – fordeling av tipp på q1/q2/q3/q10/q12/q13/q14/q17, klikkbare søyler («hvem
+    svarte hva»). «Liste» = selve spørsmålene/fasit/alle svar (`BonusQuestions`).
   - **Nerding** (`FootballStats`): mål-fordeling per 15-min-bolk (`stats.goalMinutes`) + mål per
     kampdag (vertikalt søylediagram fra resultatene).
   - **q5-tallinje** (`Q5NumberLine` i `BonusQuestions`): når q5 åpnes, alle deltakernes mål-gjett som
     prikker + projeksjon med ±5-bånd (grønn = innenfor).
-- **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Graf`).
+- **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Utvikling`).
   - **Lagstats:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
     gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper
     per rad**, kompakt (logo + navn + ± + P). Under: **kort per lag** (`TeamCards`) fra aggregatoren.
@@ -374,8 +385,10 @@ Sluttspill-tips matches mot resultat via `apiId`. «Backup JSON» kan limes inn 
 
 Abonnementet er oppgradert til **Free + Deep Data** (30 kall/min) som gir per-kamp-detaljer:
 `goals` (med `type: REGULAR|OWN|PENALTY` + `scorer`), `bookings` (`card: YELLOW|RED|YELLOW_RED`
-+ `player`), `substitutions`, `lineups`. Detaljene ligger i **enkeltkamp-endepunktet**
-`/v4/matches/{id}`, ikke i bulk-lista.
++ `player`), `substitutions`, `lineups` og **`referees`** (verifisert tilgjengelig: hoveddommer
+`type: REFEREE` + assistenter, m/navn + nasjonalitet → brukes til q11). Detaljene ligger i
+**enkeltkamp-endepunktet** `/v4/matches/{id}`, ikke i bulk-lista. (`odds` finnes i responsen, men er
+låst bak en egen «Odds-Package» – ikke aktivert, så odds brukes ikke.)
 
 **Implementert (live-kort):**
 - Proxy `api/matchdetail.js` (Vercel) + Vite dev-proxy `/api/matchdetail?id=…` (samme mønster som
@@ -404,7 +417,7 @@ også for selvmål (US 4–1 Paraguay: selvmål av Bobadilla har `team: Paraguay
   kolonne (`g.team === opponent`), slik at hver kolonne summerer til lagets stilling.
 
 **Stats-aggregator (`api/stats.js` + `hooks/useStats.ts`):** aggregerer mål/assist/kort + posisjon på
-tvers av alle relevante kamper (FINISHED + live). Per-kamp-uttrekket caches i **KV** (`stats:v1`) –
+tvers av alle relevante kamper (FINISHED + live). Per-kamp-uttrekket caches i **KV** (`stats:v5`) –
 ferdige kamper hentes kun én gang, live-kamper re-hentes når `lastUpdated` endres (→ live toppliste).
 Henter maks `BATCH`=10 kamp-detaljer per kall (skåner rategrensen) og varmer opp inkrementelt over et
 par poll; edge-cache `s-maxage=30`. Returnerer `{ topScorers, topAssists, topCards, teamCards, coverage }`
@@ -431,18 +444,27 @@ hentes nå **alltid** (ikke bare på Stats-fanen) siden auto-krydder trenger det
 - **Live-indikator (visuelt, eksakt fasit manuelt):** q5, q6 (raskeste mål), q9, q10.
 - **Format-robust scoring:** q9 (`groupLetters`), q17 (`parseStage`). q13/q3 inkluderer etternavn for treff.
 - **Manuelt:** q2 (Gullball), q4 (Young Player), q15 (kjendis). q6 sin eksakte mm:ss (API har kun minutt).
-- Alt flettes UNDER manuell KV: `{ …innbakt, …auto, …decidedOnly(KV) }` – avhuket admin-svar overstyrer.
-- **TODO (UX):** vis auto-verdien i admin-panelet (read-only hint) så admin ser hva som auto-settes.
+- Alt flettes UNDER manuell KV: `{ …innbakt, …auto, …KV }` – ethvert manuelt KV-svar overstyrer auto
+  (ingen «avgjort»-gate lenger; `decidedOnly`/`decided` er beholdt i `storage.ts` for bakoverkompat +
+  tester, men admin setter dem ikke).
+- **Admin-hint (implementert):** `App` sender `autoBonus` (avgjort) + `autoPreliminary`
+  (`derivePreliminaryBonus`, kun visning) til panelet, som viser «Auto nå: X» / «Auto nå: X – ikke
+  avgjort ennå» per spørsmål + en **«↺ Nullstill til auto»**-knapp. Foreløpige verdier finnes for q3
+  (alle delte toppscorere), q5 (mål så langt + projeksjon), q6 (alle mål på laveste minutt, «Spiller –
+  Lag»), q9, q10, q12, q13 («Ronaldo x – x Messi»), q14, q16 («Nei (n av 3 har spilt)»), q17.
+- q12 «øynasjon»-listen inkluderer **Australia** (i tillegg til Japan, Haiti, New Zealand, Kapp Verde,
+  Curaçao).
 
 ---
 
 ## Utviklingsgraf + krydder-datering (implementert)
 
-**Graf (`Stilling`-fanen, under-toggle `Stilling | Graf`).** Lett, egen SVG-linjegraf (ingen
+**Graf (`Stilling`-fanen, under-toggle `Tabell | Utvikling`).** Lett, egen SVG-linjegraf (ingen
 charting-bibliotek) som viser hver deltakers **kumulative totalsum dag-for-dag**.
-- Hovedfanen het tidligere «Tabell» → nå **«Stilling»**; under den en under-toggle (`SubTab`)
-  `Stilling | Graf`. Grafen *er* tabellens utvikling over tid, så den bor under Stilling (ikke egen
-  hovedfane).
+- Hovedfanen heter **«Stilling»**; under den en under-toggle (`SubTab`) `Tabell | Utvikling`. «Utvikling»
+  rommer grafen + `ParticipantStats` (Treffsikkerhet/Poeng-kilde). Grafen *er* tabellens utvikling over
+  tid, så den bor under Stilling (ikke egen hovedfane). «Trykk på en spiller»-hintet står mellom grafen
+  og navne-chipsene.
 - `utils/progression.ts` → `computeProgression(participants, results, questions, bonusInfo)`:
   for hver matchday-key X (kronologisk) kjøres `computeStandings()` på et **filtrert** datasett –
   FINISHED-kamper med `matchDayKey ≤ X` + krydder med dato `≤ X`. Gir én (dag, kumulativ total)-serie
