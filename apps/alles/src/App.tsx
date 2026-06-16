@@ -29,7 +29,7 @@ import BonusQuestions from './components/BonusQuestions';
 import GroupTables from './components/GroupTables';
 import TeamCards from './components/TeamCards';
 import PlayerStats from './components/PlayerStats';
-import ParticipantStats from './components/ParticipantStats';
+import ParticipantStats, { FolketsFavoritt } from './components/ParticipantStats';
 import FootballStats from './components/FootballStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
@@ -68,7 +68,8 @@ function isAdminUrl(): boolean {
 export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
   const [view, setView] = useState<View>('kamper');
-  const [tableView, setTableView] = useState<'tabell' | 'graf' | 'deltagere'>('tabell');
+  const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
+  const [krydderView, setKrydderView] = useState<'spørsmål' | 'favoritt'>('spørsmål');
   const [statsView, setStatsView] = useState<'lag' | 'spiller' | 'nerding'>('lag');
   // Hentes alltid (ikke bare på Stats-fanen): brukes også til auto-krydder (q7/q8).
   const { data: stats } = useStats(true);
@@ -305,9 +306,6 @@ export default function App() {
               <SubTab active={tableView === 'graf'} onClick={() => setTableView('graf')}>
                 Graf
               </SubTab>
-              <SubTab active={tableView === 'deltagere'} onClick={() => setTableView('deltagere')}>
-                Deltagerne
-              </SubTab>
             </div>
             {tableView === 'tabell' && (
               <>
@@ -328,30 +326,43 @@ export default function App() {
                   Trykk på en spiller for å vise/skjule linja (standard: topp 3)
                 </p>
                 <ProgressionChart progression={progression} />
+                <ParticipantStats
+                  standings={standings}
+                  participants={participants}
+                  results={results}
+                  questions={questions}
+                />
               </>
-            )}
-            {tableView === 'deltagere' && (
-              <ParticipantStats
-                standings={standings}
-                participants={participants}
-                results={results}
-                questions={questions}
-              />
             )}
           </div>
         )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}
         {view === 'krydder' && (
           <div className="space-y-2">
-            <p className="px-1 text-center text-[11px] text-slate-500">
-              Trykk på et spørsmål for å se alle svar
-            </p>
-            <BonusQuestions
-              questions={questions}
-              participants={participants}
-              results={results}
-              fastestGoal={stats?.fastestGoal}
-            />
+            <div className="flex gap-1.5">
+              <SubTab active={krydderView === 'spørsmål'} onClick={() => setKrydderView('spørsmål')}>
+                Spørsmål
+              </SubTab>
+              <SubTab active={krydderView === 'favoritt'} onClick={() => setKrydderView('favoritt')}>
+                Folkets favoritt
+              </SubTab>
+            </div>
+            {krydderView === 'spørsmål' && (
+              <>
+                <p className="px-1 text-center text-[11px] text-slate-500">
+                  Trykk på et spørsmål for å se alle svar
+                </p>
+                <BonusQuestions
+                  questions={questions}
+                  participants={participants}
+                  results={results}
+                  fastestGoal={stats?.fastestGoal}
+                />
+              </>
+            )}
+            {krydderView === 'favoritt' && (
+              <FolketsFavoritt participants={participants} questions={questions} />
+            )}
           </div>
         )}
         {view === 'stats' && (

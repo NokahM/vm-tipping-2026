@@ -181,6 +181,26 @@ function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Pa
   );
 }
 
+/** «Folkets favoritt»: hva folket tror på de gøye hvem/hva-spørsmålene. */
+export function FolketsFavoritt({
+  participants,
+  questions,
+}: {
+  participants: Participant[];
+  questions: BonusQuestion[];
+}) {
+  return (
+    <Card title="Folkets favoritt">
+      <div className="divide-y divide-slate-700/40">
+        {FAVORITT_IDS.map((id) => {
+          const q = questions.find((x) => x.id === id);
+          return q ? <FavorittBlock key={id} q={q} participants={participants} /> : null;
+        })}
+      </div>
+    </Card>
+  );
+}
+
 /** Detalj-liste under en klikket deltaker (eksakte kamper, eller korrekt krydder). */
 function DetailList({ items, empty }: { items: ScoringItem[]; empty: string }) {
   if (items.length === 0) {
@@ -199,7 +219,7 @@ function DetailList({ items, empty }: { items: ScoringItem[]; empty: string }) {
   );
 }
 
-/** Deltager-stats: treffsikkerhet + poeng-kilde + folkets favoritt. */
+/** Deltager-stats: treffsikkerhet + poeng-kilde (folkets favoritt ligger under Krydder). */
 export default function ParticipantStats({
   standings,
   participants,
@@ -345,15 +365,6 @@ export default function ParticipantStats({
             />
           </>
         )}
-      </Card>
-
-      <Card title="Folkets favoritt">
-        <div className="divide-y divide-slate-700/40">
-          {FAVORITT_IDS.map((id) => {
-            const q = questions.find((x) => x.id === id);
-            return q ? <FavorittBlock key={id} q={q} participants={participants} /> : null;
-          })}
-        </div>
       </Card>
     </div>
   );
