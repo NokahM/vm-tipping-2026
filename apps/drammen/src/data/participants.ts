@@ -294,14 +294,6 @@ export const PARTICIPANTS: Participant[] = [
     knockoutTips: [],
   },
   {
-    name: "Geir",
-    groupTips: [
-    ],
-    bonusTips: [
-    ],
-    knockoutTips: [],
-  },
-  {
     name: "Tore",
     groupTips: [
       { homeTeam: "Mexico", awayTeam: "Sør-Afrika", group: "GROUP_A", homeGoals: 2, awayGoals: 1 },
