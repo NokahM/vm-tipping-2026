@@ -23,6 +23,8 @@ const Q17_LABELS: Record<string, string> = {
 const Q17_ORDER = Object.values(Q17_LABELS);
 // Generasjons-suffiks som ikke er det «egentlige» navnet (Vinicius Junior → Vinicius).
 const NAME_SUFFIX = new Set(['junior', 'jr', 'júnior', 'jnr', 'senior', 'sr', 'snr', 'filho', 'neto']);
+// Eksplisitte etternavn-aliaser (diakritisk-/store-bokstav-uavhengig nøkkel) → kanonisk staving.
+const PLAYER_ALIAS: Record<string, string> = { fernandez: 'Fernandes' };
 
 const stripDia = (s: string) => [...s.normalize('NFD')].filter((c) => { const x = c.charCodeAt(0); return x < 0x0300 || x > 0x036f; }).join('');
 const keyOf = (s: string) => stripDia(s).toLowerCase().trim();
@@ -32,7 +34,8 @@ function playerName(s: string): string {
   while (parts.length > 1 && NAME_SUFFIX.has(parts[parts.length - 1].toLowerCase().replace(/\./g, ''))) {
     parts.pop();
   }
-  return parts.length ? parts[parts.length - 1] : s;
+  const last = parts.length ? parts[parts.length - 1] : s;
+  return PLAYER_ALIAS[keyOf(last)] ?? last; // «Fernandez» → «Fernandes»
 }
 // Kanoniske norske lagnavn nøklet diakritisk-/store-bokstav-uavhengig (Curacao → Curaçao).
 const TEAM_CANON = new Map<string, string>();
