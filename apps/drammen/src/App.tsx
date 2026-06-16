@@ -30,6 +30,7 @@ import GroupTables from './components/GroupTables';
 import TeamCards from './components/TeamCards';
 import PlayerStats from './components/PlayerStats';
 import ParticipantStats from './components/ParticipantStats';
+import FootballStats from './components/FootballStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
@@ -68,7 +69,7 @@ export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
   const [view, setView] = useState<View>('kamper');
   const [tableView, setTableView] = useState<'tabell' | 'graf' | 'deltagere'>('tabell');
-  const [statsView, setStatsView] = useState<'lag' | 'spiller'>('lag');
+  const [statsView, setStatsView] = useState<'lag' | 'spiller' | 'nerding'>('lag');
   // Hentes alltid (ikke bare på Stats-fanen): brukes også til auto-krydder (q7/q8).
   const { data: stats } = useStats(true);
   const [adminOpen, setAdminOpen] = useState(isAdminUrl);
@@ -361,8 +362,11 @@ export default function App() {
               <SubTab active={statsView === 'spiller'} onClick={() => setStatsView('spiller')}>
                 Spillerstats
               </SubTab>
+              <SubTab active={statsView === 'nerding'} onClick={() => setStatsView('nerding')}>
+                Nerding
+              </SubTab>
             </div>
-            {statsView === 'lag' ? (
+            {statsView === 'lag' && (
               <div className="space-y-3">
                 <p className="px-1 text-center text-[11px] text-slate-500">
                   Gruppetabeller · ± målforskjell · P poeng
@@ -370,8 +374,10 @@ export default function App() {
                 <GroupTables results={results} />
                 <TeamCards teamCards={stats?.teamCards ?? []} />
               </div>
-            ) : (
-              <PlayerStats data={stats} />
+            )}
+            {statsView === 'spiller' && <PlayerStats data={stats} />}
+            {statsView === 'nerding' && (
+              <FootballStats goalMinutes={stats?.goalMinutes} results={results} />
             )}
           </div>
         )}

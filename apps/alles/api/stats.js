@@ -228,13 +228,18 @@ async function computeStats(apiKey, kvUrl, kvToken) {
 
   const finalMatch = Object.values(cache.matches).find((m) => m.stage === 'FINAL');
   // q6: raskeste mål så langt (lavest minutt). Sekunder finnes ikke i API-et – kun pekepinn.
+  // + mål-fordeling per 15-min-bolk (1-15, 16-30, 31-45, 46-60, 61-75, 76-90, 90+) for «Nerding».
   let fastestGoal = null;
+  const goalMinutes = [0, 0, 0, 0, 0, 0, 0];
   for (const m of Object.values(cache.matches)) {
     for (const g of m.goals || []) {
       if (g.minute == null) continue;
       if (!fastestGoal || g.minute < fastestGoal.minute) {
         fastestGoal = { minute: g.minute, scorer: g.name, team: g.team };
       }
+      const mn = g.minute;
+      const i = mn <= 15 ? 0 : mn <= 30 ? 1 : mn <= 45 ? 2 : mn <= 60 ? 3 : mn <= 75 ? 4 : mn <= 90 ? 5 : 6;
+      goalMinutes[i]++;
     }
   }
   return {
@@ -243,6 +248,7 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
     finalReferee: finalMatch?.referee || null, // for q11
     fastestGoal, // for q6 live-indikator
+    goalMinutes, // mål per 15-min-bolk – for «Nerding»
     coverage: { cached: Object.keys(cache.matches).length, relevant: relevant.length },
     updatedAt: Date.now(),
   };
