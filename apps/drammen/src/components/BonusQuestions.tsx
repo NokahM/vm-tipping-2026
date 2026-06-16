@@ -66,13 +66,16 @@ function Q5NumberLine({
   max += span;
   const x = (v: number) => PAD + ((v - min) / (max - min)) * plotW;
 
+  const LABEL_Y = 8; // «~299» hviler oppå den grønne boksen
+  const BOX_TOP = 10; // topp på grønn boks + gul strek (like høye)
+  const AXIS_Y = 30; // x-aksen = boksens/strekens bunn
+  const H = 43;
+  const boxH = AXIS_Y - BOX_TOP;
+
   const counts = new Map<number, number>();
   for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
-  const spacing = Math.min(4, 24 / Math.max(1, ...counts.values()));
+  const spacing = Math.min(4, (boxH - 4) / Math.max(1, ...counts.values()));
   const seen = new Map<number, number>();
-
-  const AXIS_Y = 44;
-  const H = 60;
 
   // Pene mellom-merker på x-aksen (naturlige intervaller mellom min og max).
   const niceTicks = (() => {
@@ -92,9 +95,9 @@ function Q5NumberLine({
       {projected != null && (
         <rect
           x={x(projected - margin)}
-          y={AXIS_Y - 30}
+          y={BOX_TOP}
           width={x(projected + margin) - x(projected - margin)}
-          height={36}
+          height={boxH}
           fill="#10b981"
           opacity="0.12"
         />
@@ -116,8 +119,8 @@ function Q5NumberLine({
       ))}
       {projected != null && (
         <>
-          <line x1={x(projected)} y1={AXIS_Y - 34} x2={x(projected)} y2={AXIS_Y + 1} stroke="#eab308" strokeWidth="1" />
-          <text x={x(projected)} y={AXIS_Y - 36} fill="#eab308" fontSize="7" textAnchor="middle">
+          <line x1={x(projected)} y1={BOX_TOP} x2={x(projected)} y2={AXIS_Y} stroke="#eab308" strokeWidth="1" />
+          <text x={x(projected)} y={LABEL_Y} fill="#eab308" fontSize="7" textAnchor="middle">
             ~{projected}
           </text>
         </>
