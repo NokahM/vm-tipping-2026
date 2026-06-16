@@ -36,6 +36,88 @@ function lastName(full: string): string {
   return parts.length ? parts[parts.length - 1] : full;
 }
 
+/**
+ * Tallinje for q5 (antall mål totalt): alle deltakernes gjett som prikker, projeksjonen
+ * markert med ±-bånd. Grønn prikk = innenfor ±margin (full pott), rød = utenfor.
+ */
+function Q5NumberLine({
+  guesses,
+  projected,
+  margin,
+}: {
+  guesses: { name: string; value: number }[];
+  projected: number | null;
+  margin: number;
+}) {
+  if (guesses.length === 0) return null;
+  const W = 340;
+  const PAD = 8;
+  const plotW = W - 2 * PAD;
+  const values = guesses.map((g) => g.value);
+  const all = projected != null ? [...values, projected] : values;
+  let min = Math.min(...all);
+  let max = Math.max(...all);
+  if (min === max) {
+    min -= margin;
+    max += margin;
+  }
+  const span = (max - min) * 0.08;
+  min -= span;
+  max += span;
+  const x = (v: number) => PAD + ((v - min) / (max - min)) * plotW;
+
+  const counts = new Map<number, number>();
+  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
+  const spacing = Math.min(5, 38 / Math.max(1, ...counts.values()));
+  const seen = new Map<number, number>();
+
+  const AXIS_Y = 50;
+  const H = 70;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="mb-2 w-full" role="img" aria-label="Antall mål – alles gjett">
+      {projected != null && (
+        <rect
+          x={x(projected - margin)}
+          y={AXIS_Y - 40}
+          width={x(projected + margin) - x(projected - margin)}
+          height={44}
+          fill="#10b981"
+          opacity="0.12"
+        />
+      )}
+      <line x1={PAD} y1={AXIS_Y} x2={W - PAD} y2={AXIS_Y} stroke="#475569" strokeWidth="0.6" />
+      <text x={PAD} y={H - 2} fill="#64748b" fontSize="6.5" textAnchor="start">
+        {Math.ceil(min)}
+      </text>
+      <text x={W - PAD} y={H - 2} fill="#64748b" fontSize="6.5" textAnchor="end">
+        {Math.floor(max)}
+      </text>
+      {projected != null && (
+        <>
+          <line x1={x(projected)} y1={AXIS_Y - 44} x2={x(projected)} y2={AXIS_Y + 3} stroke="#eab308" strokeWidth="1" />
+          <text x={x(projected)} y={AXIS_Y - 46} fill="#eab308" fontSize="7" textAnchor="middle">
+            ~{projected}
+          </text>
+        </>
+      )}
+      {guesses.map((g, i) => {
+        const stack = seen.get(g.value) ?? 0;
+        seen.set(g.value, stack + 1);
+        const inBand = projected != null && Math.abs(g.value - projected) <= margin;
+        return (
+          <circle
+            key={i}
+            cx={x(g.value)}
+            cy={AXIS_Y - 3 - stack * spacing}
+            r="2.2"
+            fill={inBand ? '#10b981' : '#f87171'}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 const NEUTRAL = 'border-slate-700/40 bg-slate-800/40 text-slate-500';
 const GREEN = 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
 const AMBER = 'border-amber-600/40 bg-amber-500/15 text-amber-300';
@@ -121,6 +203,22 @@ function BonusRow({
   const fastestLead =
     question.id === FASTEST_GOAL_QUESTION_ID && !hasFasit ? fastestGoal : null;
 
+  // q5-tallinje: alle deltakernes mål-gjett + projeksjonen (eller fasit) som markør.
+  const q5Guesses =
+    question.id === GOAL_QUESTION_ID
+      ? participants
+          .map((p) => {
+            const v = parseGoals(answerText(p.bonusTips.find((t) => t.questionId === question.id)));
+            return v != null ? { name: p.name, value: v } : null;
+          })
+          .filter((g): g is { name: string; value: number } => g != null)
+      : [];
+  const q5Projected = goalProj
+    ? goalProj.projected
+    : hasFasit
+      ? parseGoals(String(question.answer))
+      : null;
+
   return (
     <li>
       <button
@@ -183,8 +281,12 @@ function BonusRow({
       </button>
 
       {open && (
-        <div className="grid grid-cols-1 gap-1.5 px-3 pb-2.5 sm:grid-cols-2">
-          {participants.map((p) => {
+        <div className="px-3 pb-2.5">
+          {question.id === GOAL_QUESTION_ID && (
+            <Q5NumberLine guesses={q5Guesses} projected={q5Projected} margin={GOAL_MARGIN} />
+          )}
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {participants.map((p) => {
             const tip = p.bonusTips.find((t) => t.questionId === question.id);
             const text = answerText(tip);
             let cls: string;
@@ -235,7 +337,8 @@ function BonusRow({
                 </span>
               </div>
             );
-          })}
+            })}
+          </div>
         </div>
       )}
     </li>
