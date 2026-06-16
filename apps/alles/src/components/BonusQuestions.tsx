@@ -73,6 +73,20 @@ function Q5NumberLine({
 
   const AXIS_Y = 58;
   const H = 78;
+
+  // Pene mellom-merker på x-aksen (naturlige intervaller mellom min og max).
+  const niceTicks = (() => {
+    const range = max - min;
+    const rawStep = range / 4;
+    const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const norm = rawStep / pow;
+    const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * pow;
+    const ts: number[] = [];
+    for (let v = Math.ceil(min / step) * step; v <= max; v += step) ts.push(v);
+    const edge = range * 0.12;
+    return ts.filter((v) => v > min + edge && v < max - edge).slice(0, 3);
+  })();
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="mb-2 w-full" role="img" aria-label="Antall mål – alles gjett">
       {projected != null && (
@@ -92,10 +106,18 @@ function Q5NumberLine({
       <text x={W - PAD} y={H - 2} fill="#64748b" fontSize="6.5" textAnchor="end">
         {Math.floor(max)}
       </text>
+      {niceTicks.map((v) => (
+        <g key={v}>
+          <line x1={x(v)} y1={AXIS_Y} x2={x(v)} y2={AXIS_Y + 2.5} stroke="#475569" strokeWidth="0.5" />
+          <text x={x(v)} y={H - 2} fill="#64748b" fontSize="6.5" textAnchor="middle">
+            {v}
+          </text>
+        </g>
+      ))}
       {projected != null && (
         <>
           <line x1={x(projected)} y1={AXIS_Y - 34} x2={x(projected)} y2={AXIS_Y + 1} stroke="#eab308" strokeWidth="1" />
-          <text x={x(projected)} y={AXIS_Y - 46} fill="#eab308" fontSize="7" textAnchor="middle">
+          <text x={x(projected)} y={AXIS_Y - 36} fill="#eab308" fontSize="7" textAnchor="middle">
             ~{projected}
           </text>
         </>
