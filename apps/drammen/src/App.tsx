@@ -12,7 +12,6 @@ import {
   applyBonusAnswers,
   bonusDateOf,
   bonusItemDatesOf,
-  decidedOnly,
   loadBonusStore,
   loadKnockoutStore,
   mergeKnockoutTips,
@@ -147,9 +146,9 @@ export default function App() {
   const autoBonusStore = useMemo(() => autoBonusToStore(stats?.autoBonus), [stats?.autoBonus]);
   const autoDecided = useMemo(() => deriveDecidedBonus(results), [results]);
   const autoStats = useMemo(() => deriveStatsBonus(stats, results), [stats, results]);
-  // Kun «avgjorte» manuelle entries scorer/overstyrer auto (utkast med decided:false hoppes over).
+  // Manuelle KV-svar overstyrer alltid auto; innbakt JSON er bunn-fallback.
   const bonusMerged = useMemo(
-    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...decidedOnly(bonusStore) }),
+    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...bonusStore }),
     [autoBonusStore, autoDecided, autoStats, bonusStore],
   );
 

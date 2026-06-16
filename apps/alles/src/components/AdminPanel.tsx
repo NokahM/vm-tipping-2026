@@ -6,7 +6,6 @@ import { normalizeTeamName } from '../utils/teamNames';
 import {
   bonusAnswerOf,
   bonusDateOf,
-  bonusDecidedOf,
   bonusItemDatesOf,
   type BonusStore,
   type KnockoutStore,
@@ -432,12 +431,6 @@ function BonusTab({
     }
     return d;
   });
-  // «Avgjort»-status per spørsmål (checkbox). Avgjort = svaret teller i tabellen.
-  const [decidedDraft, setDecidedDraft] = useState<Record<string, boolean>>(() => {
-    const d: Record<string, boolean> = {};
-    for (const [id, val] of Object.entries(store)) d[id] = bonusDecidedOf(val);
-    return d;
-  });
   // Hvilke spørsmål som har dato-velgeren utfoldet (kun UI). Skjult som standard.
   const [showDate, setShowDate] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<SaveState>('idle');
@@ -445,13 +438,6 @@ function BonusTab({
 
   function setVal(id: string, v: string) {
     setDraft((d) => ({ ...d, [id]: v }));
-    // Første gang man skriver inn et svar: huk av «Avgjort» automatisk (vanlig flyt).
-    setDecidedDraft((d) => (id in d ? d : { ...d, [id]: true }));
-    setStatus('idle');
-  }
-
-  function setDecided(id: string, v: boolean) {
-    setDecidedDraft((d) => ({ ...d, [id]: v }));
     setStatus('idle');
   }
 
@@ -469,7 +455,6 @@ function BonusTab({
   // (Tomt felt lagres ikke → fjernes fra KV → auto-fasit gjelder etter «Lagre & publiser».)
   function resetToAuto(id: string) {
     setDraft((d) => ({ ...d, [id]: '' }));
-    setDecidedDraft((d) => ({ ...d, [id]: false }));
     setDateDraft((d) => {
       const n = { ...d };
       delete n[id];
@@ -505,11 +490,11 @@ function BonusTab({
           const dv = itemDates[q.id]?.[team];
           ats[team] = dv ? toIso(dv) : today;
         }
-        next[q.id] = { answer: arr, ats, decided: decidedDraft[q.id] ?? true };
+        next[q.id] = { answer: arr, ats };
       } else {
         const picked = dateDraft[q.id];
         const at = picked ? toIso(picked) : (bonusDateOf(store[q.id] ?? '') ?? today);
-        next[q.id] = { answer: raw, at, decided: decidedDraft[q.id] ?? true };
+        next[q.id] = { answer: raw, at };
       }
     }
     return next;
@@ -529,10 +514,12 @@ function BonusTab({
   return (
     <div className="space-y-3">
       <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
-        Huk av <span className="text-slate-300">«Avgjort»</span> når et spørsmål er bestemt – da
-        teller svaret i tabellen, med <span className="text-slate-300">dagens dato</span> (norsk tid)
-        automatisk. Fjern haken for å trekke svaret uten å miste teksten. Trenger du å tilbakedatere
-        (f.eks. q15), bruk «sett dato». Mange spørsmål fylles inn automatisk – la dem stå tomme.
+        <span className="text-emerald-400/90">Automatisk</span> = API-et henter svaret selv – la
+        feltet stå tomt. <span className="text-amber-400/90">Manuell</span> = API-et får ikke tak i
+        dataene – skriv inn fasit selv. <span className="text-slate-300">Raskeste mål</span> er
+        manuelt, men API-et hjelper til med å peke ut målet (det kjenner bare minuttet, ikke sekundet
+        – så scoret to lag i samme minutt, må du sette eksakt tid selv). Et utfylt + publisert svar
+        teller med dagens dato; bruk «sett dato» for å tilbakedatere.
       </p>
       {questions.map((q) => {
         const isList = LIST_ANSWER_IDS.has(q.id);
@@ -575,37 +562,31 @@ function BonusTab({
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
-          {/* «Avgjort»-checkbox + valgfri dato-overstyring */}
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <label className="flex items-center gap-1.5 text-xs text-slate-200">
-              <input
-                type="checkbox"
-                checked={decidedDraft[q.id] ?? false}
-                onChange={(e) => setDecided(q.id, e.target.checked)}
-                className="h-4 w-4 accent-emerald-500"
-              />
-              Lås svaret
-            </label>
-            {DATE_OVERRIDE_IDS.has(q.id) && (
-              <button
-                type="button"
-                onClick={() => setShowDate((s) => ({ ...s, [q.id]: !s[q.id] }))}
-                className="text-[11px] text-slate-400 hover:text-slate-200"
-              >
-                {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
-              </button>
-            )}
-            {AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '' && (
-              <button
-                type="button"
-                onClick={() => resetToAuto(q.id)}
-                title="Tøm det manuelle svaret så API/auto overtar igjen"
-                className="text-[11px] text-emerald-400/80 hover:text-emerald-300"
-              >
-                ↺ Nullstill til auto
-              </button>
-            )}
-          </div>
+          {/* Valgfri dato-overstyring + «nullstill til auto» (kun når relevant) */}
+          {(DATE_OVERRIDE_IDS.has(q.id) ||
+            (AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '')) && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {DATE_OVERRIDE_IDS.has(q.id) && (
+                <button
+                  type="button"
+                  onClick={() => setShowDate((s) => ({ ...s, [q.id]: !s[q.id] }))}
+                  className="text-[11px] text-slate-400 hover:text-slate-200"
+                >
+                  {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
+                </button>
+              )}
+              {AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '' && (
+                <button
+                  type="button"
+                  onClick={() => resetToAuto(q.id)}
+                  title="Tøm det manuelle svaret så API/auto overtar igjen"
+                  className="text-[11px] text-emerald-400/80 hover:text-emerald-300"
+                >
+                  ↺ Nullstill til auto
+                </button>
+              )}
+            </div>
+          )}
           {showDate[q.id] &&
             (isList ? (
               teams.length > 0 ? (
