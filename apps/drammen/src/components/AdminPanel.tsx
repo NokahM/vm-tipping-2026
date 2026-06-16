@@ -546,6 +546,11 @@ function BonusTab({
               .map((s) => s.trim())
               .filter(Boolean)
           : [];
+        // Bekreftelse på hva som faktisk er LAGRET som poenggivende (manuell KV overstyrer auto).
+        const savedManual = autoText(store[q.id]);
+        const counts = savedManual || autoText(autoBonus[q.id]);
+        const overriddenAuto = AUTO_IDS.has(q.id) && savedManual !== '';
+        const showCounts = overriddenAuto || (!AUTO_IDS.has(q.id) && counts !== '');
         return (
         <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 p-3">
           <div className="mb-2 flex items-start justify-between gap-2">
@@ -566,7 +571,7 @@ function BonusTab({
             onChange={(v) => setVal(q.id, v)}
             placeholder={
               AUTO_IDS.has(q.id)
-                ? 'Auto henter dette – la stå tomt (skriv for å overstyre)'
+                ? 'La stå tomt (skriv for å overstyre)'
                 : !LIST_ANSWER_IDS.has(q.id)
                   ? 'Fasit (tom = ikke avgjort)'
                   : PER_TEAM_IDS.has(q.id)
@@ -597,6 +602,12 @@ function BonusTab({
               )}
             </p>
           ) : null}
+          {showCounts && (
+            <p className="mt-1 text-[11px] text-slate-400">
+              ✓ Teller nå: <span className="text-slate-100">{counts}</span>
+              {overriddenAuto && <span className="text-amber-300"> · overstyrer auto</span>}
+            </p>
+          )}
           {/* Valgfri dato-overstyring + «nullstill til auto» (kun når relevant) */}
           {(DATE_OVERRIDE_IDS.has(q.id) ||
             (AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '')) && (
