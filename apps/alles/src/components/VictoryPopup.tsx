@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // Offisielle VM-farger til konfettien (samme palett som stripene).
 const WC_COLORS = ['#e21602', '#e84b09', '#e8fc4a', '#afe905', '#66fbda', '#324dfb', '#6001e6', '#b188fc'];
@@ -17,6 +17,8 @@ type Piece =
  * Escape) – ingen auto-timeout. Vises kun når VM er over (styres av kalleren) + en TEST-trigger i admin.
  */
 export default function VictoryPopup({ winners, onClose }: { winners: string[]; onClose: () => void }) {
+  // Bruker en egen pokal-PNG (public/trophy.png) hvis den finnes, ellers 🏆-emoji.
+  const [trophyOk, setTrophyOk] = useState(true);
   // Escape lukker (fysisk handling, som knappen) – ingen auto-lukk.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -86,7 +88,16 @@ export default function VictoryPopup({ winners, onClose }: { winners: string[]; 
         className="relative mx-6 max-w-sm rounded-2xl border-2 border-wc-yellow bg-slate-900/90 px-6 py-8 text-center shadow-2xl"
         style={{ animation: 'wc-victory-pop 0.5s ease-out both' }}
       >
-        <div className="text-6xl">🏆</div>
+        {trophyOk ? (
+          <img
+            src="/trophy.png"
+            alt="VM-troféet"
+            className="mx-auto h-24 w-auto object-contain drop-shadow-lg"
+            onError={() => setTrophyOk(false)}
+          />
+        ) : (
+          <div className="text-6xl">🏆</div>
+        )}
         <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-wc-yellow">
           Tippekonk-mester {new Date().getFullYear()}
         </p>
