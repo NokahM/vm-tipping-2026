@@ -29,6 +29,7 @@ import BonusQuestions from './components/BonusQuestions';
 import GroupTables from './components/GroupTables';
 import TeamCards from './components/TeamCards';
 import PlayerStats from './components/PlayerStats';
+import ParticipantStats from './components/ParticipantStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
@@ -66,7 +67,7 @@ function isAdminUrl(): boolean {
 export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
   const [view, setView] = useState<View>('kamper');
-  const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
+  const [tableView, setTableView] = useState<'tabell' | 'graf' | 'deltagere'>('tabell');
   const [statsView, setStatsView] = useState<'lag' | 'spiller'>('lag');
   // Hentes alltid (ikke bare på Stats-fanen): brukes også til auto-krydder (q7/q8).
   const { data: stats } = useStats(true);
@@ -303,8 +304,11 @@ export default function App() {
               <SubTab active={tableView === 'graf'} onClick={() => setTableView('graf')}>
                 Graf
               </SubTab>
+              <SubTab active={tableView === 'deltagere'} onClick={() => setTableView('deltagere')}>
+                Deltagerne
+              </SubTab>
             </div>
-            {tableView === 'tabell' ? (
+            {tableView === 'tabell' && (
               <>
                 <p className="px-1 text-center text-[11px] text-slate-500">
                   Trykk på et navn for å se hvor poengene kom fra
@@ -316,7 +320,8 @@ export default function App() {
                   questions={questions}
                 />
               </>
-            ) : (
+            )}
+            {tableView === 'graf' && (
               <>
                 <p className="px-1 text-center text-[11px] text-slate-500">
                   Trykk på en spiller for å vise/skjule linja (standard: topp 3)
@@ -324,6 +329,7 @@ export default function App() {
                 <ProgressionChart progression={progression} />
               </>
             )}
+            {tableView === 'deltagere' && <ParticipantStats standings={standings} />}
           </div>
         )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}
