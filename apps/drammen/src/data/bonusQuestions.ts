@@ -19,5 +19,5 @@ export const BONUS_QUESTIONS: BonusQuestion[] = [
   { id: "q14", question: "Hvilket afrikanske land kommer lengst?", maxPoints: 2, answer: null },
   { id: "q15", question: "Nevn en kjendis som dør i løpet av VM.", maxPoints: 3, answer: null },
   { id: "q16", question: "Får alle tre Bodø/Glimt-spillerne spilletid i løpet av VM?", maxPoints: 1, answer: null },
-  { id: "q17", question: "Hvor langt kommer Norge", maxPoints: 2, answer: null },
+  { id: "q17", question: "Hvor langt kommer Norge?", maxPoints: 2, answer: null },
 ];

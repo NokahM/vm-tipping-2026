@@ -40,6 +40,9 @@ const PER_TEAM_IDS = new Set(['q7', 'q8']);
 // «Sett dato» vises kun for hendelsesbaserte spørsmål (skjer på en bestemt tidligere dag,
 // kan trenge tilbakedatering). Alt vi først vet ved VM-slutt får dagens/auto-dato uansett.
 const DATE_OVERRIDE_IDS = new Set(['q6', 'q7', 'q8', 'q15']);
+// Spørsmål som settes automatisk fra deep data/resultater (admin trenger ikke gjøre noe).
+// Resten (q2, q4, q6, q15) krever manuell fasit.
+const AUTO_IDS = new Set(['q1', 'q3', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q16', 'q17']);
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 /** Dagens dato i NORSK tid (yyyy-mm-dd), uavhengig av enhetens tidssone. sv-SE gir ISO-format. */
@@ -523,7 +526,14 @@ function BonusTab({
         return (
         <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 p-3">
           <div className="mb-2 flex items-start justify-between gap-2">
-            <p className="text-sm">{q.question}</p>
+            <p className="text-sm">
+              {q.question}{' '}
+              <span
+                className={`text-[10px] ${AUTO_IDS.has(q.id) ? 'text-emerald-400/80' : 'text-amber-400/80'}`}
+              >
+                · {AUTO_IDS.has(q.id) ? 'automatisk' : 'manuell'}
+              </span>
+            </p>
             <span className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[11px] font-semibold text-slate-300">
               {q.maxPoints}p
             </span>
@@ -555,7 +565,7 @@ function BonusTab({
                 onChange={(e) => setDecided(q.id, e.target.checked)}
                 className="h-4 w-4 accent-emerald-500"
               />
-              Avgjort
+              Lås svaret
             </label>
             {DATE_OVERRIDE_IDS.has(q.id) && (
               <button
