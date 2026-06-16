@@ -110,8 +110,11 @@ export default function FootballStats({
         {goalsByDay.length === 0 ? (
           <p className="px-3 py-2 text-xs text-slate-500">Ingen ferdigspilte kamper ennå.</p>
         ) : (
-          <div className="px-3 py-3">
+          <div className="px-3 pb-2 pt-3">
             <DayBars data={goalsByDay} max={maxDay} />
+            <p className="mt-1 text-center text-[10px] text-slate-600">
+              Kampdag i amerikansk tid (Pacific) – der kampene spilles
+            </p>
           </div>
         )}
       </Card>
