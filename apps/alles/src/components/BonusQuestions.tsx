@@ -272,8 +272,7 @@ function BonusRow({
               <span className="text-slate-500">
                 {' '}
                 · {(goalProj.goalsSoFar / goalProj.matchesCounted).toFixed(2).replace('.', ',')} pr.
-                kamp · {goalProj.goalsSoFar} på {goalProj.matchesCounted} kamper · ±{GOAL_MARGIN} mål =
-                full pott
+                kamp · ±{GOAL_MARGIN} mål
               </span>
             </p>
           ) : groupLead ? (
