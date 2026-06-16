@@ -44,6 +44,8 @@ const DATE_OVERRIDE_IDS = new Set(['q6', 'q7', 'q8', 'q15']);
 // Spørsmål som settes automatisk fra deep data/resultater (admin trenger ikke gjøre noe).
 // Resten (q2, q4, q6, q15) krever manuell fasit.
 const AUTO_IDS = new Set(['q1', 'q3', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q16', 'q17']);
+// Akkumulerende: poeng deles ut løpende, men lista kan vokse til turneringsslutt («ikke avsluttet»).
+const ACCUMULATING_IDS = new Set(['q7', 'q8']); // rødt kort, selvmål
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 /** Dagens dato i NORSK tid (yyyy-mm-dd), uavhengig av enhetens tidssone. sv-SE gir ISO-format. */
@@ -600,6 +602,9 @@ function BonusTab({
           {autoText(autoBonus[q.id]) ? (
             <p className="mt-1 text-[11px] text-emerald-400/80">
               Auto nå: <span className="text-emerald-300">{autoText(autoBonus[q.id])}</span>
+              {ACCUMULATING_IDS.has(q.id) && (
+                <span className="text-slate-500"> · ikke avsluttet</span>
+              )}
               {(draft[q.id] ?? '').trim() !== '' && (
                 <span className="text-slate-500"> · overstyres av ditt svar</span>
               )}

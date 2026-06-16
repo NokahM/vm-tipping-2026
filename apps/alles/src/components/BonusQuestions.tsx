@@ -32,6 +32,8 @@ const GOAL_MARGIN = 5;
 const GROUP_GOALS_QUESTION_ID = 'q9'; // hvilken gruppe scorer flest mål – leder-gruppen
 const WORST_TEAM_QUESTION_ID = 'q10'; // VMs dårligste lag – dårligst-så-langt
 const FASTEST_GOAL_QUESTION_ID = 'q6'; // raskeste mål – pekepinn (eksakt tid settes manuelt)
+// Akkumulerende spørsmål: poeng deles ut løpende, men lista kan vokse til turneringsslutt.
+const ACCUMULATING_IDS = new Set(['q7', 'q8']); // rødt kort, selvmål
 
 /** «Julián Quiñones» → «Quiñones» for kompakt visning. */
 function lastName(full: string): string {
@@ -279,7 +281,12 @@ function BonusRow({
         <div className="min-w-0 flex-1">
           <p className="text-sm text-slate-100">{question.question}</p>
           {hasFasit ? (
-            <p className="mt-0.5 text-xs text-emerald-400">Fasit: {fasit}</p>
+            <p className="mt-0.5 text-xs text-emerald-400">
+              Fasit: {fasit}
+              {ACCUMULATING_IDS.has(question.id) && (
+                <span className="text-slate-500"> · ikke avsluttet</span>
+              )}
+            </p>
           ) : goalProj ? (
             <p className="mt-0.5 text-xs text-wc-yellow">
               Projeksjon nå: ~{goalProj.projected} mål
