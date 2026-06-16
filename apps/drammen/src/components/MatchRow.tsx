@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
+import { koSlotLabel } from '../data/knockoutSlots';
 import { formatKickoff } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
@@ -27,8 +28,11 @@ export default function MatchRow({ match, participants }: Props) {
     (Date.parse(match.utcDate) <= Date.now() && match.status !== 'FINISHED');
   const hasScore = match.homeGoals != null && match.awayGoals != null;
   const played = match.status === 'FINISHED' || (liveNow && hasScore);
-  const home = normalizeTeamName(match.homeTeam);
-  const away = normalizeTeamName(match.awayTeam);
+  // Kjent lag → ekte navn + logo. Ukjent (TBD-sluttspill) → bracket-plassholder («Vinner E» osv.).
+  const homeKnown = match.homeTeam !== 'TBD';
+  const awayKnown = match.awayTeam !== 'TBD';
+  const home = homeKnown ? normalizeTeamName(match.homeTeam) : (koSlotLabel(match.apiId, 'home') ?? 'TBD');
+  const away = awayKnown ? normalizeTeamName(match.awayTeam) : (koSlotLabel(match.apiId, 'away') ?? 'TBD');
 
   // Kampklokke fra API-et (oppdateres ved polling). PAUSE = «Pause», ellers minutt (+ tilleggstid).
   const liveLabel =
@@ -46,10 +50,14 @@ export default function MatchRow({ match, participants }: Props) {
         className="flex w-full items-center gap-2 px-3 py-2 text-left active:bg-slate-700/30"
         aria-expanded={open}
       >
-        {/* Hjemmelag: logo + navn */}
+        {/* Hjemmelag: logo + navn (plassholder uten logo, dempet) */}
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <TeamLogo name={home} className="h-6 w-6" />
-          <span className="truncate text-sm text-slate-100">{home}</span>
+          {homeKnown && <TeamLogo name={home} className="h-6 w-6" />}
+          <span
+            className={`truncate ${homeKnown ? 'text-sm text-slate-100' : 'text-xs italic text-slate-400'}`}
+          >
+            {home}
+          </span>
         </div>
 
         {/* Stilling sentrert; kampklokka stables under (skifter ikke horisontal plassering) */}
@@ -73,10 +81,14 @@ export default function MatchRow({ match, participants }: Props) {
           )}
         </div>
 
-        {/* Bortelag: navn + logo */}
+        {/* Bortelag: navn + logo (plassholder uten logo, dempet) */}
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <span className="truncate text-right text-sm text-slate-100">{away}</span>
-          <TeamLogo name={away} className="h-6 w-6" />
+          <span
+            className={`truncate text-right ${awayKnown ? 'text-sm text-slate-100' : 'text-xs italic text-slate-400'}`}
+          >
+            {away}
+          </span>
+          {awayKnown && <TeamLogo name={away} className="h-6 w-6" />}
         </div>
       </button>
 
