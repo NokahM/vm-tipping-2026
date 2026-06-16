@@ -465,6 +465,25 @@ function BonusTab({
     setStatus('idle');
   }
 
+  // Nullstill et auto-spørsmål: tøm det manuelle svaret så API-et/auto overtar igjen.
+  // (Tomt felt lagres ikke → fjernes fra KV → auto-fasit gjelder etter «Lagre & publiser».)
+  function resetToAuto(id: string) {
+    setDraft((d) => ({ ...d, [id]: '' }));
+    setDecidedDraft((d) => ({ ...d, [id]: false }));
+    setDateDraft((d) => {
+      const n = { ...d };
+      delete n[id];
+      return n;
+    });
+    setItemDates((d) => {
+      const n = { ...d };
+      delete n[id];
+      return n;
+    });
+    setShowDate((s) => ({ ...s, [id]: false }));
+    setStatus('idle');
+  }
+
   function buildStore(): BonusStore {
     const next: BonusStore = {};
     // Dato lagres kl. 12 UTC så den havner på riktig kalenderdag uansett tidssone.
@@ -574,6 +593,16 @@ function BonusTab({
                 className="text-[11px] text-slate-400 hover:text-slate-200"
               >
                 {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
+              </button>
+            )}
+            {AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '' && (
+              <button
+                type="button"
+                onClick={() => resetToAuto(q.id)}
+                title="Tøm det manuelle svaret så API/auto overtar igjen"
+                className="text-[11px] text-emerald-400/80 hover:text-emerald-300"
+              >
+                ↺ Nullstill til auto
               </button>
             )}
           </div>
