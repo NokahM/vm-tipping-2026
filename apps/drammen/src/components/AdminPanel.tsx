@@ -314,6 +314,13 @@ function KnockoutTab({
 
   return (
     <div className="space-y-4">
+      <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
+        Legg inn <span className="text-slate-300">2-talls sluttspill-tips</span> per deltaker, per
+        kamp. Velg runde under – kampene dukker opp automatisk fra API-et når lagene er trukket
+        (kamper med ukjent lag skjules til de er klare). Tips knyttes til kampen via kampens ID, så de
+        teller når resultatet kommer. Husk <span className="text-slate-300">«Lagre &amp; publiser»</span>
+        nederst → synlig for alle.
+      </p>
       <label className="block">
         <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
           Velg runde
@@ -537,6 +544,10 @@ function BonusTab({
         manuelt, men API-et hjelper til med å peke ut målet (det kjenner bare minuttet, ikke sekundet
         – så scoret to lag i samme minutt, må du sette eksakt tid selv). Et utfylt + publisert svar
         teller med dagens dato; bruk «sett dato» for å tilbakedatere.
+        <br />
+        <span className="text-slate-300">Tommelfingerregel:</span> ser du «Auto nå: X» og er enig,
+        la feltet stå tomt – du skriver kun inn det auto ikke finner (q2, q4, q6, q15) eller det du
+        vil overstyre.
       </p>
       {questions.map((q) => {
         const isList = LIST_ANSWER_IDS.has(q.id);
@@ -707,8 +718,11 @@ function RefreshTab({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-400">
-        Tving henting av nye resultater fra API-et. Nullstiller den lokale 5-minutters-cachen.
+      <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
+        Tvinger henting av ferske resultater og tømmer den lokale kamp- og hendelses-cachen.
+        <span className="text-slate-300"> Sjelden nødvendig</span> – edge-cachen (~8 s) og
+        auto-pollingen (hvert 10. sek) holder tavla fersk av seg selv. Mest nyttig hvis noe ser
+        fastlåst ut, eller for å hente nye sluttspill-kamper med en gang lagene er trukket.
       </p>
       <button
         type="button"
