@@ -106,9 +106,9 @@ tippekonk/                          # repo-root
 │   │   │   ├── stats.js            # aggregert turneringsstatistikk (mål/assist/kort) m/KV-cache
 │   │   │   └── state.js            # delt admin-data (Upstash KV): GET offentlig / POST m/passord
 │   │   ├── src/
-│   │   │   ├── components/         # Leaderboard, ProgressionChart, MatchList, MatchRow, FeaturedMatch,
-│   │   │   │                       # MatchEvents, TipChips, BonusQuestions, GroupTables, TeamCards,
-│   │   │   │                       # PlayerStats, AdminPanel, TeamLogo, BroadcasterBadge
+│   │   │   ├── components/         # Leaderboard, ProgressionChart, ParticipantStats, MatchList, MatchRow,
+│   │   │   │                       # FeaturedMatch, MatchEvents, TipChips, BonusQuestions, GroupTables,
+│   │   │   │                       # TeamCards, PlayerStats, FootballStats, AdminPanel, TeamLogo, BroadcasterBadge
 │   │   │   ├── data/
 │   │   │   │   ├── participants.ts     # gruppespill- + krydder-tips per deltaker (auto-generert)
 │   │   │   │   ├── bonusQuestions.ts    # de 17 krydderspørsmålene (auto-generert)
@@ -279,7 +279,14 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   et **subtilt, gjennomsiktig tannhjul** (→ admin). Ingen offentlig refresh-knapp (auto-polling dekker
   det); manuell refresh ligger i admin.
 - **Faner:** fire (Stilling / Kamper / Krydder / Stats), én sentrert kolonne. Standard landingsfane er
-  **Kamper**. «Stilling» har en under-toggle `Stilling | Graf` (tabell vs. utviklingsgraf).
+  **Kamper**. Under-toggles: «Stilling» → `Stilling | Graf | Deltagerne`; «Stats» → `Lagstats |
+  Spillerstats | Nerding`.
+  - **Deltagerne** (`ParticipantStats`): treffsikkerhet (eksakt/utfall/bom-søyler), poeng-kilde
+    (gruppe/sluttspill/krydder-søyler), folkets favoritt (fordeling av tipp på q1/q2/q3/q10/q13/q17).
+  - **Nerding** (`FootballStats`): mål-fordeling per 15-min-bolk (`stats.goalMinutes`) + mål per
+    kampdag (vertikalt søylediagram fra resultatene).
+  - **q5-tallinje** (`Q5NumberLine` i `BonusQuestions`): når q5 åpnes, alle deltakernes mål-gjett som
+    prikker + projeksjon med ±5-bånd (grønn = innenfor).
 - **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Graf`).
   - **Lagstats:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
     gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper
