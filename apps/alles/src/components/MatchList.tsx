@@ -109,6 +109,8 @@ export default function MatchList({ results, participants }: Props) {
   // Fase-velger: følger den aktuelle kampens fase som standard, men låses til
   // brukerens valg så snart han trykker på en knapp.
   const [override, setOverride] = useState<Phase | null>(null);
+  // Valgt sluttspill-runde (rullegardin). null = følg dato-basert default.
+  const [koStage, setKoStage] = useState<string | null>(null);
 
   const groupMatches = known.filter((m) => m.stage === 'GROUP_STAGE').sort(byDate);
   // Sluttspill viser ALLE kampene (også TBD vs TBD med klokkeslett) – lag og stilling
@@ -125,6 +127,15 @@ export default function MatchList({ results, participants }: Props) {
   const featuredKnockout = featured[0] !== undefined && featured[0].stage !== 'GROUP_STAGE';
   const defaultPhase: Phase = groupStageDone || featuredKnockout ? 'sluttspill' : 'gruppespill';
   const phase = override ?? defaultPhase;
+
+  // Default sluttspill-runde: første runde (i bracket-rekkefølge) som ennå har en uspilt kamp –
+  // altså den «aktuelle» runden. Er alt ferdig: vis siste runde. Brukervalg overstyrer.
+  const koDefault =
+    knockoutStages.find((s) => s.matches.some((m) => m.status !== 'FINISHED'))?.stage ??
+    knockoutStages.at(-1)?.stage ??
+    null;
+  const selectedKo = (koStage && knockoutStages.some((s) => s.stage === koStage) ? koStage : null) ?? koDefault;
+  const selectedKoData = knockoutStages.find((s) => s.stage === selectedKo) ?? null;
 
   if (groupMatches.length === 0 && knockoutStages.length === 0 && featured.length === 0) {
     return <p className="px-1 text-sm text-slate-400">Ingen kamper å vise ennå.</p>;
@@ -156,19 +167,30 @@ export default function MatchList({ results, participants }: Props) {
           Sluttspillet er ikke trukket ennå – kampene dukker opp her automatisk når lagene er klare.
         </p>
       ) : (
-        <div className="space-y-4">
-          {knockoutStages.map(({ stage, matches }) => (
-            <div key={stage}>
-              <h3
-                className={`mb-1.5 px-1 text-center text-sm font-semibold uppercase tracking-wide ${
-                  STAGE_COLORS[stage] ?? 'text-wc-lime'
-                }`}
-              >
-                {STAGE_LABELS[stage]}
-              </h3>
-              <MatchCard matches={matches} participants={participants} />
-            </div>
-          ))}
+        <div className="space-y-2">
+          {/* Rullegardin for sluttspill-runde – fargen følger valgt runde. */}
+          <div className="relative">
+            <select
+              value={selectedKo ?? ''}
+              onChange={(e) => setKoStage(e.target.value)}
+              aria-label="Velg sluttspill-runde"
+              className={`w-full appearance-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-center text-sm font-semibold uppercase tracking-wide ${
+                STAGE_COLORS[selectedKo ?? ''] ?? 'text-wc-lime'
+              }`}
+            >
+              {knockoutStages.map(({ stage }) => (
+                <option key={stage} value={stage} className="text-slate-100">
+                  {STAGE_LABELS[stage]}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+              ▾
+            </span>
+          </div>
+          {selectedKoData && (
+            <MatchCard matches={selectedKoData.matches} participants={participants} />
+          )}
         </div>
       )}
     </div>
