@@ -31,6 +31,7 @@ import PlayerStats from './components/PlayerStats';
 import ParticipantStats, { FolketsFavoritt } from './components/ParticipantStats';
 import FootballStats from './components/FootballStats';
 import AdminPanel from './components/AdminPanel';
+import VictoryPopup from './components/VictoryPopup';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
 import {
@@ -197,6 +198,26 @@ export default function App() {
     [participants, results, questions, bonusInfo],
   );
 
+  // Vinner-feiring: kun når VM er over (finalen ferdig). Vinner(e) = de på 1.-plass (delt → alle).
+  const tournamentOver = useMemo(
+    () => results.some((m) => m.stage === 'FINAL' && m.status === 'FINISHED'),
+    [results],
+  );
+  const winners = useMemo(
+    () => standings.filter((s) => s.rank === 1).map((s) => s.name),
+    [standings],
+  );
+  const [showVictory, setShowVictory] = useState(false);
+  useEffect(() => {
+    if (tournamentOver && winners.length > 0 && !localStorage.getItem(STORAGE_KEYS.victorySeen)) {
+      setShowVictory(true);
+    }
+  }, [tournamentOver, winners]);
+  const closeVictory = () => {
+    setShowVictory(false);
+    localStorage.setItem(STORAGE_KEYS.victorySeen, '1'); // vis kun én gang per nettleser
+  };
+
   if (adminOpen) {
     return (
       <AdminPanel
@@ -207,6 +228,7 @@ export default function App() {
         bonusStore={bonusManual}
         autoBonus={autoBonus}
         autoPreliminary={autoPreliminary}
+        previewWinners={winners}
         loading={loading}
         error={error}
         onSaveKnockout={(s, password) => {
@@ -413,6 +435,7 @@ export default function App() {
           </div>
         )}
       </main>
+      {showVictory && <VictoryPopup winners={winners} onClose={closeVictory} />}
     </div>
   );
 }

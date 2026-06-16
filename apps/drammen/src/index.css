@@ -136,6 +136,35 @@ body {
   }
 }
 
+/* Vinner-feiring: fallende konfetti/emoji (💵 ⚽ 🍾 …) ovenfra og ned, med litt rotasjon. */
+@keyframes wc-confetti-fall {
+  0% {
+    transform: translateY(-12vh) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(112vh) rotate(540deg);
+    opacity: 0.95;
+  }
+}
+
+@keyframes wc-victory-pop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* Portrett-lås: vis en «vend telefonen»-melding når en TELEFON er i landskap.
    max-height: 500px skiller telefon-landskap fra nettbrett/desktop (som beholder bred visning). */
 .wc-rotate-lock {

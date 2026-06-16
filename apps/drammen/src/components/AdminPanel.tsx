@@ -11,6 +11,7 @@ import {
   type KnockoutStore,
 } from '../utils/storage';
 import type { SaveResult } from '../utils/remoteStore';
+import VictoryPopup from './VictoryPopup';
 
 interface Props {
   results: MatchResult[];
@@ -20,6 +21,7 @@ interface Props {
   bonusStore: BonusStore;
   autoBonus: BonusStore;
   autoPreliminary: Record<string, string>;
+  previewWinners: string[];
   loading: boolean;
   error: string | null;
   onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
@@ -160,6 +162,7 @@ function AdminContent({
   bonusStore,
   autoBonus,
   autoPreliminary,
+  previewWinners,
   loading,
   error,
   password,
@@ -171,6 +174,7 @@ function AdminContent({
   onLogout,
 }: Props & { password: string; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('sluttspill');
+  const [testVictory, setTestVictory] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
@@ -235,7 +239,20 @@ function AdminContent({
             onClearCache={onClearCache}
           />
         )}
+        {/* Subtil test-link: forhåndsvis vinner-feiringen (vises egentlig kun når VM er over). */}
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => setTestVictory(true)}
+            className="text-[11px] text-slate-600 hover:text-slate-400"
+          >
+            🎉 Test: vis vinner-feiring
+          </button>
+        </div>
       </main>
+      {testVictory && (
+        <VictoryPopup winners={previewWinners} onClose={() => setTestVictory(false)} />
+      )}
     </div>
   );
 }
