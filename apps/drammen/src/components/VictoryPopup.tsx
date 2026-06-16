@@ -92,7 +92,7 @@ export default function VictoryPopup({ winners, onClose }: { winners: string[]; 
           <img
             src="/trophy.png"
             alt="VM-troféet"
-            className="mx-auto h-24 w-auto object-contain drop-shadow-lg"
+            className="mx-auto h-40 w-auto object-contain drop-shadow-lg"
             onError={() => setTrophyOk(false)}
           />
         ) : (
