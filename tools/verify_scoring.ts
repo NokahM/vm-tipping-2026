@@ -402,6 +402,16 @@ const q17p: Participant[] = [
 assert('q17 «Kvartfinale» mot «Kvartfinaler» = full pott', scoreBonusQuestion(q17p, { ...q17q, answer: 'Kvartfinaler' }).get('A'), q17q.maxPoints);
 assert('q17 feil runde = 0', scoreBonusQuestion(q17p, { ...q17q, answer: 'Kvartfinaler' }).get('B') ?? 0, 0);
 
+// 4f) Feilstaving-toleranse i scoring (norm/spellKey)
+console.log('\nFeilstaving gir riktig poeng:');
+const q10q = BONUS_QUESTIONS.find((q) => q.id === 'q10')!;
+const spellP: Participant[] = [
+  { name: 'Bent', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q10', answer: 'Curacau' }] },
+  { name: 'Curaco', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q10', answer: 'Curacao' }] },
+];
+assert('q10 «Curacau» mot fasit «Curaçao» = full pott', scoreBonusQuestion(spellP, { ...q10q, answer: 'Curaçao' }).get('Bent'), q10q.maxPoints);
+assert('q10 «Curacao» mot «Curaçao» = full pott', scoreBonusQuestion(spellP, { ...q10q, answer: 'Curaçao' }).get('Curaco'), q10q.maxPoints);
+
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');
 for (const s of standings) {

@@ -10,6 +10,7 @@ import type {
   Stage,
 } from '../types';
 import { normalizeTeamName } from './teamNames';
+import { spellKey } from './teamCanon';
 
 // ---------------------------------------------------------------------------
 // Kjernepoeng: 3 = eksakt resultat, 1 = riktig utfall, 0 = feil.
@@ -112,8 +113,10 @@ function scoreKnockoutTips(tips: KnockoutTip[], idx: Map<number, Goals>): MatchS
 // Krydderspørsmål. Poeng beregnes kun for spørsmål med satt fasit (answer != null).
 // ---------------------------------------------------------------------------
 
+// Diakritisk-insensitiv + feilstavings-tolerant, så åpenbare feilstavinger (Curacau → Curaçao,
+// Mbappe → Mbappé) gir riktig poeng. Brukes for all tekst-matching av krydder-svar.
 function norm(s: string): string {
-  return s.trim().toLowerCase();
+  return spellKey(s);
 }
 
 /** Gruppe-bokstaver (A–L) som står alene i et q9-svar, f.eks. «Gruppe I og L» → [I, L]. */

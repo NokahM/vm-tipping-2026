@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant, ParticipantScore } from '../types';
 import { parseStage, participantBreakdown, type ScoringItem } from '../utils/scoring';
-import { TEAM_NAME_MAP } from '../utils/teamNames';
+import { canonTeam, spellKey } from '../utils/teamCanon';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 // «Hvem/hva»-spørsmål der det er gøy å se hva folket tror.
@@ -26,8 +26,6 @@ const NAME_SUFFIX = new Set(['junior', 'jr', 'júnior', 'jnr', 'senior', 'sr', '
 // Eksplisitte etternavn-aliaser (diakritisk-/store-bokstav-uavhengig nøkkel) → kanonisk staving.
 const PLAYER_ALIAS: Record<string, string> = { fernandez: 'Fernandes' };
 
-const stripDia = (s: string) => [...s.normalize('NFD')].filter((c) => { const x = c.charCodeAt(0); return x < 0x0300 || x > 0x036f; }).join('');
-const keyOf = (s: string) => stripDia(s).toLowerCase().trim();
 /** Kort spillernavn: dropp generasjons-suffiks, bruk siste «ekte» ord (Vinicius Jr. → Vinicius). */
 function playerName(s: string): string {
   const parts = s.trim().split(/\s+/);
@@ -35,18 +33,15 @@ function playerName(s: string): string {
     parts.pop();
   }
   const last = parts.length ? parts[parts.length - 1] : s;
-  return PLAYER_ALIAS[keyOf(last)] ?? last; // «Fernandez» → «Fernandes»
+  return PLAYER_ALIAS[spellKey(last)] ?? last; // «Fernandez» → «Fernandes»
 }
-// Kanoniske norske lagnavn nøklet diakritisk-/store-bokstav-uavhengig (Curacao → Curaçao).
-const TEAM_CANON = new Map<string, string>();
-for (const no of new Set(Object.values(TEAM_NAME_MAP))) TEAM_CANON.set(keyOf(no), no);
 
 /** Slår sammen stavevarianter o.l. til ett kanonisk svar per spørsmål. */
 function canonicalize(qid: string, answer: string): string {
   const a = answer.trim();
   if (!a) return a;
   if (PLAYER_QS.has(qid)) return playerName(a); // «Vinicius Jr.» → «Vinicius», «Lionel Messi» → «Messi»
-  if (TEAM_QS.has(qid)) return TEAM_CANON.get(keyOf(a)) ?? a; // «Curacao» → «Curaçao»
+  if (TEAM_QS.has(qid)) return canonTeam(a); // «Curacao»/«Curacau» → «Curaçao»
   if (qid === 'q17') {
     const st = parseStage(a);
     return st ? Q17_LABELS[st] : a;
