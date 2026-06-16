@@ -45,7 +45,7 @@ const DATE_OVERRIDE_IDS = new Set(['q6', 'q7', 'q8', 'q15']);
 // Resten (q2, q4, q6, q15) krever manuell fasit.
 const AUTO_IDS = new Set(['q1', 'q3', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q16', 'q17']);
 // Akkumulerende: poeng deles ut løpende, men lista kan vokse til turneringsslutt («ikke avsluttet»).
-const ACCUMULATING_IDS = new Set(['q7', 'q8']); // rødt kort, selvmål
+const ACCUMULATING_IDS = new Set(['q7', 'q8', 'q15']); // rødt kort, selvmål, kjendis-dødsfall
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 
 /** Dagens dato i NORSK tid (yyyy-mm-dd), uavhengig av enhetens tidssone. sv-SE gir ISO-format. */
@@ -621,6 +621,7 @@ function BonusTab({
           {showCounts && (
             <p className="mt-1 text-[11px] text-slate-400">
               ✓ Teller nå: <span className="text-slate-100">{counts}</span>
+              {ACCUMULATING_IDS.has(q.id) && <span className="text-slate-500"> · ikke avsluttet</span>}
               {overriddenAuto && <span className="text-amber-300"> · overstyrer auto</span>}
             </p>
           )}

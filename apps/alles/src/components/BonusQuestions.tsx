@@ -33,7 +33,7 @@ const GROUP_GOALS_QUESTION_ID = 'q9'; // hvilken gruppe scorer flest mål – le
 const WORST_TEAM_QUESTION_ID = 'q10'; // VMs dårligste lag – dårligst-så-langt
 const FASTEST_GOAL_QUESTION_ID = 'q6'; // raskeste mål – pekepinn (eksakt tid settes manuelt)
 // Akkumulerende spørsmål: poeng deles ut løpende, men lista kan vokse til turneringsslutt.
-const ACCUMULATING_IDS = new Set(['q7', 'q8']); // rødt kort, selvmål
+const ACCUMULATING_IDS = new Set(['q7', 'q8', 'q15']); // rødt kort, selvmål, kjendis-dødsfall
 
 /** «Julián Quiñones» → «Quiñones» for kompakt visning. */
 function lastName(full: string): string {
