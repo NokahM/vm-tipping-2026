@@ -19,6 +19,7 @@ interface Props {
   knockoutStore: KnockoutStore;
   bonusStore: BonusStore;
   autoBonus: BonusStore;
+  autoPreliminary: Record<string, string>;
   loading: boolean;
   error: string | null;
   onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
@@ -156,6 +157,7 @@ function AdminContent({
   knockoutStore,
   bonusStore,
   autoBonus,
+  autoPreliminary,
   loading,
   error,
   password,
@@ -218,6 +220,7 @@ function AdminContent({
             questions={questions}
             store={bonusStore}
             autoBonus={autoBonus}
+            autoPreliminary={autoPreliminary}
             password={password}
             onSave={onSaveBonus}
           />
@@ -404,12 +407,14 @@ function BonusTab({
   questions,
   store,
   autoBonus,
+  autoPreliminary,
   password,
   onSave,
 }: {
   questions: BonusQuestion[];
   store: BonusStore;
   autoBonus: BonusStore;
+  autoPreliminary: Record<string, string>;
   password: string;
   onSave: (store: BonusStore, password: string) => Promise<SaveResult>;
 }) {
@@ -576,14 +581,22 @@ function BonusTab({
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
-          {autoText(autoBonus[q.id]) && (
+          {autoText(autoBonus[q.id]) ? (
             <p className="mt-1 text-[11px] text-emerald-400/80">
               Auto nå: <span className="text-emerald-300">{autoText(autoBonus[q.id])}</span>
               {(draft[q.id] ?? '').trim() !== '' && (
                 <span className="text-slate-500"> · overstyres av ditt svar</span>
               )}
             </p>
-          )}
+          ) : autoPreliminary[q.id] ? (
+            <p className="mt-1 text-[11px] text-slate-400">
+              Auto nå: <span className="text-amber-300">{autoPreliminary[q.id]}</span>
+              <span className="text-slate-500"> – ikke avgjort ennå</span>
+              {(draft[q.id] ?? '').trim() !== '' && (
+                <span className="text-slate-500"> · overstyres av ditt svar</span>
+              )}
+            </p>
+          ) : null}
           {/* Valgfri dato-overstyring + «nullstill til auto» (kun når relevant) */}
           {(DATE_OVERRIDE_IDS.has(q.id) ||
             (AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '')) && (

@@ -191,3 +191,65 @@ export function deriveStatsBonus(stats: StatsData | null, results: MatchResult[]
 
   return store;
 }
+
+/**
+ * Foreløpige auto-verdier KUN for visning (read-only «Auto nå»-hint i admin) – «slik ligger det
+ * an akkurat nå». Scorer ALDRI; vises for spørsmål som ennå ikke er avgjort, men der API-et har en
+ * pekepinn. Brukes bare når et spørsmål ikke alt er låst av deriveDecidedBonus/deriveStatsBonus.
+ */
+export function derivePreliminaryBonus(
+  stats: StatsData | null,
+  results: MatchResult[],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (results.length === 0) return out;
+
+  // q5: antall mål så langt (ferdigspilte kamper).
+  const goalsSoFar = results.reduce(
+    (s, m) => (m.status === 'FINISHED' ? s + (m.homeGoals ?? 0) + (m.awayGoals ?? 0) : s),
+    0,
+  );
+  if (goalsSoFar > 0) out.q5 = `${goalsSoFar} mål så langt`;
+
+  // q9: gruppe(r) med flest mål så langt.
+  const leaders = groupGoalLeaders(results);
+  if (leaders && leaders.leaders.length > 0) out.q9 = leaders.leaders.join(', ');
+
+  // q10: dårligste lag så langt.
+  const worst = worstTeamSoFar(results);
+  if (worst) out.q10 = normalizeTeamName(worst.team);
+
+  // q12/q14: lengst-kommende øynasjon / afrikanske land så langt.
+  const isl = furthestAmong(ISLAND_NATIONS, results);
+  if (isl) out.q12 = isl.teams.map(normalizeTeamName).join(', ');
+  const afr = furthestAmong(AFRICAN_NATIONS, results);
+  if (afr) out.q14 = afr.teams.map(normalizeTeamName).join(', ');
+
+  // q17: hvor langt Norge har kommet så langt.
+  const nor = furthestStageOf('Norway', results);
+  if (nor) out.q17 = STAGE_LABELS[nor.stage];
+
+  if (stats) {
+    // q3: toppscorer så langt.
+    const top = stats.topScorers?.[0];
+    if (top) out.q3 = `${top.name} (${top.goals ?? 0} mål)`;
+
+    // q6: raskeste mål så langt (API kjenner kun minuttet, ikke sekundet).
+    if (stats.fastestGoal) {
+      const fg = stats.fastestGoal;
+      out.q6 = `${fg.minute}'${fg.scorer ? ` (${fg.scorer})` : ''}`;
+    }
+
+    // q13: flest mål av Ronaldo/Messi så langt.
+    const r = stats.goalsByPlayer?.[RONALDO_ID] ?? 0;
+    const m = stats.goalsByPlayer?.[MESSI_ID] ?? 0;
+    out.q13 = r === m ? `Likt (${r}–${m})` : r > m ? `Ronaldo (${r}–${m})` : `Messi (${m}–${r})`;
+
+    // q16: hvor mange av de tre Glimt-spillerne som har spilt (når ikke alle tre ennå).
+    const played = new Set(stats.playedIds ?? []);
+    const n = GLIMT_IDS.filter((id) => played.has(id)).length;
+    if (n < 3) out.q16 = `Nei (${n} av 3 har spilt)`;
+  }
+
+  return out;
+}

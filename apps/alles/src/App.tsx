@@ -33,7 +33,7 @@ import FootballStats from './components/FootballStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
-import { deriveDecidedBonus, deriveStatsBonus } from './utils/autoDerive';
+import { deriveDecidedBonus, derivePreliminaryBonus, deriveStatsBonus } from './utils/autoDerive';
 import { clearMatchEventsCache } from './hooks/useMatchEvents';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
@@ -151,6 +151,8 @@ export default function App() {
     () => ({ ...autoBonusStore, ...autoDecided, ...autoStats }),
     [autoBonusStore, autoDecided, autoStats],
   );
+  // Foreløpige «slik ligger det an»-verdier for spørsmål som ennå ikke er avgjort (kun hint).
+  const autoPreliminary = useMemo(() => derivePreliminaryBonus(stats, results), [stats, results]);
   // Manuelle KV-svar overstyrer alltid auto; innbakt JSON er bunn-fallback.
   const bonusMerged = useMemo(
     () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...bonusStore }),
@@ -197,6 +199,7 @@ export default function App() {
         knockoutStore={knockoutMerged}
         bonusStore={bonusManual}
         autoBonus={autoBonus}
+        autoPreliminary={autoPreliminary}
         loading={loading}
         error={error}
         onSaveKnockout={(s, password) => {
