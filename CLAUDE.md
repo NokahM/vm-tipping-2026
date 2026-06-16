@@ -449,6 +449,9 @@ charting-bibliotek) som viser hver deltakers **kumulative totalsum dag-for-dag**
   per deltaker. Kun FINISHED/avgjort (aldri live), som tabellen. Prepender en **start-dag** der alle
   står på 0.
 - Tidsakse: samme **10:00 UTC / 12:00 norsk**-grense som plasserings-pilene (`matchDayKey()`).
+- **Modus-toggle `Poeng | Plassering`:** «Plassering» utleder rang per dag fra totalene (1, 2, 2, 4 …,
+  hele feltet) og tegner et **bump chart** (rang 1 øverst) – tabellplassering over tid. Deler akse,
+  farger, spiller-velger og anti-overlapp med poeng-grafen.
 - `components/ProgressionChart.tsx`: polylines i WC-palett, navn ved strek-enden (vinklet langs
   siste segment), y-akse i «nice step» med alltid ett hakk klaring over lederen (stanger aldri i
   taket), x-akse ≤ 7 datolabels (første + siste alltid med). Spiller-velger: **default topp 3** +
