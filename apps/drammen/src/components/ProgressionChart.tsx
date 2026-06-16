@@ -21,6 +21,11 @@ function fmtDay(day: string): string {
   return `${day.slice(8, 10)}.${day.slice(5, 7)}`;
 }
 
+/** Forkort lange navn ved strek-enden så de ikke klippes mot høyre kant. */
+function shortLabel(name: string): string {
+  return name.length > 11 ? `${name.slice(0, 10)}…` : name;
+}
+
 /** Pent y-akse-steg (1/2/5 × 10ⁿ) for ~`target` merker. */
 function niceStep(max: number, target = 5): number {
   if (max <= 0) return 1;
@@ -86,6 +91,26 @@ export default function ProgressionChart({ progression }: Props) {
     const x = (i: number) => PAD.left + (days.length > 1 ? i / (days.length - 1) : 0.5) * plotW;
     const y = (v: number) => PAD.top + (1 - v / yMax) * plotH;
 
+    // Sluttpunkt-etiketter med anti-overlapp: dytt navnene fra hverandre vertikalt.
+    const ends = shown.map((s) => {
+      const n = s.totals.length;
+      const angle =
+        n >= 2
+          ? (Math.atan2(y(s.totals[n - 1]) - y(s.totals[n - 2]), x(n - 1) - x(n - 2)) * 180) /
+            Math.PI
+          : 0;
+      return { s, n, color: colorOf.get(s.name)!, lx: x(n - 1), ly: y(s.final), angle, labelY: y(s.final) };
+    });
+    const MIN_GAP = 8; // minste vertikale avstand mellom navn (i SVG-enheter)
+    let lastY = -Infinity;
+    for (const e of [...ends].sort((a, b) => a.ly - b.ly)) {
+      e.labelY = Math.max(e.ly, lastY + MIN_GAP);
+      lastY = e.labelY;
+    }
+    // Hvis nederste navn renner under bunnen, skyv hele settet opp.
+    const overflow = lastY - (vbH - PAD.bottom - 2);
+    if (overflow > 0) for (const e of ends) e.labelY -= overflow;
+
     return (
       <svg
         viewBox={`0 0 ${vbW} ${vbH}`}
@@ -117,40 +142,31 @@ export default function ProgressionChart({ progression }: Props) {
           </text>
         ))}
 
-        {/* Linjer + sluttpunkt + navn (vinklet etter streken) */}
-        {shown.map((s) => {
-          const color = colorOf.get(s.name)!;
-          const n = s.totals.length;
-          const pts = s.totals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
-          const lx = x(n - 1);
-          const ly = y(s.final);
-          const angle =
-            n >= 2
-              ? (Math.atan2(y(s.totals[n - 1]) - y(s.totals[n - 2]), x(n - 1) - x(n - 2)) * 180) /
-                Math.PI
-              : 0;
+        {/* Linjer + sluttpunkt + navn (vinklet etter streken, dyttet fra hverandre) */}
+        {ends.map((e) => {
+          const pts = e.s.totals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
           return (
-            <g key={s.name}>
-              {n > 1 && (
+            <g key={e.s.name}>
+              {e.n > 1 && (
                 <polyline
                   points={pts}
                   fill="none"
-                  stroke={color}
+                  stroke={e.color}
                   strokeWidth="1.6"
                   strokeLinejoin="round"
                   strokeLinecap="round"
                 />
               )}
-              <circle cx={lx} cy={ly} r="2.2" fill={color} />
+              <circle cx={e.lx} cy={e.ly} r="2.2" fill={e.color} />
               <text
-                x={lx + 3}
-                y={ly + 2.2}
-                fill={color}
+                x={e.lx + 3}
+                y={e.labelY + 2.2}
+                fill={e.color}
                 fontSize="7"
                 fontWeight="600"
-                transform={`rotate(${angle} ${lx} ${ly})`}
+                transform={`rotate(${e.angle} ${e.lx} ${e.labelY})`}
               >
-                {s.name}
+                {shortLabel(e.s.name)}
               </text>
             </g>
           );
