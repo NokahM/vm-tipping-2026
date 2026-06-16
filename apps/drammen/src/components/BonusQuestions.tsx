@@ -71,8 +71,8 @@ function Q5NumberLine({
   const spacing = Math.min(4, 24 / Math.max(1, ...counts.values()));
   const seen = new Map<number, number>();
 
-  const AXIS_Y = 58;
-  const H = 78;
+  const AXIS_Y = 48;
+  const H = 64;
 
   // Pene mellom-merker på x-aksen (naturlige intervaller mellom min og max).
   const niceTicks = (() => {
