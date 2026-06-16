@@ -548,11 +548,13 @@ function BonusTab({
             value={draft[q.id] ?? ''}
             onChange={(v) => setVal(q.id, v)}
             placeholder={
-              !LIST_ANSWER_IDS.has(q.id)
-                ? 'Fasit (tom = ikke avgjort)'
-                : PER_TEAM_IDS.has(q.id)
-                  ? 'Alle lag, komma-separert (Norge, Brasil, …)'
-                  : 'Alle, komma-separert (Pave Frans, Charter-Svein, …)'
+              AUTO_IDS.has(q.id)
+                ? 'Auto henter dette – la stå tomt (skriv for å overstyre)'
+                : !LIST_ANSWER_IDS.has(q.id)
+                  ? 'Fasit (tom = ikke avgjort)'
+                  : PER_TEAM_IDS.has(q.id)
+                    ? 'Alle lag, komma-separert (Norge, Brasil, …)'
+                    : 'Alle, komma-separert (Pave Frans, Charter-Svein, …)'
             }
           />
           {LIST_ANSWER_IDS.has(q.id) && (
