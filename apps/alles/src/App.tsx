@@ -146,6 +146,11 @@ export default function App() {
   const autoBonusStore = useMemo(() => autoBonusToStore(stats?.autoBonus), [stats?.autoBonus]);
   const autoDecided = useMemo(() => deriveDecidedBonus(results), [results]);
   const autoStats = useMemo(() => deriveStatsBonus(stats, results), [stats, results]);
+  // Hva auto/API har funnet så langt (uten manuell overstyring) – vises som read-only hint i admin.
+  const autoBonus = useMemo(
+    () => ({ ...autoBonusStore, ...autoDecided, ...autoStats }),
+    [autoBonusStore, autoDecided, autoStats],
+  );
   // Manuelle KV-svar overstyrer alltid auto; innbakt JSON er bunn-fallback.
   const bonusMerged = useMemo(
     () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...bonusStore }),
@@ -191,6 +196,7 @@ export default function App() {
         questions={BONUS_QUESTIONS}
         knockoutStore={knockoutMerged}
         bonusStore={bonusManual}
+        autoBonus={autoBonus}
         loading={loading}
         error={error}
         onSaveKnockout={(s, password) => {

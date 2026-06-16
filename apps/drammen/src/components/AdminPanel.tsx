@@ -18,6 +18,7 @@ interface Props {
   questions: BonusQuestion[];
   knockoutStore: KnockoutStore;
   bonusStore: BonusStore;
+  autoBonus: BonusStore;
   loading: boolean;
   error: string | null;
   onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
@@ -47,6 +48,13 @@ const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
 /** Dagens dato i NORSK tid (yyyy-mm-dd), uavhengig av enhetens tidssone. sv-SE gir ISO-format. */
 function todayOsloYMD(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Oslo' });
+}
+
+/** Auto-svar som lesbar tekst (read-only hint i admin), eller tomt om auto ikke har funnet noe. */
+function autoText(v: BonusStore[string] | undefined): string {
+  if (v === undefined) return '';
+  const ans = bonusAnswerOf(v);
+  return Array.isArray(ans) ? ans.join(', ') : ans;
 }
 
 type Tab = 'sluttspill' | 'krydder' | 'oppdater';
@@ -147,6 +155,7 @@ function AdminContent({
   questions,
   knockoutStore,
   bonusStore,
+  autoBonus,
   loading,
   error,
   password,
@@ -208,6 +217,7 @@ function AdminContent({
           <BonusTab
             questions={questions}
             store={bonusStore}
+            autoBonus={autoBonus}
             password={password}
             onSave={onSaveBonus}
           />
@@ -393,11 +403,13 @@ function KnockoutMatch({
 function BonusTab({
   questions,
   store,
+  autoBonus,
   password,
   onSave,
 }: {
   questions: BonusQuestion[];
   store: BonusStore;
+  autoBonus: BonusStore;
   password: string;
   onSave: (store: BonusStore, password: string) => Promise<SaveResult>;
 }) {
@@ -562,6 +574,14 @@ function BonusTab({
               {PER_TEAM_IDS.has(q.id)
                 ? `Legg inn alle lagene som gjorde det – deltakerne får ${q.maxPoints / 2}p per korrekt nevnt lag (maks ${q.maxPoints}p hver).`
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
+            </p>
+          )}
+          {autoText(autoBonus[q.id]) && (
+            <p className="mt-1 text-[11px] text-emerald-400/80">
+              Auto nå: <span className="text-emerald-300">{autoText(autoBonus[q.id])}</span>
+              {(draft[q.id] ?? '').trim() !== '' && (
+                <span className="text-slate-500"> · overstyres av ditt svar</span>
+              )}
             </p>
           )}
           {/* Valgfri dato-overstyring + «nullstill til auto» (kun når relevant) */}
