@@ -11,7 +11,7 @@ export default function TeamCards({ teamCards }: { teamCards: TeamCard[] }) {
   return (
     <div style={frameStyle} className="wc-frame overflow-hidden rounded-xl bg-slate-800">
       <div className="border-b border-slate-700/70 px-3 py-1.5 text-sm font-semibold text-slate-200">
-        Kort per lag
+        Skammekroken
       </div>
       <ul className="divide-y divide-slate-700/40">
         {teamCards.map((t) => {
