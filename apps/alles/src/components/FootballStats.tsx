@@ -4,10 +4,11 @@ import { wcFrameStyle } from '../utils/wcFrame';
 
 const MIN_LABELS = ['1-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+'];
 
-// «Kampdag» i amerikansk tid (Eastern) – kampene spilles der, så det grupperes etter
-// kalenderdagen i USA, ikke den norske 12:00-grensen. en-CA gir YYYY-MM-DD.
+// «Kampdag» i amerikansk tid. Bruker Pacific (vestligste vertssone) så ingen kamp krysser
+// midnatt: alle kampkvelder ligger før midnatt i PT, og østligere kamper havner uansett på
+// samme PT-dato. Grupperer dermed etter kalenderdagen kampene faktisk spilles. en-CA = YYYY-MM-DD.
 const usDay = (utcDate: string) =>
-  new Date(utcDate).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  new Date(utcDate).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   const frameStyle = useMemo(wcFrameStyle, []);

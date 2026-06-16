@@ -4,7 +4,7 @@
 //
 // Selv-inneholdt (ingen lokale imports) så den samme handleren kan kalles fra Vite-dev-proxyen.
 
-const CACHE_KEY = 'stats:v4'; // v4: lagrer også mål-minutt (q6 raskeste mål)
+const CACHE_KEY = 'stats:v5'; // v5: lagrer også injuryTime per mål (90+-bolken)
 const BATCH = 10; // maks antall kamp-detaljer å hente per kall (skåner rategrensen)
 const LIVE = ['FINISHED', 'IN_PLAY', 'PAUSED'];
 const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000; // 10:00 UTC = 12:00 norsk – samme som matchDayKey
@@ -46,6 +46,7 @@ function extractMatch(d) {
     team: g.team?.name ?? '',
     type: g.type || 'REGULAR',
     minute: g.minute ?? null,
+    injuryTime: g.injuryTime ?? null, // overtid (90+N lagres som minute:90 + injuryTime:N)
     assistId: g.assist?.id ?? null,
     assistName: g.assist?.name ?? '',
   }));
@@ -238,7 +239,21 @@ async function computeStats(apiKey, kvUrl, kvToken) {
         fastestGoal = { minute: g.minute, scorer: g.name, team: g.team };
       }
       const mn = g.minute;
-      const i = mn <= 15 ? 0 : mn <= 30 ? 1 : mn <= 45 ? 2 : mn <= 60 ? 3 : mn <= 75 ? 4 : mn <= 90 ? 5 : 6;
+      // Andre-omgangs overtid (90+N) lagres som minute:90 + injuryTime → egen «90+»-bolk.
+      const stoppage90 = mn > 90 || (mn === 90 && (g.injuryTime || 0) > 0);
+      const i = stoppage90
+        ? 6
+        : mn <= 15
+          ? 0
+          : mn <= 30
+            ? 1
+            : mn <= 45
+              ? 2
+              : mn <= 60
+                ? 3
+                : mn <= 75
+                  ? 4
+                  : 5;
       goalMinutes[i]++;
     }
   }
