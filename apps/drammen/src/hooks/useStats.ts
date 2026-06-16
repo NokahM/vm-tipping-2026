@@ -33,6 +33,7 @@ export interface StatsData {
   playedIds?: number[]; // spillere m/ spilletid (for q16)
   finalReferee?: string | null; // for q11
   fastestGoal?: { minute: number; scorer: string; team: string } | null; // for q6
+  fastestGoals?: { minute: number; scorer: string; team: string }[]; // alle mål på laveste minutt (q6)
   goalMinutes?: number[]; // mål per 15-min-bolk (7 tall) – for «Nerding»
   coverage?: { cached: number; relevant: number };
   updatedAt?: number;

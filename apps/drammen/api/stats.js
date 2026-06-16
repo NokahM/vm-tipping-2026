@@ -231,12 +231,18 @@ async function computeStats(apiKey, kvUrl, kvToken) {
   // q6: raskeste mål så langt (lavest minutt). Sekunder finnes ikke i API-et – kun pekepinn.
   // + mål-fordeling per 15-min-bolk (1-15, 16-30, 31-45, 46-60, 61-75, 76-90, 90+) for «Nerding».
   let fastestGoal = null;
+  // Alle mål på det laveste minuttet – API-et har ikke sekunder, så flere kan være «raskest».
+  let fastestGoals = [];
   const goalMinutes = [0, 0, 0, 0, 0, 0, 0];
   for (const m of Object.values(cache.matches)) {
     for (const g of m.goals || []) {
       if (g.minute == null) continue;
+      const entry = { minute: g.minute, scorer: g.name, team: g.team };
       if (!fastestGoal || g.minute < fastestGoal.minute) {
-        fastestGoal = { minute: g.minute, scorer: g.name, team: g.team };
+        fastestGoal = entry;
+        fastestGoals = [entry];
+      } else if (g.minute === fastestGoal.minute) {
+        fastestGoals.push(entry);
       }
       const mn = g.minute;
       // Andre-omgangs overtid (90+N) lagres som minute:90 + injuryTime → egen «90+»-bolk.
@@ -263,6 +269,7 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
     finalReferee: finalMatch?.referee || null, // for q11
     fastestGoal, // for q6 live-indikator
+    fastestGoals, // alle mål på det laveste minuttet (q6 – sekunder mangler i API-et)
     goalMinutes, // mål per 15-min-bolk – for «Nerding»
     coverage: { cached: Object.keys(cache.matches).length, relevant: relevant.length },
     updatedAt: Date.now(),

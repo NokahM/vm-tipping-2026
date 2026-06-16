@@ -238,10 +238,19 @@ export function derivePreliminaryBonus(
       }
     }
 
-    // q6: raskeste mål så langt (API kjenner kun minuttet, ikke sekundet).
-    if (stats.fastestGoal) {
-      const fg = stats.fastestGoal;
-      out.q6 = `${fg.minute}'${fg.scorer ? ` (${fg.scorer})` : ''}`;
+    // q6: raskeste mål så langt (API kjenner kun minuttet, ikke sekundet → flere kan dele
+    // det laveste minuttet). Viser «minutt' (Spiller – Lag, …)».
+    const fastest =
+      stats.fastestGoals && stats.fastestGoals.length > 0
+        ? stats.fastestGoals
+        : stats.fastestGoal
+          ? [stats.fastestGoal]
+          : [];
+    if (fastest.length > 0) {
+      const who = fastest
+        .map((g) => `${g.scorer}${g.team ? ` – ${normalizeTeamName(g.team)}` : ''}`)
+        .join(', ');
+      out.q6 = `${fastest[0].minute}' (${who})`;
     }
 
     // q13: flest mål av Ronaldo/Messi så langt.
