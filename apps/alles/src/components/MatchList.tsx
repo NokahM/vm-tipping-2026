@@ -17,8 +17,10 @@ function byDate(a: MatchResult, b: MatchResult): number {
 const FEATURED_LIMIT = 2;
 
 /**
- * Velger «aktuelle kamper» (inntil to), i prioritert rekkefølge: pågående nå
- * først, fyll resten med neste kommende, ellers sist spilte.
+ * Velger «aktuelle kamper» (inntil to – maks antall samtidige kamper i mesterskapet):
+ * pågående nå først, ellers neste kommende. Tar IKKE med ferdigspilte (det dekkes av «Siste»),
+ * så Aktuelt krymper naturlig til 1 når bare finalen gjenstår / spilles, og forsvinner helt
+ * når siste kamp er ferdig.
  */
 function pickFeatured(known: MatchResult[]): MatchResult[] {
   const now = Date.now();
@@ -41,13 +43,9 @@ function pickFeatured(known: MatchResult[]): MatchResult[] {
     .filter((m) => m.status !== 'FINISHED' && new Date(m.utcDate).getTime() > now)
     .sort(byDate);
 
-  const finished = known
-    .filter((m) => m.status === 'FINISHED')
-    .sort((a, b) => b.utcDate.localeCompare(a.utcDate));
-
   const ordered: MatchResult[] = [];
   const seen = new Set<number>();
-  for (const m of [...liveish, ...upcoming, ...finished]) {
+  for (const m of [...liveish, ...upcoming]) {
     if (seen.has(m.apiId)) continue;
     seen.add(m.apiId);
     ordered.push(m);
