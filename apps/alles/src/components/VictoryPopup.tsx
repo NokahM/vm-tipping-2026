@@ -48,7 +48,7 @@ export default function VictoryPopup({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/75 backdrop-blur-sm"
+      className="wc-stripes-bright fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
       onClick={onClose}
       role="dialog"
       aria-label="Vinner-feiring"

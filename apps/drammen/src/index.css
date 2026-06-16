@@ -131,8 +131,39 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wc-frame {
+  .wc-frame,
+  .wc-stripes-bright {
     animation: none;
+  }
+}
+
+/* Vinner-feiring: lys, bevegelig stripe-bakgrunn – samme VM-farger som siden, men mye
+   lettere slør så fargene spruter. Stripene glir diagonalt (sømløs løkke: 294px ≈ én
+   stripe-periode (208px) projisert på x-aksen for 135°-vinkelen). */
+.wc-stripes-bright {
+  background-color: #020617;
+  background-image:
+    linear-gradient(rgb(2 6 23 / 0.35), rgb(2 6 23 / 0.45)),
+    repeating-linear-gradient(
+      135deg,
+      #e21602 0 26px,
+      #e84b09 26px 52px,
+      #e8fc4a 52px 78px,
+      #afe905 78px 104px,
+      #66fbda 104px 130px,
+      #324dfb 130px 156px,
+      #6001e6 156px 182px,
+      #b188fc 182px 208px
+    );
+  animation: wc-stripes-slide 5s linear infinite;
+}
+
+@keyframes wc-stripes-slide {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 0 0, 294px 0;
   }
 }
 
