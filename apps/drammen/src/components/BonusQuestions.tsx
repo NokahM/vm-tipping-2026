@@ -68,19 +68,19 @@ function Q5NumberLine({
 
   const counts = new Map<number, number>();
   for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
-  const spacing = Math.min(5, 38 / Math.max(1, ...counts.values()));
+  const spacing = Math.min(4, 24 / Math.max(1, ...counts.values()));
   const seen = new Map<number, number>();
 
-  const AXIS_Y = 50;
-  const H = 70;
+  const AXIS_Y = 58;
+  const H = 78;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="mb-2 w-full" role="img" aria-label="Antall mål – alles gjett">
       {projected != null && (
         <rect
           x={x(projected - margin)}
-          y={AXIS_Y - 40}
+          y={AXIS_Y - 30}
           width={x(projected + margin) - x(projected - margin)}
-          height={44}
+          height={36}
           fill="#10b981"
           opacity="0.12"
         />
