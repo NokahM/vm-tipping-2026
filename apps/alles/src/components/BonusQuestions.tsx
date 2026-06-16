@@ -296,11 +296,11 @@ function BonusRow({
             </p>
           ) : preliminary ? (
             <p className="mt-0.5 text-xs text-wc-yellow">
-              Slik ligger det an: {preliminary}
-              <span className="text-slate-500"> · ikke avgjort ennå</span>
+              {preliminary}
+              <span className="text-slate-500"> · Ikke avgjort</span>
             </p>
           ) : (
-            <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>
+            <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort</p>
           )}
         </div>
         <span className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[11px] font-semibold text-slate-300">
