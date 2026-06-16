@@ -304,7 +304,7 @@ export default function App() {
                 Tabell
               </SubTab>
               <SubTab active={tableView === 'graf'} onClick={() => setTableView('graf')}>
-                Graf
+                Utvikling
               </SubTab>
             </div>
             {tableView === 'tabell' && (
@@ -341,10 +341,10 @@ export default function App() {
           <div className="space-y-2">
             <div className="flex gap-1.5">
               <SubTab active={krydderView === 'spørsmål'} onClick={() => setKrydderView('spørsmål')}>
-                Spørsmål
+                Liste
               </SubTab>
               <SubTab active={krydderView === 'favoritt'} onClick={() => setKrydderView('favoritt')}>
-                Folkets favoritt
+                Grafisk
               </SubTab>
             </div>
             {krydderView === 'spørsmål' && (
