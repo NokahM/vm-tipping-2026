@@ -4,8 +4,8 @@ import { useEffect, useMemo } from 'react';
 const WC_COLORS = ['#e21602', '#e84b09', '#e8fc4a', '#afe905', '#66fbda', '#324dfb', '#6001e6', '#b188fc'];
 // Litt emoji ispedd den fargede konfettien: penger, fotball, champagne, pokal.
 const EMOJI = ['💵', '💰', '⚽', '🍾', '🏆', '🤑', '🥇', '🎉'];
-const RECTS = 64;
-const EMOJIS = 16;
+const RECTS = 192;
+const EMOJIS = 24;
 
 type Piece =
   | { type: 'rect'; color: string; w: number; h: number; left: number; delay: number; dur: number }

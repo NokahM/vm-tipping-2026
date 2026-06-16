@@ -131,15 +131,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wc-frame,
-  .wc-stripes-bright {
+  .wc-frame {
     animation: none;
   }
 }
 
-/* Vinner-feiring: lys, bevegelig stripe-bakgrunn – samme VM-farger som siden, men mye
-   lettere slør så fargene spruter. Stripene glir diagonalt (sømløs løkke: 294px ≈ én
-   stripe-periode (208px) projisert på x-aksen for 135°-vinkelen). */
+/* Vinner-feiring: lys, statisk stripe-bakgrunn – samme VM-farger som siden, men mye
+   lettere slør (0.35–0.45) så fargene spruter. Ingen bevegelse (konfettien står for liv). */
 .wc-stripes-bright {
   background-color: #020617;
   background-image:
@@ -155,16 +153,6 @@ body {
       #6001e6 156px 182px,
       #b188fc 182px 208px
     );
-  animation: wc-stripes-slide 5s linear infinite;
-}
-
-@keyframes wc-stripes-slide {
-  from {
-    background-position: 0 0, 0 0;
-  }
-  to {
-    background-position: 0 0, 294px 0;
-  }
 }
 
 /* Vinner-feiring: fallende konfetti/emoji (💵 ⚽ 🍾 …) ovenfra og ned, med litt rotasjon. */
