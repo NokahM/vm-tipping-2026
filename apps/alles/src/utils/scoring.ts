@@ -121,16 +121,17 @@ export function groupLetters(text: string): string[] {
   return text.toUpperCase().match(/\b[A-L]\b/g) ?? [];
 }
 
-/** Tolker fritekst-runde (q17) → Stage. Nøkkelord-basert, robust mot variasjon. */
+/** Tolker fritekst-runde (q17) → Stage. Nøkkelord-basert, robust mot variasjon.
+ *  Spesifikke runder sjekkes FØR bare «finale», ellers fanges «åttendelsfinale» feil. */
 export function parseStage(text: string): Stage | null {
   const t = text.toLowerCase();
-  if (/semi/.test(t)) return 'SEMI_FINALS';
-  if (/kvart/.test(t)) return 'QUARTER_FINALS';
-  if (/bronse|tredjeplass|3\.?\s*plass/.test(t)) return 'THIRD_PLACE';
-  if (/finale/.test(t)) return 'FINAL'; // etter semi/kvart/bronse så de ikke fanges her
-  if (/åttendel|attendel|8-?del/.test(t)) return 'ROUND_OF_16';
-  if (/sekstendel|16-?del/.test(t)) return 'ROUND_OF_32';
   if (/gruppe/.test(t)) return 'GROUP_STAGE';
+  if (/sekstendel|16-?del/.test(t)) return 'ROUND_OF_32';
+  if (/åttendel|åttedel|attendel|8-?del/.test(t)) return 'ROUND_OF_16'; // inkl. skrivefeil «åttedel»
+  if (/kvart/.test(t)) return 'QUARTER_FINALS';
+  if (/semi/.test(t)) return 'SEMI_FINALS';
+  if (/bronse|tredjeplass|3\.?\s*plass/.test(t)) return 'THIRD_PLACE';
+  if (/finale/.test(t)) return 'FINAL'; // bare igjen for ren «finale»
   return null;
 }
 

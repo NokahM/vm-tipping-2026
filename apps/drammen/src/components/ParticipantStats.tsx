@@ -1,21 +1,37 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, Participant, ParticipantScore } from '../types';
 import { parseStage } from '../utils/scoring';
-import { STAGE_LABELS } from '../utils/labels';
 import { TEAM_NAME_MAP } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 // «Hvem/hva»-spørsmål der det er gøy å se hva folket tror.
 const FAVORITT_IDS = ['q1', 'q2', 'q3', 'q10', 'q12', 'q13', 'q14', 'q17'];
-const PLAYER_QS = new Set(['q2', 'q3', 'q13']); // svar = spiller → bruk etternavn
+const PLAYER_QS = new Set(['q2', 'q3', 'q13']); // svar = spiller → etternavn
 const TEAM_QS = new Set(['q1', 'q10', 'q12', 'q14']); // svar = lag → kanonisk norsk staving
+
+// q17-runder i ENTALL (folkets-favoritt-visning) – matcher alternativene brukeren forventer.
+const Q17_LABELS: Record<string, string> = {
+  GROUP_STAGE: 'Gruppespill',
+  ROUND_OF_32: 'Sekstendelsfinale',
+  ROUND_OF_16: 'Åttendelsfinale',
+  QUARTER_FINALS: 'Kvartfinale',
+  SEMI_FINALS: 'Semifinale',
+  THIRD_PLACE: 'Bronsefinale',
+  FINAL: 'Finale',
+};
+// Generasjons-suffiks som ikke er det «egentlige» navnet (Vinicius Junior → Vinicius).
+const NAME_SUFFIX = new Set(['junior', 'jr', 'júnior', 'jnr', 'senior', 'sr', 'snr', 'filho', 'neto']);
 
 const stripDia = (s: string) => [...s.normalize('NFD')].filter((c) => { const x = c.charCodeAt(0); return x < 0x0300 || x > 0x036f; }).join('');
 const keyOf = (s: string) => stripDia(s).toLowerCase().trim();
-const lastName = (s: string) => {
+/** Kort spillernavn: dropp generasjons-suffiks, bruk siste «ekte» ord (Vinicius Jr. → Vinicius). */
+function playerName(s: string): string {
   const parts = s.trim().split(/\s+/);
+  while (parts.length > 1 && NAME_SUFFIX.has(parts[parts.length - 1].toLowerCase().replace(/\./g, ''))) {
+    parts.pop();
+  }
   return parts.length ? parts[parts.length - 1] : s;
-};
+}
 // Kanoniske norske lagnavn nøklet diakritisk-/store-bokstav-uavhengig (Curacao → Curaçao).
 const TEAM_CANON = new Map<string, string>();
 for (const no of new Set(Object.values(TEAM_NAME_MAP))) TEAM_CANON.set(keyOf(no), no);
@@ -24,11 +40,11 @@ for (const no of new Set(Object.values(TEAM_NAME_MAP))) TEAM_CANON.set(keyOf(no)
 function canonicalize(qid: string, answer: string): string {
   const a = answer.trim();
   if (!a) return a;
-  if (PLAYER_QS.has(qid)) return lastName(a); // «Lionel Messi» → «Messi»
+  if (PLAYER_QS.has(qid)) return playerName(a); // «Vinicius Jr.» → «Vinicius», «Lionel Messi» → «Messi»
   if (TEAM_QS.has(qid)) return TEAM_CANON.get(keyOf(a)) ?? a; // «Curacao» → «Curaçao»
   if (qid === 'q17') {
     const st = parseStage(a);
-    return st ? STAGE_LABELS[st] : a;
+    return st ? Q17_LABELS[st] : a;
   }
   return a;
 }
@@ -46,8 +62,8 @@ function tally(participants: Participant[], qid: string): { answer: string; name
     const raw = tip ? (Array.isArray(tip.answer) ? tip.answer : [tip.answer]) : [];
     const cleaned = raw.map((a) => (a ?? '').trim()).filter(Boolean);
     if (cleaned.length === 0) {
-      // q17: blankt = «kommer ikke ut av gruppespillet».
-      if (qid === 'q17') push('Gruppespill', p.name);
+      // q17: blankt = «kommer ikke ut av gruppa» (Gruppespill). Ellers: «Ikke svart».
+      push(qid === 'q17' ? 'Gruppespill' : 'Ikke svart', p.name);
       continue;
     }
     for (const a of cleaned) push(canonicalize(qid, a), p.name);
@@ -105,7 +121,12 @@ function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Pa
   const tallied = useMemo(() => tally(participants, q.id), [participants, q.id]);
   const [open, setOpen] = useState<string | null>(null);
   if (tallied.length === 0) return null;
-  const shown = tallied.slice(0, 6);
+  // Vis topp N + en «Andre»-rad for resten, så alle 26 alltid er med i summen.
+  const TOP = 7;
+  const shown =
+    tallied.length > TOP
+      ? [...tallied.slice(0, TOP), { answer: 'Andre', names: tallied.slice(TOP).flatMap((t) => t.names) }]
+      : tallied;
   const max = shown[0].names.length;
   return (
     <div className="px-3 py-2">
@@ -149,18 +170,24 @@ export default function ParticipantStats({
   participants: Participant[];
   questions: BonusQuestion[];
 }) {
+  // Treffsikkerhet rangeres på snitt poeng per kamp (3 eksakt / 1 utfall / 0 bom), så det
+  // skiller folk med lik andel eksakt men ulik andel riktig utfall.
   const accuracy = useMemo(
     () =>
       standings
         .map((s) => {
           const tot = s.correctResults + s.correctOutcomes + s.wrongOutcomes;
-          return { ...s, tot, exactPct: tot ? s.correctResults / tot : 0 };
+          const ppk = tot ? (3 * s.correctResults + s.correctOutcomes) / tot : 0;
+          return { ...s, tot, ppk };
         })
         .filter((s) => s.tot > 0)
-        .sort((a, b) => b.exactPct - a.exactPct || b.correctResults - a.correctResults),
+        .sort((a, b) => b.ppk - a.ppk || b.correctResults - a.correctResults),
     [standings],
   );
 
+  // Poeng-kilde-søylene skaleres mot den høyeste totalen, så absolutte poeng er sammenlignbare
+  // (en med 11 p får lengre søyle enn en med 9 p, i stedet for at begge fyller 100 %).
+  const maxTotal = useMemo(() => Math.max(1, ...standings.map((s) => s.total)), [standings]);
   const bySource = useMemo(
     () => standings.filter((s) => s.total > 0).sort((a, b) => b.total - a.total),
     [standings],
@@ -173,6 +200,9 @@ export default function ParticipantStats({
           <p className="px-3 py-2 text-xs text-slate-500">Ingen ferdigspilte kamper ennå.</p>
         ) : (
           <>
+            <p className="px-3 pt-1.5 text-[10px] text-slate-500">
+              Tall = snitt poeng per kamp (av 3 mulige)
+            </p>
             <ul className="divide-y divide-slate-700/40">
               {accuracy.map((s) => (
                 <li key={s.name} className="flex items-center gap-2 px-2 py-1 text-xs">
@@ -186,7 +216,7 @@ export default function ParticipantStats({
                     ]}
                   />
                   <span className="w-9 shrink-0 text-right tabular-nums text-slate-300">
-                    {Math.round(s.exactPct * 100)}%
+                    {s.ppk.toFixed(2).replace('.', ',')}
                   </span>
                 </li>
               ))}
@@ -207,12 +237,15 @@ export default function ParticipantStats({
           <p className="px-3 py-2 text-xs text-slate-500">Ingen poeng ennå.</p>
         ) : (
           <>
+            <p className="px-3 pt-1.5 text-[10px] text-slate-500">
+              Søylelengde = totalpoeng (delt på kilde)
+            </p>
             <ul className="divide-y divide-slate-700/40">
               {bySource.map((s) => (
                 <li key={s.name} className="flex items-center gap-2 px-2 py-1 text-xs">
                   <span className="w-16 shrink-0 truncate text-slate-100">{s.name}</span>
                   <StackBar
-                    total={s.total}
+                    total={maxTotal}
                     segs={[
                       { value: s.groupPoints, cls: 'bg-wc-blue' },
                       { value: s.knockoutPoints, cls: 'bg-wc-mint' },
