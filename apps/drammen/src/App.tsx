@@ -322,9 +322,6 @@ export default function App() {
             )}
             {tableView === 'graf' && (
               <>
-                <p className="px-1 text-center text-[11px] text-slate-500">
-                  Trykk på en spiller for å vise/skjule linja (standard: topp 3)
-                </p>
                 <ProgressionChart progression={progression} />
                 <ParticipantStats
                   standings={standings}

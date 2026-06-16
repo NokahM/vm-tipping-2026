@@ -270,6 +270,9 @@ export default function ProgressionChart({ progression }: Props) {
       <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
         {renderSvg(340, 240)}
       </div>
+      <p className="px-1 text-center text-[11px] text-slate-500">
+        Trykk på en spiller for å vise/skjule linja (standard: topp 3)
+      </p>
       {legend}
     </section>
   );
