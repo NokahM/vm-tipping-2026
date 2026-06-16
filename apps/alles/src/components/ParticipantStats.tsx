@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { BonusQuestion, Participant, ParticipantScore } from '../types';
-import { parseStage } from '../utils/scoring';
+import type { BonusQuestion, MatchResult, Participant, ParticipantScore } from '../types';
+import { parseStage, participantBreakdown, type ScoringItem } from '../utils/scoring';
 import { TEAM_NAME_MAP } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
@@ -136,18 +136,23 @@ function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Pa
   const [open, setOpen] = useState<string | null>(null);
   if (tallied.length === 0) return null;
   // Vis topp N + en «Andre»-rad for resten, så alle 26 alltid er med i summen.
-  const TOP = 7;
-  const shown =
-    tallied.length > TOP
-      ? [
-          ...tallied.slice(0, TOP),
-          {
-            // «Andre» lumper ulike svar – vis derfor «Deltager = Tipp» når man åpner.
-            answer: 'Andre',
-            names: tallied.slice(TOP).flatMap((t) => t.names.map((n) => `${n} = ${t.answer}`)),
-          },
-        ]
-      : tallied;
+  // q17 vises kronologisk (alle runder). Ellers: svar med ≥2 tips (+ «Ikke svart») individuelt,
+  // og alle enkelt-tips samles i «Andre» (konsistent – ingen vilkårlig splitt av enere).
+  let shown: { answer: string; names: string[] }[];
+  if (q.id === 'q17') {
+    shown = tallied;
+  } else {
+    const multi = tallied.filter((t) => t.names.length >= 2 || t.answer === 'Ikke svart');
+    const singles = tallied.filter((t) => t.names.length === 1 && t.answer !== 'Ikke svart');
+    shown =
+      singles.length >= 2
+        ? [
+            ...multi,
+            // «Andre» lumper ulike svar → vis «Deltager = Tipp» når man åpner.
+            { answer: 'Andre', names: singles.flatMap((t) => t.names.map((n) => `${n} = ${t.answer}`)) },
+          ]
+        : [...multi, ...singles];
+  }
   const max = Math.max(1, ...shown.map((s) => s.names.length));
   return (
     <div className="px-3 py-2">
@@ -181,16 +186,45 @@ function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Pa
   );
 }
 
+/** Detalj-liste under en klikket deltaker (eksakte kamper, eller korrekt krydder). */
+function DetailList({ items, empty }: { items: ScoringItem[]; empty: string }) {
+  if (items.length === 0) {
+    return <p className="px-3 pb-1.5 text-[10px] text-slate-500">{empty}</p>;
+  }
+  return (
+    <ul className="space-y-0.5 px-3 pb-1.5 text-[10px] leading-snug text-slate-400">
+      {items.map((i, k) => (
+        <li key={k}>
+          {i.kind === 'match'
+            ? `${i.home} ${i.result} ${i.away}`
+            : `${i.question} → ${i.answer} (${i.points}p)`}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Deltager-stats: treffsikkerhet + poeng-kilde + folkets favoritt. */
 export default function ParticipantStats({
   standings,
   participants,
+  results,
   questions,
 }: {
   standings: ParticipantScore[];
   participants: Participant[];
+  results: MatchResult[];
   questions: BonusQuestion[];
 }) {
+  // Poenggivende treff per deltaker (kamper 3p/1p + krydder), for klikk-detaljene.
+  const breakdowns = useMemo(() => {
+    const m = new Map<string, ScoringItem[]>();
+    for (const p of participants) m.set(p.name, participantBreakdown(p, participants, results, questions));
+    return m;
+  }, [participants, results, questions]);
+  const [openAcc, setOpenAcc] = useState<string | null>(null);
+  const [openSrc, setOpenSrc] = useState<string | null>(null);
+
   // Treffsikkerhet rangeres på snitt poeng per kamp (3 eksakt / 1 utfall / 0 bom), så det
   // skiller folk med lik andel eksakt men ulik andel riktig utfall.
   const accuracy = useMemo(
@@ -222,23 +256,38 @@ export default function ParticipantStats({
         ) : (
           <>
             <p className="px-3 pt-1.5 text-[10px] text-slate-500">
-              Tall = snitt poeng per kamp (av 3 mulige)
+              Tall = snitt poeng per kamp (av 3 mulige) · trykk for eksakte (3p)
             </p>
             <ul className="divide-y divide-slate-700/40">
               {accuracy.map((s) => (
-                <li key={s.name} className="flex items-center gap-2 px-2 py-1 text-xs">
-                  <span className="w-16 shrink-0 truncate text-slate-100">{s.name}</span>
-                  <StackBar
-                    total={s.tot}
-                    segs={[
-                      { value: s.correctResults, cls: 'bg-emerald-500' },
-                      { value: s.correctOutcomes, cls: 'bg-amber-500' },
-                      { value: s.wrongOutcomes, cls: 'bg-red-500/70' },
-                    ]}
-                  />
-                  <span className="w-9 shrink-0 text-right tabular-nums text-slate-300">
-                    {s.ppk.toFixed(2).replace('.', ',')}
-                  </span>
+                <li key={s.name}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenAcc((o) => (o === s.name ? null : s.name))}
+                    className="flex w-full items-center gap-2 px-2 py-1 text-xs active:opacity-70"
+                    aria-expanded={openAcc === s.name}
+                  >
+                    <span className="w-16 shrink-0 truncate text-left text-slate-100">{s.name}</span>
+                    <StackBar
+                      total={s.tot}
+                      segs={[
+                        { value: s.correctResults, cls: 'bg-emerald-500' },
+                        { value: s.correctOutcomes, cls: 'bg-amber-500' },
+                        { value: s.wrongOutcomes, cls: 'bg-red-500/70' },
+                      ]}
+                    />
+                    <span className="w-9 shrink-0 text-right tabular-nums text-slate-300">
+                      {s.ppk.toFixed(2).replace('.', ',')}
+                    </span>
+                  </button>
+                  {openAcc === s.name && (
+                    <DetailList
+                      items={(breakdowns.get(s.name) ?? []).filter(
+                        (i) => i.kind === 'match' && i.points === 3,
+                      )}
+                      empty="Ingen eksakte resultater (3p) ennå."
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -259,23 +308,36 @@ export default function ParticipantStats({
         ) : (
           <>
             <p className="px-3 pt-1.5 text-[10px] text-slate-500">
-              Søylelengde = totalpoeng (delt på kilde)
+              Søylelengde = totalpoeng (delt på kilde) · trykk for krydder-treff
             </p>
             <ul className="divide-y divide-slate-700/40">
               {bySource.map((s) => (
-                <li key={s.name} className="flex items-center gap-2 px-2 py-1 text-xs">
-                  <span className="w-16 shrink-0 truncate text-slate-100">{s.name}</span>
-                  <StackBar
-                    total={maxTotal}
-                    segs={[
-                      { value: s.groupPoints, cls: 'bg-wc-blue' },
-                      { value: s.knockoutPoints, cls: 'bg-wc-mint' },
-                      { value: s.bonusPoints, cls: 'bg-wc-lavender' },
-                    ]}
-                  />
-                  <span className="w-7 shrink-0 text-right font-semibold tabular-nums text-slate-100">
-                    {s.total}
-                  </span>
+                <li key={s.name}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenSrc((o) => (o === s.name ? null : s.name))}
+                    className="flex w-full items-center gap-2 px-2 py-1 text-xs active:opacity-70"
+                    aria-expanded={openSrc === s.name}
+                  >
+                    <span className="w-16 shrink-0 truncate text-left text-slate-100">{s.name}</span>
+                    <StackBar
+                      total={maxTotal}
+                      segs={[
+                        { value: s.groupPoints, cls: 'bg-wc-blue' },
+                        { value: s.knockoutPoints, cls: 'bg-wc-mint' },
+                        { value: s.bonusPoints, cls: 'bg-wc-lavender' },
+                      ]}
+                    />
+                    <span className="w-7 shrink-0 text-right font-semibold tabular-nums text-slate-100">
+                      {s.total}
+                    </span>
+                  </button>
+                  {openSrc === s.name && (
+                    <DetailList
+                      items={(breakdowns.get(s.name) ?? []).filter((i) => i.kind === 'bonus')}
+                      empty="Ingen krydderpoeng ennå."
+                    />
+                  )}
                 </li>
               ))}
             </ul>

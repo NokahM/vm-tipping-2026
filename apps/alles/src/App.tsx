@@ -334,6 +334,7 @@ export default function App() {
               <ParticipantStats
                 standings={standings}
                 participants={participants}
+                results={results}
                 questions={questions}
               />
             )}
