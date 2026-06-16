@@ -33,7 +33,12 @@ import FootballStats from './components/FootballStats';
 import AdminPanel from './components/AdminPanel';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
-import { deriveDecidedBonus, derivePreliminaryBonus, deriveStatsBonus } from './utils/autoDerive';
+import {
+  deriveDecidedBonus,
+  derivePreliminaryBonus,
+  deriveProvisionalAnswers,
+  deriveStatsBonus,
+} from './utils/autoDerive';
 import { clearMatchEventsCache } from './hooks/useMatchEvents';
 
 type View = 'tabell' | 'kamper' | 'krydder' | 'stats';
@@ -153,6 +158,8 @@ export default function App() {
   );
   // Foreløpige «slik ligger det an»-verdier for spørsmål som ennå ikke er avgjort (kun hint).
   const autoPreliminary = useMemo(() => derivePreliminaryBonus(stats, results), [stats, results]);
+  // Foreløpig fasit i scorbar form – KUN til visuell fargekoding av tips-chips (scorer aldri).
+  const provisionalAnswers = useMemo(() => deriveProvisionalAnswers(stats, results), [stats, results]);
   // Manuelle KV-svar overstyrer alltid auto; innbakt JSON er bunn-fallback.
   const bonusMerged = useMemo(
     () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...bonusStore }),
@@ -363,6 +370,7 @@ export default function App() {
                   results={results}
                   fastestGoal={stats?.fastestGoal}
                   preliminary={autoPreliminary}
+                  provisional={provisionalAnswers}
                 />
               </>
             )}

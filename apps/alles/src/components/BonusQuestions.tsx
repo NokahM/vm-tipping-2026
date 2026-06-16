@@ -23,6 +23,7 @@ interface Props {
   results: MatchResult[];
   fastestGoal?: FastestGoal | null;
   preliminary?: Record<string, string>; // foreløpige «slik ligger det an»-verdier per spørsmål
+  provisional?: Record<string, string | string[]>; // foreløpig fasit (scorbar) – kun chip-farge
 }
 
 const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – ±5 av projeksjonen = full pott
@@ -180,6 +181,7 @@ export default function BonusQuestions({
   results,
   fastestGoal,
   preliminary,
+  provisional,
 }: Props) {
   const projection = useMemo(() => projectTotalGoals(results), [results]);
   const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
@@ -201,6 +203,7 @@ export default function BonusQuestions({
           worst={worst}
           fastestGoal={fastestGoal ?? null}
           preliminary={preliminary?.[q.id] ?? null}
+          provisional={provisional?.[q.id] ?? null}
         />
       ))}
     </ul>
@@ -215,6 +218,7 @@ function BonusRow({
   worst,
   fastestGoal,
   preliminary,
+  provisional,
 }: {
   question: BonusQuestion;
   participants: Participant[];
@@ -223,10 +227,19 @@ function BonusRow({
   worst: GroupRow | null;
   fastestGoal: FastestGoal | null;
   preliminary: string | null;
+  provisional: string | string[] | null;
 }) {
   const [open, setOpen] = useState(false);
   const hasFasit = question.answer !== null;
   const points = scoreBonusQuestion(participants, question);
+  // Foreløpige poeng KUN for chip-farge (aldri tabellen): kjør scoringen mot foreløpig fasit.
+  const provPoints = useMemo(
+    () =>
+      !hasFasit && provisional != null
+        ? scoreBonusQuestion(participants, { ...question, answer: provisional })
+        : null,
+    [hasFasit, provisional, participants, question],
+  );
   const fasit = Array.isArray(question.answer) ? question.answer.join(', ') : question.answer;
 
   // Live-moduser, kun før fasit: q5 nærmest projeksjonen, q9 leder-gruppen, q10 dårligst så langt,
@@ -358,6 +371,11 @@ function BonusRow({
                   : normalizeTeamName(text) === normalizeTeamName(worstLead.team)
                     ? GREEN
                     : RED;
+            } else if (provPoints) {
+              // Foreløpig fasit (q3/q12/q13/q14/q16/q17): farge etter live-auto, men IKKE tellende.
+              const pts = provPoints.get(p.name) ?? 0;
+              cls =
+                text === null ? NEUTRAL : pts >= question.maxPoints ? GREEN : pts > 0 ? AMBER : RED;
             } else {
               const pts = points.get(p.name) ?? 0;
               cls = chipClasses(hasFasit, text !== null, pts, question.maxPoints);

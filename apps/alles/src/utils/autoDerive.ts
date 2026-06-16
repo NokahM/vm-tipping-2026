@@ -266,3 +266,48 @@ export function derivePreliminaryBonus(
 
   return out;
 }
+
+/**
+ * Foreløpig fasit i **scorbar** form (svar-verdier, ikke display-strenger) for spørsmål som ennå
+ * ikke er avgjort – KUN til **visuell** fargekoding av tips-chips i Krydder. Scorer ALDRI i tabellen
+ * (mates ikke inn i `bonusMerged`). Samme svar-verdier som de avgjorte derivasjonene, men ungated.
+ * Utelater q5/q9/q10 (har egne live-indikatorer) og q6/q7/q8 (egen håndtering).
+ */
+export function deriveProvisionalAnswers(
+  stats: StatsData | null,
+  results: MatchResult[],
+): Record<string, string | string[]> {
+  const out: Record<string, string | string[]> = {};
+  if (results.length === 0) return out;
+
+  // q12/q14/q17: lengst-kommende så langt.
+  const isl = furthestAmong(ISLAND_NATIONS, results);
+  if (isl) out.q12 = isl.teams.map(normalizeTeamName);
+  const afr = furthestAmong(AFRICAN_NATIONS, results);
+  if (afr) out.q14 = afr.teams.map(normalizeTeamName);
+  const nor = furthestStageOf('Norway', results);
+  if (nor) out.q17 = STAGE_LABELS[nor.stage];
+
+  if (stats) {
+    // q3: toppscorer(e) så langt (alle som deler ledelsen; inkluder etternavn for treff).
+    if (stats.topScorers && stats.topScorers.length > 0) {
+      const max = stats.topScorers[0].goals ?? 0;
+      if (max > 0) {
+        const names = stats.topScorers.filter((p) => (p.goals ?? 0) === max);
+        out.q3 = [...new Set(names.flatMap((p) => [p.name, lastName(p.name)]))];
+      }
+    }
+    // q13: Ronaldo/Messi-leder så langt (likt → begge).
+    const r = stats.goalsByPlayer?.[RONALDO_ID] ?? 0;
+    const m = stats.goalsByPlayer?.[MESSI_ID] ?? 0;
+    const a13: string[] = [];
+    if (r >= m) a13.push('Ronaldo', 'Cristiano Ronaldo');
+    if (m >= r) a13.push('Messi', 'Lionel Messi');
+    out.q13 = a13;
+    // q16: Glimt-spilletid så langt.
+    const played = new Set(stats.playedIds ?? []);
+    out.q16 = GLIMT_IDS.every((id) => played.has(id)) ? 'Ja' : 'Nei';
+  }
+
+  return out;
+}
