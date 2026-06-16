@@ -136,7 +136,14 @@ function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Pa
   const TOP = 7;
   const shown =
     tallied.length > TOP
-      ? [...tallied.slice(0, TOP), { answer: 'Andre', names: tallied.slice(TOP).flatMap((t) => t.names) }]
+      ? [
+          ...tallied.slice(0, TOP),
+          {
+            // «Andre» lumper ulike svar – vis derfor «Deltager = Tipp» når man åpner.
+            answer: 'Andre',
+            names: tallied.slice(TOP).flatMap((t) => t.names.map((n) => `${n} = ${t.answer}`)),
+          },
+        ]
       : tallied;
   const max = Math.max(1, ...shown.map((s) => s.names.length));
   return (
