@@ -44,9 +44,10 @@ function DayBars({ data, max }: { data: [string, number][]; max: number }) {
             <rect x={x} y={PAD.top + plotH - h} width={barW} height={h} fill="#afe905" rx="0.6" />
             <text
               x={i * bw + bw / 2}
-              y={PAD.top + plotH - h - 1.5}
-              fill="#94a3b8"
-              fontSize="5"
+              y={PAD.top + plotH - h - 2}
+              fill="#cbd5e1"
+              fontSize="7.5"
+              fontWeight="600"
               textAnchor="middle"
             >
               {g}
