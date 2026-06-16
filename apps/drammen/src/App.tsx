@@ -358,7 +358,12 @@ export default function App() {
               </>
             )}
             {krydderView === 'favoritt' && (
-              <FolketsFavoritt participants={participants} questions={questions} />
+              <>
+                <p className="px-1 text-center text-[11px] text-slate-500">
+                  Trykk på en stolpe for å se hvem som svarte
+                </p>
+                <FolketsFavoritt participants={participants} questions={questions} />
+              </>
             )}
           </div>
         )}
