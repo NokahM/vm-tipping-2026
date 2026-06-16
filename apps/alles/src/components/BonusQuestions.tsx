@@ -9,6 +9,7 @@ import {
 } from '../utils/scoring';
 import { worstTeamSoFar, type GroupRow } from '../utils/groupTables';
 import { normalizeTeamName } from '../utils/teamNames';
+import { spellKey } from '../utils/teamCanon';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 interface FastestGoal {
@@ -364,11 +365,12 @@ function BonusRow({
                     ? GREEN
                     : RED;
             } else if (worstLead) {
-              // q10: tippet det dårligste laget så langt = grønn.
+              // q10: tippet det dårligste laget så langt = grønn. spellKey tåler diakritikk +
+              // åpenbare feilstavinger (Curacao/Curacau = Curaçao), som selve scoringen.
               cls =
                 text === null
                   ? NEUTRAL
-                  : normalizeTeamName(text) === normalizeTeamName(worstLead.team)
+                  : spellKey(text) === spellKey(worstLead.team)
                     ? GREEN
                     : RED;
             } else if (provPoints) {
