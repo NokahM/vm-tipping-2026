@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
-import { koSlotLabel } from '../data/knockoutSlots';
+import { koSlotLabel, koMatchNumber } from '../data/knockoutSlots';
 import { formatKickoff } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
@@ -33,6 +33,7 @@ export default function MatchRow({ match, participants }: Props) {
   const awayKnown = match.awayTeam !== 'TBD';
   const home = homeKnown ? normalizeTeamName(match.homeTeam) : (koSlotLabel(match.apiId, 'home') ?? 'TBD');
   const away = awayKnown ? normalizeTeamName(match.awayTeam) : (koSlotLabel(match.apiId, 'away') ?? 'TBD');
+  const matchNum = koMatchNumber(match.apiId); // FIFAs kampnummer (sluttspill), ellers null
 
   // Kampklokke fra API-et (oppdateres ved polling). PAUSE = «Pause», ellers minutt (+ tilleggstid).
   const liveLabel =
@@ -62,6 +63,9 @@ export default function MatchRow({ match, participants }: Props) {
 
         {/* Stilling sentrert; kampklokka stables under (skifter ikke horisontal plassering) */}
         <div className="flex shrink-0 flex-col items-center justify-center px-1 leading-tight">
+          {matchNum != null && (
+            <span className="whitespace-nowrap text-[9px] text-slate-500">Kamp {matchNum}</span>
+          )}
           {played ? (
             <span className="text-sm font-bold tabular-nums text-slate-100">
               {match.homeGoals}
