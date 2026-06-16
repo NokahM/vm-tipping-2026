@@ -94,7 +94,7 @@ function Q5NumberLine({
       </text>
       {projected != null && (
         <>
-          <line x1={x(projected)} y1={AXIS_Y - 44} x2={x(projected)} y2={AXIS_Y + 3} stroke="#eab308" strokeWidth="1" />
+          <line x1={x(projected)} y1={AXIS_Y - 34} x2={x(projected)} y2={AXIS_Y + 1} stroke="#eab308" strokeWidth="1" />
           <text x={x(projected)} y={AXIS_Y - 46} fill="#eab308" fontSize="7" textAnchor="middle">
             ~{projected}
           </text>
