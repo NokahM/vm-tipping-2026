@@ -362,6 +362,7 @@ export default function App() {
                   participants={participants}
                   results={results}
                   fastestGoal={stats?.fastestGoal}
+                  preliminary={autoPreliminary}
                 />
               </>
             )}

@@ -22,6 +22,7 @@ interface Props {
   participants: Participant[];
   results: MatchResult[];
   fastestGoal?: FastestGoal | null;
+  preliminary?: Record<string, string>; // foreløpige «slik ligger det an»-verdier per spørsmål
 }
 
 const GOAL_QUESTION_ID = 'q5'; // hvor mange mål totalt – ±5 av projeksjonen = full pott
@@ -173,7 +174,13 @@ function groupLetters(text: string | null): string[] {
   return text.toUpperCase().match(/\b[A-L]\b/g) ?? [];
 }
 
-export default function BonusQuestions({ questions, participants, results, fastestGoal }: Props) {
+export default function BonusQuestions({
+  questions,
+  participants,
+  results,
+  fastestGoal,
+  preliminary,
+}: Props) {
   const projection = useMemo(() => projectTotalGoals(results), [results]);
   const groupLeaders = useMemo(() => groupGoalLeaders(results), [results]);
   const worst = useMemo(() => worstTeamSoFar(results), [results]);
@@ -193,6 +200,7 @@ export default function BonusQuestions({ questions, participants, results, faste
           groupLeaders={groupLeaders}
           worst={worst}
           fastestGoal={fastestGoal ?? null}
+          preliminary={preliminary?.[q.id] ?? null}
         />
       ))}
     </ul>
@@ -206,6 +214,7 @@ function BonusRow({
   groupLeaders,
   worst,
   fastestGoal,
+  preliminary,
 }: {
   question: BonusQuestion;
   participants: Participant[];
@@ -213,6 +222,7 @@ function BonusRow({
   groupLeaders: GroupGoalStanding | null;
   worst: GroupRow | null;
   fastestGoal: FastestGoal | null;
+  preliminary: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const hasFasit = question.answer !== null;
@@ -283,6 +293,11 @@ function BonusRow({
             <p className="mt-0.5 text-xs text-wc-yellow">
               Raskeste mål så langt: {fastestLead.minute}' {lastName(fastestLead.scorer)}
               <span className="text-slate-500"> · foreløpig (eksakt tid settes manuelt)</span>
+            </p>
+          ) : preliminary ? (
+            <p className="mt-0.5 text-xs text-wc-yellow">
+              Slik ligger det an: {preliminary}
+              <span className="text-slate-500"> · ikke avgjort ennå</span>
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">Ikke avgjort ennå</p>
