@@ -1,9 +1,13 @@
 import { useMemo } from 'react';
 import type { MatchResult } from '../types';
-import { matchDayKey } from '../utils/scoring';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 const MIN_LABELS = ['1-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+'];
+
+// «Kampdag» i amerikansk tid (Eastern) – kampene spilles der, så det grupperes etter
+// kalenderdagen i USA, ikke den norske 12:00-grensen. en-CA gir YYYY-MM-DD.
+const usDay = (utcDate: string) =>
+  new Date(utcDate).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   const frameStyle = useMemo(wcFrameStyle, []);
@@ -21,7 +25,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 function DayBars({ data, max }: { data: [string, number][]; max: number }) {
   const W = 340;
   const H = 110;
-  const PAD = { top: 8, bottom: 16 };
+  const PAD = { top: 12, bottom: 16 };
   const plotH = H - PAD.top - PAD.bottom;
   const n = data.length;
   const bw = W / n;
@@ -37,6 +41,15 @@ function DayBars({ data, max }: { data: [string, number][]; max: number }) {
         return (
           <g key={day}>
             <rect x={x} y={PAD.top + plotH - h} width={barW} height={h} fill="#afe905" rx="0.6" />
+            <text
+              x={i * bw + bw / 2}
+              y={PAD.top + plotH - h - 1.5}
+              fill="#94a3b8"
+              fontSize="5"
+              textAnchor="middle"
+            >
+              {g}
+            </text>
             {show && (
               <text x={i * bw + bw / 2} y={H - 4} fill="#64748b" fontSize="6.5" textAnchor="middle">
                 {day.slice(8, 10)}.{day.slice(5, 7)}
@@ -65,7 +78,7 @@ export default function FootballStats({
     const m = new Map<string, number>();
     for (const r of results) {
       if (r.status !== 'FINISHED' || r.homeGoals == null || r.awayGoals == null) continue;
-      const day = matchDayKey(r.utcDate);
+      const day = usDay(r.utcDate);
       m.set(day, (m.get(day) ?? 0) + r.homeGoals + r.awayGoals);
     }
     return [...m].sort((a, b) => a[0].localeCompare(b[0])) as [string, number][];
