@@ -329,7 +329,13 @@ export default function App() {
                 <ProgressionChart progression={progression} />
               </>
             )}
-            {tableView === 'deltagere' && <ParticipantStats standings={standings} />}
+            {tableView === 'deltagere' && (
+              <ParticipantStats
+                standings={standings}
+                participants={participants}
+                questions={questions}
+              />
+            )}
           </div>
         )}
         {view === 'kamper' && <MatchList results={results} participants={participants} />}

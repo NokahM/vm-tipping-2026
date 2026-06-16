@@ -1,6 +1,24 @@
 import { useMemo } from 'react';
-import type { ParticipantScore } from '../types';
+import type { BonusQuestion, Participant, ParticipantScore } from '../types';
 import { wcFrameStyle } from '../utils/wcFrame';
+
+// «Hvem/hva»-spørsmål der det er gøy å se hva folket tror.
+const FAVORITT_IDS = ['q1', 'q2', 'q3', 'q10', 'q13', 'q17'];
+
+/** Teller opp deltakernes svar på ett spørsmål → sortert på flest. */
+function tally(participants: Participant[], qid: string): { answer: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const p of participants) {
+    const tip = p.bonusTips.find((t) => t.questionId === qid);
+    if (!tip) continue;
+    const answers = Array.isArray(tip.answer) ? tip.answer : [tip.answer];
+    for (const a of answers) {
+      const v = (a ?? '').trim();
+      if (v) m.set(v, (m.get(v) ?? 0) + 1);
+    }
+  }
+  return [...m].map(([answer, count]) => ({ answer, count })).sort((a, b) => b.count - a.count);
+}
 
 interface Seg {
   value: number;
@@ -45,8 +63,39 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-/** Deltager-stats: treffsikkerhet (eksakt/utfall/bom) + poeng-kilde (gruppe/sluttspill/krydder). */
-export default function ParticipantStats({ standings }: { standings: ParticipantScore[] }) {
+/** Ett spørsmåls topp-svar med søyler (folkets favoritt). */
+function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Participant[] }) {
+  const tallied = tally(participants, q.id).slice(0, 5);
+  if (tallied.length === 0) return null;
+  const max = tallied[0].count;
+  return (
+    <div className="px-3 py-2">
+      <p className="mb-1 text-xs text-slate-300">{q.question}</p>
+      <ul className="space-y-1">
+        {tallied.map((t) => (
+          <li key={t.answer} className="flex items-center gap-2 text-[11px]">
+            <span className="w-20 shrink-0 truncate text-slate-200">{t.answer}</span>
+            <div className="flex h-2.5 flex-1 overflow-hidden rounded bg-slate-900/70">
+              <div className="bg-wc-red" style={{ width: `${(t.count / max) * 100}%` }} />
+            </div>
+            <span className="w-5 shrink-0 text-right tabular-nums text-slate-400">{t.count}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Deltager-stats: treffsikkerhet + poeng-kilde + folkets favoritt. */
+export default function ParticipantStats({
+  standings,
+  participants,
+  questions,
+}: {
+  standings: ParticipantScore[];
+  participants: Participant[];
+  questions: BonusQuestion[];
+}) {
   const accuracy = useMemo(
     () =>
       standings
@@ -132,6 +181,15 @@ export default function ParticipantStats({ standings }: { standings: Participant
             />
           </>
         )}
+      </Card>
+
+      <Card title="Folkets favoritt">
+        <div className="divide-y divide-slate-700/40">
+          {FAVORITT_IDS.map((id) => {
+            const q = questions.find((x) => x.id === id);
+            return q ? <FavorittBlock key={id} q={q} participants={participants} /> : null;
+          })}
+        </div>
       </Card>
     </div>
   );
