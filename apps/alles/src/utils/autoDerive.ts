@@ -1,7 +1,7 @@
 import type { MatchResult, Stage } from '../types';
 import type { StatsData } from '../hooks/useStats';
 import type { BonusStore } from './storage';
-import { groupGoalLeaders, matchDayKey } from './scoring';
+import { groupGoalLeaders, matchDayKey, projectTotalGoals } from './scoring';
 import { STAGE_LABELS, STAGE_ORDER } from './labels';
 import { normalizeTeamName } from './teamNames';
 import { worstTeamSoFar } from './groupTables';
@@ -12,7 +12,7 @@ const MESSI_ID = 3218;
 const GLIMT_IDS = [37913, 37924, 37916]; // Bjørkan, Patrick Berg, Hauge
 
 // Referanselister (engelske API-lagnavn) for «kommer lengst»-spørsmålene.
-const ISLAND_NATIONS = ['Japan', 'Haiti', 'New Zealand', 'Cape Verde Islands', 'Curaçao'];
+const ISLAND_NATIONS = ['Japan', 'Haiti', 'New Zealand', 'Cape Verde Islands', 'Curaçao', 'Australia'];
 const AFRICAN_NATIONS = [
   'Algeria',
   'Cape Verde Islands',
@@ -204,12 +204,11 @@ export function derivePreliminaryBonus(
   const out: Record<string, string> = {};
   if (results.length === 0) return out;
 
-  // q5: antall mål så langt (ferdigspilte kamper).
-  const goalsSoFar = results.reduce(
-    (s, m) => (m.status === 'FINISHED' ? s + (m.homeGoals ?? 0) + (m.awayGoals ?? 0) : s),
-    0,
-  );
-  if (goalsSoFar > 0) out.q5 = `${goalsSoFar} mål så langt`;
+  // q5: antall mål så langt + live-projeksjon (mål-per-kamp × 104).
+  const proj = projectTotalGoals(results);
+  if (proj && proj.goalsSoFar > 0) {
+    out.q5 = `${proj.goalsSoFar} mål så langt (projeksjon: ${proj.projected})`;
+  }
 
   // q9: gruppe(r) med flest mål så langt.
   const leaders = groupGoalLeaders(results);
@@ -230,9 +229,14 @@ export function derivePreliminaryBonus(
   if (nor) out.q17 = STAGE_LABELS[nor.stage];
 
   if (stats) {
-    // q3: toppscorer så langt.
-    const top = stats.topScorers?.[0];
-    if (top) out.q3 = `${top.name} (${top.goals ?? 0} mål)`;
+    // q3: toppscorer så langt – alle som deler ledelsen (likt antall mål).
+    if (stats.topScorers && stats.topScorers.length > 0) {
+      const max = stats.topScorers[0].goals ?? 0;
+      if (max > 0) {
+        const names = stats.topScorers.filter((p) => (p.goals ?? 0) === max).map((p) => p.name);
+        out.q3 = `${names.join(', ')} (${max} mål)`;
+      }
+    }
 
     // q6: raskeste mål så langt (API kjenner kun minuttet, ikke sekundet).
     if (stats.fastestGoal) {
@@ -243,7 +247,7 @@ export function derivePreliminaryBonus(
     // q13: flest mål av Ronaldo/Messi så langt.
     const r = stats.goalsByPlayer?.[RONALDO_ID] ?? 0;
     const m = stats.goalsByPlayer?.[MESSI_ID] ?? 0;
-    out.q13 = r === m ? `Likt (${r}–${m})` : r > m ? `Ronaldo (${r}–${m})` : `Messi (${m}–${r})`;
+    out.q13 = `Ronaldo ${r} – ${m} Messi`;
 
     // q16: hvor mange av de tre Glimt-spillerne som har spilt (når ikke alle tre ennå).
     const played = new Set(stats.playedIds ?? []);
