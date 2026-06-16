@@ -19,6 +19,8 @@ const Q17_LABELS: Record<string, string> = {
   THIRD_PLACE: 'Bronsefinale',
   FINAL: 'Finale',
 };
+// Kronologisk runde-rekkefølge for q17 (Gruppespill → Finale).
+const Q17_ORDER = Object.values(Q17_LABELS);
 // Generasjons-suffiks som ikke er det «egentlige» navnet (Vinicius Junior → Vinicius).
 const NAME_SUFFIX = new Set(['junior', 'jr', 'júnior', 'jnr', 'senior', 'sr', 'snr', 'filho', 'neto']);
 
@@ -68,9 +70,18 @@ function tally(participants: Participant[], qid: string): { answer: string; name
     }
     for (const a of cleaned) push(canonicalize(qid, a), p.name);
   }
-  return [...m]
-    .map(([answer, names]) => ({ answer, names }))
-    .sort((a, b) => b.names.length - a.names.length || a.answer.localeCompare(b.answer));
+  const entries = [...m].map(([answer, names]) => ({ answer, names }));
+  if (qid === 'q17') {
+    // Kronologisk (Gruppespill øverst), ikke etter antall.
+    const ord = (a: string) => {
+      const i = Q17_ORDER.indexOf(a);
+      return i === -1 ? 999 : i;
+    };
+    entries.sort((a, b) => ord(a.answer) - ord(b.answer));
+  } else {
+    entries.sort((a, b) => b.names.length - a.names.length || a.answer.localeCompare(b.answer));
+  }
+  return entries;
 }
 
 interface Seg {
@@ -127,7 +138,7 @@ function FavorittBlock({ q, participants }: { q: BonusQuestion; participants: Pa
     tallied.length > TOP
       ? [...tallied.slice(0, TOP), { answer: 'Andre', names: tallied.slice(TOP).flatMap((t) => t.names) }]
       : tallied;
-  const max = shown[0].names.length;
+  const max = Math.max(1, ...shown.map((s) => s.names.length));
   return (
     <div className="px-3 py-2">
       <p className="mb-1 text-xs text-slate-300">{q.question}</p>
