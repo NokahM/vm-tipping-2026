@@ -103,6 +103,18 @@ function collectPositions(d, positions) {
   }
 }
 
+const TOP_N = 15;
+
+// Topp N (sortert synkende), men ta med alle som ligger LIKT med den N-te, så ingen kuttes
+// midt i et likt-tall. `keyOf` returnerer verdien likhet måles på (mål / assist / kort).
+function topWithTies(sorted, keyOf) {
+  if (sorted.length <= TOP_N) return sorted;
+  const cutoff = keyOf(sorted[TOP_N - 1]);
+  let end = TOP_N;
+  while (end < sorted.length && keyOf(sorted[end]) === cutoff) end++;
+  return sorted.slice(0, end);
+}
+
 function aggregate(cache) {
   const scorers = new Map();
   const assists = new Map();
@@ -155,21 +167,26 @@ function aggregate(cache) {
   for (const s of scorers.values()) goalsByPlayer[s.id] = s.goals;
   return {
     goalsByPlayer, // id → antall mål (ekskl. selvmål), for q13 (Ronaldo/Messi)
-    topScorers: [...scorers.values()]
-      .map(withPos)
-      .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name))
-      .slice(0, 25),
-    topAssists: [...assists.values()]
-      .map(withPos)
-      .sort((a, b) => b.assists - a.assists || a.name.localeCompare(b.name))
-      .slice(0, 25),
-    topCards: [...cards.values()]
-      .map(withPos)
-      .sort((a, b) => b.red - a.red || b.yellow - a.yellow || a.name.localeCompare(b.name))
-      .slice(0, 25),
-    teamCards: [...teamCards.values()]
-      .sort((a, b) => b.red - a.red || b.yellow - a.yellow || a.team.localeCompare(b.team))
-      .slice(0, 30),
+    topScorers: topWithTies(
+      [...scorers.values()].map(withPos).sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name)),
+      (p) => p.goals,
+    ),
+    topAssists: topWithTies(
+      [...assists.values()].map(withPos).sort((a, b) => b.assists - a.assists || a.name.localeCompare(b.name)),
+      (p) => p.assists,
+    ),
+    topCards: topWithTies(
+      [...cards.values()]
+        .map(withPos)
+        .sort((a, b) => b.red - a.red || b.yellow - a.yellow || a.name.localeCompare(b.name)),
+      (p) => `${p.red}|${p.yellow}`,
+    ),
+    teamCards: topWithTies(
+      [...teamCards.values()].sort(
+        (a, b) => b.red - a.red || b.yellow - a.yellow || a.team.localeCompare(b.team),
+      ),
+      (t) => `${t.red}|${t.yellow}`,
+    ),
   };
 }
 
