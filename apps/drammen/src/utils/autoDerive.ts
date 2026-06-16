@@ -13,11 +13,12 @@ const GLIMT_IDS = [37913, 37924, 37916]; // Bjørkan, Patrick Berg, Hauge
 
 // Referanselister (engelske API-lagnavn) for «kommer lengst»-spørsmålene.
 const ISLAND_NATIONS = ['Japan', 'Haiti', 'New Zealand', 'Cape Verde Islands', 'Curaçao', 'Australia'];
-// Afrikanske land i dette tippespillet (Egypt er bevisst utelatt – ikke med i quizens liste).
+// Afrikanske land i dette tippespillet.
 const AFRICAN_NATIONS = [
   'Algeria',
   'Cape Verde Islands',
   'Congo DR',
+  'Egypt',
   'Ghana',
   'Ivory Coast',
   'Morocco',
