@@ -13,6 +13,7 @@ const stripDia = (s: string) =>
 // Verdiene er det «riktige» navnet sin nøkkel, så feilstaving og korrekt staving matcher.
 const SPELLING_ALIASES: Record<string, string> = {
   curacau: 'curacao', // Curacau → Curaçao
+  elfenbenkysten: 'elfenbenskysten', // mangler «s» → Elfenbenskysten
 };
 
 /**

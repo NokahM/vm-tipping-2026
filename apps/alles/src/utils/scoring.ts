@@ -222,12 +222,14 @@ export function scoreBonusQuestion(
 
   if (q.id === 'q17') {
     // Hvor langt kommer Norge: sammenlign tolket runde (robust mot «kvartfinale» / «kvart» / «QF»).
+    // Blankt / «–» / uklart svar = Gruppespill (Norge kommer ikke ut av gruppa) – samme tolkning
+    // som folkets-favoritt-visningen, så «ikke svart» gir grønt/poeng når fasit er Gruppespill.
     const fasitStage = parseStage(String(q.answer));
     if (!fasitStage) return points;
     for (const p of participants) {
       const tip = tipFor(p);
-      if (!tip) continue;
-      if (parseStage(bonusAnswerOf(tip)[0] ?? '') === fasitStage) add(p.name, q.maxPoints);
+      const tipStage = parseStage(tip ? (bonusAnswerOf(tip)[0] ?? '') : '') ?? 'GROUP_STAGE';
+      if (tipStage === fasitStage) add(p.name, q.maxPoints);
     }
     return points;
   }
