@@ -62,8 +62,8 @@ function tally(participants: Participant[], qid: string): { answer: string; name
     const raw = tip ? (Array.isArray(tip.answer) ? tip.answer : [tip.answer]) : [];
     const cleaned = raw.map((a) => (a ?? '').trim()).filter(Boolean);
     if (cleaned.length === 0) {
-      // q17: blankt = «kommer ikke ut av gruppa» (Gruppespill). Ellers: «Ikke svart».
-      push(qid === 'q17' ? 'Gruppespill' : 'Ikke svart', p.name);
+      // Blankt = ikke svart (også q17 – deltakerne kan svare frem til Norges gruppestart).
+      push('Ikke svart', p.name);
       continue;
     }
     for (const a of cleaned) push(canonicalize(qid, a), p.name);
