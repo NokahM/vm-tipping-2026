@@ -74,7 +74,8 @@ function Section({
 
 /** Spillerstats: toppscorer, assistkonge og råtass (kort), fra aggregert deep data. */
 export default function PlayerStats({ data }: { data: StatsData | null }) {
-  const frameStyle = useMemo(wcFrameStyle, []);
+  // Egen tilfeldig fase per kort, så de tre ikke veksler farge i lås.
+  const frameStyles = useMemo(() => [wcFrameStyle(), wcFrameStyle(), wcFrameStyle()], []);
   if (!data) {
     return <p className="px-1 text-center text-sm text-slate-500">Laster spillerstats…</p>;
   }
@@ -90,21 +91,21 @@ export default function PlayerStats({ data }: { data: StatsData | null }) {
       <Section
         title="Toppscorer"
         players={data.topScorers}
-        frameStyle={frameStyle}
+        frameStyle={frameStyles[0]}
         rankKey={(p) => p.goals ?? 0}
         value={(p) => p.goals ?? 0}
       />
       <Section
         title="Assistkonge"
         players={data.topAssists}
-        frameStyle={frameStyle}
+        frameStyle={frameStyles[1]}
         rankKey={(p) => p.assists ?? 0}
         value={(p) => p.assists ?? 0}
       />
       <Section
         title="Råtass"
         players={data.topCards}
-        frameStyle={frameStyle}
+        frameStyle={frameStyles[2]}
         rankKey={(p) => `${p.red ?? 0}|${p.yellow ?? 0}`}
         value={(p) => (
           <>

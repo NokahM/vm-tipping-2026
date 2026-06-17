@@ -11,7 +11,8 @@ import TeamLogo from './TeamLogo';
  */
 export default function GroupTables({ results }: { results: MatchResult[] }) {
   const tables = useMemo(() => computeGroupTables(results), [results]);
-  const frameStyle = useMemo(wcFrameStyle, []);
+  // Egen tilfeldig fase per gruppekort, så de ikke veksler farge i lås.
+  const frameStyles = useMemo(() => tables.map(() => wcFrameStyle()), [tables.length]);
 
   if (tables.length === 0) {
     return <p className="px-1 text-center text-sm text-slate-500">Ingen gruppespill-kamper ennå.</p>;
@@ -19,10 +20,10 @@ export default function GroupTables({ results }: { results: MatchResult[] }) {
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      {tables.map((t) => (
+      {tables.map((t, i) => (
         <div
           key={t.group}
-          style={frameStyle}
+          style={frameStyles[i]}
           className="wc-frame overflow-hidden rounded-xl bg-slate-800"
         >
           <div className="flex items-center gap-1 border-b border-slate-700/70 px-2 py-1">

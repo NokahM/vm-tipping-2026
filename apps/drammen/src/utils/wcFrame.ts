@@ -4,10 +4,10 @@ import type { CSSProperties } from 'react';
 const WC_FRAME_PERIOD_S = 32;
 
 /**
- * Faselåser .wc-frame-rammens fargesyklus til veggklokka via en negativ animation-delay.
- * Slik «starter» ikke rammen på rød ved hver fane-bytte/remount, men viser alltid fargen
- * for akkurat nå – så alle rammer er synkronisert og bytter sømløst når man veksler fane.
+ * Gir .wc-frame-rammen en **tilfeldig** startfase i fargesyklusen (negativ animation-delay),
+ * så rammene ikke veksler farge i lås med hverandre (ellers ville alle startet på rød samtidig).
+ * Kall én gang per ramme (memoisert) – hver ramme får da sin egen faste, tilfeldige fase.
  */
 export function wcFrameStyle(): CSSProperties {
-  return { animationDelay: `-${(Date.now() / 1000) % WC_FRAME_PERIOD_S}s` };
+  return { animationDelay: `-${(Math.random() * WC_FRAME_PERIOD_S).toFixed(2)}s` };
 }

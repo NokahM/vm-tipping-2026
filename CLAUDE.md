@@ -310,7 +310,8 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
     (Keeper/Forsvar/Midtbane/Angrep) – API-et blander grovt (Goalkeeper/Defence/Midfield/Offence) med
     spesifikt (f.eks. «Left Winger»), så `positionLabel` matcher på nøkkelord. Landlogo fra laget. Fra
     **stats-aggregatoren** (`/api/stats` + `useStats`), inkl. live – se «Deep data».
-  - Alle stats-kort bruker den fargerike `.wc-frame`-rammen (faselåst via `wcFrameStyle`), som krydder.
+  - Alle stats-kort bruker den fargerike `.wc-frame`-rammen (tilfeldig startfase per ramme via
+    `wcFrameStyle`, så de ikke veksler farge i lås), som krydder.
 - **Leaderboard:** kompakte rader `#  navn  plasserings-pil  grønn·gul·rød  sum`. Trykk på navn →
   poengbreakdown.
 - **Kamper:** kamprad + «Aktuelt»-seksjon (inntil **2** kamper i én rød-kantet boks med delelinje;
