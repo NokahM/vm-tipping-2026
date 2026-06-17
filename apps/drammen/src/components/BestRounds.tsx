@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant } from '../types';
 import { participantBreakdown, scoreBonusQuestion, tipForMatch, type ScoringItem } from '../utils/scoring';
 import { roundDatasets, type BonusDateInfo, type Progression } from '../utils/progression';
+import { normalizeTeamName } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 const MONTHS = ['jan.', 'feb.', 'mars', 'apr.', 'mai', 'juni', 'juli', 'aug.', 'sep.', 'okt.', 'nov.', 'des.'];
@@ -20,14 +21,24 @@ interface Round {
   rank: number; // delt plassering ved lik poengsum (1, 2, 2, 4 …)
 }
 
-const PER_TEAM = new Set(['q7', 'q8']); // 2p per nevnt lag (rødt kort / selvmål)
+// Krydder der «i spill» ⟺ oppnådd: ditt tippede lag/spiller kan slås ut, så poengene blir
+// uoppnåelige – maks teller da KUN det deltakeren faktisk fikk (aldri et gap). q7/q8 (per-lag),
+// q3 (toppscorer), q13 (Ronaldo/Messi), q12/q14 (øy/afrikansk land lengst), q2/q4 (spillerpriser).
+const MAX_EQ_ACTUAL = new Set(['q2', 'q3', 'q4', 'q7', 'q8', 'q12', 'q13', 'q14']);
+
+function hasAnswer(tip?: { answer: string | string[] }): boolean {
+  return !!tip && (Array.isArray(tip.answer) ? tip.answer.length > 0 : tip.answer.trim() !== '');
+}
 
 /**
  * Maks oppnåelige poeng for ÉN deltaker i ÉN runde, gitt deltakerens **egne** tips:
- * 3p per kamp deltakeren har tippet den dagen + krydder hen faktisk kunne fått. For q7/q8
- * (per-lag) teller kun lag deltakeren selv nevnte og som faktisk fikk rødt kort/selvmål den
- * dagen (= det hen oppnådde – man kan ikke «bomme» på et lag man har nevnt). Øvrige avgjorte
- * spørsmål: full pott hvis deltakeren har svart (kunne ha gjettet riktig).
+ * 3p per kamp deltakeren har tippet den dagen + krydder hen faktisk kunne fått.
+ * - `MAX_EQ_ACTUAL` (lag/spiller kan slås ut): teller kun oppnådd – f.eks. q7/q8 teller bare
+ *   lag deltakeren selv nevnte som faktisk fikk det (man kan ikke «bomme» på et nevnt lag).
+ * - q1 (VM-vinner): kun oppnåelig for de som tippet et lag som faktisk **er i finalen** (begge
+ *   finalistene var «i spill» den runden – taperens tipper bommet på reelt oppnåelige poeng).
+ * - Øvrige (fri gjetning – svar-rommet finnes uansett, f.eks. q5/q9/q10/q15/q17): full pott
+ *   hvis deltakeren har svart.
  */
 function maxForParticipantRound(
   p: Participant,
@@ -37,13 +48,21 @@ function maxForParticipantRound(
   for (const m of ds.results) if (tipForMatch(p, m)) max += 3;
   for (const q of ds.questions) {
     if (q.answer === null) continue;
-    if (PER_TEAM.has(q.id)) {
+    const tip = p.bonusTips.find((t) => t.questionId === q.id);
+    if (MAX_EQ_ACTUAL.has(q.id)) {
       max += scoreBonusQuestion([p], q).get(p.name) ?? 0;
-    } else {
-      const tip = p.bonusTips.find((t) => t.questionId === q.id);
-      const has =
-        tip && (Array.isArray(tip.answer) ? tip.answer.length > 0 : tip.answer.trim() !== '');
-      if (has) max += q.maxPoints;
+    } else if (q.id === 'q1') {
+      const final = ds.results.find((m) => m.stage === 'FINAL');
+      const finalists = final
+        ? [normalizeTeamName(final.homeTeam), normalizeTeamName(final.awayTeam)]
+        : null;
+      // Gjenbruk scoring (membership) for å sjekke om tipset er en av finalistene.
+      const inFinal = finalists
+        ? (scoreBonusQuestion([p], { ...q, answer: finalists }).get(p.name) ?? 0) > 0
+        : hasAnswer(tip);
+      if (inFinal) max += q.maxPoints;
+    } else if (hasAnswer(tip)) {
+      max += q.maxPoints;
     }
   }
   return max;
