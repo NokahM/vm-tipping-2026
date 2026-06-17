@@ -71,6 +71,7 @@ export type CardType = 'YELLOW' | 'RED' | 'YELLOW_RED';
 
 export interface MatchGoal {
   minute: number | null;
+  injuryTime: number | null; // overtid: 90+N lagres som minute:90 + injuryTime:N
   type: GoalType;
   team: string; // normalisert (norsk) – laget målet teller FOR
   scorer: string;
@@ -78,6 +79,7 @@ export interface MatchGoal {
 
 export interface MatchBooking {
   minute: number | null;
+  injuryTime: number | null;
   team: string; // normalisert (norsk)
   player: string;
   card: CardType;
@@ -91,12 +93,14 @@ export interface MatchEvents {
 interface RawDetail {
   goals?: Array<{
     minute: number | null;
+    injuryTime?: number | null;
     type: string;
     team: { name: string | null } | null;
     scorer: { name: string | null } | null;
   }>;
   bookings?: Array<{
     minute: number | null;
+    injuryTime?: number | null;
     team: { name: string | null } | null;
     player: { name: string | null } | null;
     card: string;
@@ -116,12 +120,14 @@ export async function fetchMatchEvents(id: number): Promise<MatchEvents | null> 
     return {
       goals: (m.goals ?? []).map((g) => ({
         minute: g.minute,
+        injuryTime: g.injuryTime ?? null,
         type: (g.type as GoalType) ?? 'REGULAR',
         team: normalizeTeamName(g.team?.name ?? ''),
         scorer: g.scorer?.name ?? '',
       })),
       bookings: (m.bookings ?? []).map((b) => ({
         minute: b.minute,
+        injuryTime: b.injuryTime ?? null,
         team: normalizeTeamName(b.team?.name ?? ''),
         player: b.player?.name ?? '',
         card: (b.card as CardType) ?? 'YELLOW',

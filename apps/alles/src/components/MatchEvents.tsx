@@ -23,8 +23,16 @@ function displayName(full: string): string {
 }
 
 type Side = 'home' | 'away';
+// Tidspunkt med overtid: 90+3 lagres som minute:90 + injuryTime:3.
+type Stamp = { minute: number | null; injuryTime: number | null };
 // Mål grupperes per spiller (flere minutter + én ⚽ per mål); røde kort står alltid alene.
-type EventRow = { side: Side; minutes: (number | null)[]; kind: 'goal' | 'own' | 'red'; name: string };
+type EventRow = { side: Side; minutes: Stamp[]; kind: 'goal' | 'own' | 'red'; name: string };
+
+/** «67'», «90+3'» (overtid) eller null hvis minutt mangler. */
+function fmtStamp(s: Stamp): string | null {
+  if (s.minute == null) return null;
+  return `${s.minute}${s.injuryTime ? `+${s.injuryTime}` : ''}'`;
+}
 
 function iconsFor(r: EventRow): string {
   return r.kind === 'red' ? '🟥' : '⚽'.repeat(r.minutes.length);
@@ -99,19 +107,22 @@ export default function MatchEvents({ match }: Props) {
     if (!side) continue;
     const name = g.scorer;
     const key = `${side}:${kind}:${name}`;
+    const stamp: Stamp = { minute: g.minute, injuryTime: g.injuryTime };
     const existing = groups.get(key);
-    if (existing) existing.minutes.push(g.minute);
-    else groups.set(key, { side, kind, name, minutes: [g.minute] });
+    if (existing) existing.minutes.push(stamp);
+    else groups.set(key, { side, kind, name, minutes: [stamp] });
   }
-  for (const e of groups.values()) e.minutes.sort((a, b) => (a ?? 999) - (b ?? 999));
+  for (const e of groups.values()) e.minutes.sort((a, b) => (a.minute ?? 999) - (b.minute ?? 999));
 
   // Røde kort: alltid egen rad (ikke gruppert), på spillerens lag-side.
   const reds: EventRow[] = redCards.flatMap((b) => {
     const side = sideOf(b.team);
-    return side ? [{ side, kind: 'red' as const, name: b.player, minutes: [b.minute] }] : [];
+    return side
+      ? [{ side, kind: 'red' as const, name: b.player, minutes: [{ minute: b.minute, injuryTime: b.injuryTime }] }]
+      : [];
   });
 
-  const firstMin = (e: EventRow) => e.minutes[0] ?? 999;
+  const firstMin = (e: EventRow) => e.minutes[0]?.minute ?? 999;
   const rows = [...groups.values(), ...reds].sort((a, b) => firstMin(a) - firstMin(b));
 
   return (
@@ -124,8 +135,8 @@ export default function MatchEvents({ match }: Props) {
             <SideCell row={r} side="home" />
             <div className="whitespace-nowrap px-1 text-center text-[11px] tabular-nums text-slate-500">
               {r.minutes
-                .filter((m) => m != null)
-                .map((m) => `${m}'`)
+                .map(fmtStamp)
+                .filter((s): s is string => s != null)
                 .join(', ')}
             </div>
             <SideCell row={r} side="away" />
