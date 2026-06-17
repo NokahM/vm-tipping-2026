@@ -426,23 +426,35 @@ export function displayPointsForTip(tip: Goals, match: MatchResult): number | nu
   return calcPoints(tip.home, tip.away, match.homeGoals, match.awayGoals);
 }
 
-export type ScoringItem =
+export type ScoringItem = { date?: string } & (
   | { kind: 'match'; home: string; away: string; result: string; points: number }
-  | { kind: 'bonus'; question: string; answer: string; points: number };
+  | { kind: 'bonus'; question: string; answer: string; points: number }
+);
+
+/** Avgjort-datoer for krydder (samme form som progression's BonusDateInfo). */
+type BonusDates = Record<string, { at?: string; ats?: Record<string, string> }>;
 
 /**
  * Alle kildene der en deltaker faktisk har FÅTT poeng (kamper og krydder).
- * Bomtipp (0 poeng) tas ikke med. Kamper sorteres kronologisk, krydder til slutt.
+ * Bomtipp (0 poeng) tas ikke med. Kamper får sin matchday-dato, krydder sin avgjort-dato
+ * (`bonusInfo`); når `bonusInfo` er gitt sorteres alt **kronologisk** (kamp + krydder om
+ * hverandre). Uten `bonusInfo` beholdes gammel rekkefølge (kamper kronologisk, krydder til slutt).
  */
 export function participantBreakdown(
   participant: Participant,
   participants: Participant[],
   results: MatchResult[],
   questions: BonusQuestion[],
+  bonusInfo?: BonusDates,
 ): ScoringItem[] {
   const items: ScoringItem[] = [];
 
   const played = results.filter(isPlayed).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+  const matchDays = [...new Set(played.map((m) => matchDayKey(m.utcDate)))].sort();
+  const fallbackDay = matchDays.length
+    ? matchDays[matchDays.length - 1]
+    : matchDayKey(new Date().toISOString());
+
   for (const m of played) {
     const tip = tipForMatch(participant, m);
     if (!tip) continue;
@@ -454,8 +466,19 @@ export function participantBreakdown(
       away: normalizeTeamName(m.awayTeam),
       result: `${m.homeGoals}–${m.awayGoals}`,
       points: pts,
+      date: matchDayKey(m.utcDate),
     });
   }
+
+  // Krydder-avgjort-dato: liste-spørsmål → tidligste element-dato, enkelt-svar → `at`,
+  // udatert → siste matchday (som progression). Kun til kronologisk plassering.
+  const bonusDate = (q: BonusQuestion): string | undefined => {
+    const info = bonusInfo?.[q.id];
+    if (!info) return undefined;
+    const atsVals = info.ats ? Object.values(info.ats) : [];
+    const raw = atsVals.length ? atsVals.reduce((a, b) => (a < b ? a : b)) : info.at;
+    return raw ? matchDayKey(raw) : fallbackDay;
+  };
 
   for (const q of questions) {
     if (q.answer === null) continue;
@@ -470,7 +493,12 @@ export function participantBreakdown(
       const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a)));
       if (hits.length) answer = hits.join(' + ');
     }
-    items.push({ kind: 'bonus', question: q.question, answer, points: pts });
+    items.push({ kind: 'bonus', question: q.question, answer, points: pts, date: bonusDate(q) });
+  }
+
+  // Kronologisk fletting kun når vi har krydder-datoer (ellers: kamper først, krydder sist).
+  if (bonusInfo) {
+    items.sort((a, b) => (a.date ?? fallbackDay).localeCompare(b.date ?? fallbackDay));
   }
 
   return items;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant, ParticipantScore } from '../types';
 import { computeRankDeltas, participantBreakdown, type ScoringItem } from '../utils/scoring';
+import type { BonusDateInfo } from '../utils/progression';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   participants: Participant[];
   results: MatchResult[];
   questions: BonusQuestion[];
+  bonusInfo: Record<string, BonusDateInfo>;
 }
 
 const RANK_COLOR: Record<number, string> = {
@@ -16,7 +18,7 @@ const RANK_COLOR: Record<number, string> = {
   3: 'text-orange-400',
 };
 
-export default function Leaderboard({ standings, participants, results, questions }: Props) {
+export default function Leaderboard({ standings, participants, results, questions, bonusInfo }: Props) {
   const byName = useMemo(
     () => new Map(participants.map((p) => [p.name, p])),
     [participants],
@@ -46,6 +48,7 @@ export default function Leaderboard({ standings, participants, results, question
             participants={participants}
             results={results}
             questions={questions}
+            bonusInfo={bonusInfo}
           />
         ))}
       </ul>
@@ -60,6 +63,7 @@ function LeaderboardRow({
   participants,
   results,
   questions,
+  bonusInfo,
 }: {
   score: ParticipantScore;
   delta: number | undefined;
@@ -67,12 +71,16 @@ function LeaderboardRow({
   participants: Participant[];
   results: MatchResult[];
   questions: BonusQuestion[];
+  bonusInfo: Record<string, BonusDateInfo>;
 }) {
   const [open, setOpen] = useState(false);
 
   const items = useMemo(
-    () => (open && participant ? participantBreakdown(participant, participants, results, questions) : []),
-    [open, participant, participants, results, questions],
+    () =>
+      open && participant
+        ? participantBreakdown(participant, participants, results, questions, bonusInfo)
+        : [],
+    [open, participant, participants, results, questions, bonusInfo],
   );
 
   return (

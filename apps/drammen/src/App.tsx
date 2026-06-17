@@ -356,6 +356,7 @@ export default function App() {
                   participants={participants}
                   results={results}
                   questions={questions}
+                  bonusInfo={bonusInfo}
                 />
               </>
             )}

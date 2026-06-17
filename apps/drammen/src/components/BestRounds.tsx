@@ -16,6 +16,21 @@ interface Round {
   name: string;
   day: string;
   points: number;
+  max: number; // maks mulige poeng den runden (alle kamper + krydder avgjort den dagen)
+}
+
+const PER_TEAM = new Set(['q7', 'q8']); // 2p per nevnt lag (rødt kort / selvmål)
+
+/** Maks oppnåelige poeng for én runde: 3p per kamp + krydder-maks avgjort den dagen. */
+function maxForRound(ds: { results: MatchResult[]; questions: BonusQuestion[] }): number {
+  let max = 3 * ds.results.length;
+  for (const q of ds.questions) {
+    if (q.answer === null) continue;
+    max += PER_TEAM.has(q.id)
+      ? Math.min(2 * (Array.isArray(q.answer) ? q.answer.length : 1), q.maxPoints)
+      : q.maxPoints;
+  }
+  return max;
 }
 
 function BreakdownChip({ item }: { item: ScoringItem }) {
@@ -70,7 +85,7 @@ export default function BestRounds({
 
   const top = useMemo<Round[]>(() => {
     const { days, series } = progression;
-    const rounds: Round[] = [];
+    const rounds: Omit<Round, 'max'>[] = [];
     for (const s of series) {
       // days[0] er syntetisk «start»-dag (alle på 0); ekte runder starter på index 1.
       for (let i = 1; i < s.totals.length; i++) {
@@ -79,8 +94,15 @@ export default function BestRounds({
       }
     }
     rounds.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'no'));
-    return rounds.slice(0, 5);
-  }, [progression]);
+    // Maks beregnes kun for de 5 vi viser (roundDatasets per runde).
+    const dayMax = new Map<string, number>();
+    return rounds.slice(0, 5).map((r) => {
+      if (!dayMax.has(r.day)) {
+        dayMax.set(r.day, maxForRound(roundDatasets(r.day, results, questions, bonusInfo)));
+      }
+      return { ...r, max: dayMax.get(r.day)! };
+    });
+  }, [progression, results, questions, bonusInfo]);
 
   const maxPoints = Math.max(1, ...top.map((r) => r.points));
 
@@ -118,7 +140,8 @@ export default function BestRounds({
                     <span className="truncate text-slate-200">{r.name}</span>
                     <span className="shrink-0 tabular-nums text-slate-400">
                       {dayLabel(r.day)} ·{' '}
-                      <span className="font-semibold text-wc-lime">{r.points} p</span>
+                      <span className="font-semibold text-wc-lime">{r.points}</span>
+                      <span className="text-slate-500"> av {r.max} mulige</span>
                     </span>
                   </div>
                   <div className="mt-1 flex h-2.5 overflow-hidden rounded bg-slate-900/70">
