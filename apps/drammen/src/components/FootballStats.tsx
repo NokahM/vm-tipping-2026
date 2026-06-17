@@ -87,8 +87,40 @@ export default function FootballStats({
   }, [results]);
   const maxDay = Math.max(1, ...goalsByDay.map(([, g]) => g));
 
+  // Vanligste faktiske resultater (ferdigspilte kamper); speilvendte slås sammen (2–1 = 1–2).
+  const commonResults = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of results) {
+      if (r.status !== 'FINISHED' || r.homeGoals == null || r.awayGoals == null) continue;
+      const hi = Math.max(r.homeGoals, r.awayGoals);
+      const lo = Math.min(r.homeGoals, r.awayGoals);
+      const key = `${hi}–${lo}`;
+      m.set(key, (m.get(key) ?? 0) + 1);
+    }
+    return [...m].sort((a, b) => b[1] - a[1]);
+  }, [results]);
+  const maxResult = Math.max(1, ...commonResults.map(([, n]) => n));
+
   return (
     <div className="space-y-3">
+      <Card title="Vanligste resultater">
+        {commonResults.length === 0 ? (
+          <p className="px-3 py-2 text-xs text-slate-500">Ingen ferdigspilte kamper ennå.</p>
+        ) : (
+          <ul className="space-y-1 px-3 py-2">
+            {commonResults.map(([score, n]) => (
+              <li key={score} className="flex items-center gap-2 text-[11px]">
+                <span className="w-9 shrink-0 tabular-nums text-slate-300">{score}</span>
+                <div className="flex h-3 flex-1 overflow-hidden rounded bg-slate-900/70">
+                  <div className="bg-wc-lime" style={{ width: `${(n / maxResult) * 100}%` }} />
+                </div>
+                <span className="w-6 shrink-0 text-right tabular-nums text-slate-400">{n}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       <Card title="Mål-fordeling (minutt)">
         {totalGoals === 0 ? (
           <p className="px-3 py-2 text-xs text-slate-500">Ingen mål registrert ennå.</p>

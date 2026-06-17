@@ -470,13 +470,21 @@ export function participantBreakdown(
     });
   }
 
-  // Krydder-avgjort-dato: liste-spørsmål → tidligste element-dato, enkelt-svar → `at`,
-  // udatert → siste matchday (som progression). Kun til kronologisk plassering.
-  const bonusDate = (q: BonusQuestion): string | undefined => {
+  // Krydder-avgjort-dato til kronologisk plassering. For liste-spørsmål (q7/q8/q15) brukes
+  // datoen til DETTE deltakerens treff-element(er) – ikke tidligste element globalt (ellers
+  // havner f.eks. ett selvmål på feil dag). Enkelt-svar → `at`; udatert → siste matchday.
+  const bonusDate = (q: BonusQuestion, relevant: string[] | null): string | undefined => {
     const info = bonusInfo?.[q.id];
     if (!info) return undefined;
-    const atsVals = info.ats ? Object.values(info.ats) : [];
-    const raw = atsVals.length ? atsVals.reduce((a, b) => (a < b ? a : b)) : info.at;
+    let raw: string | undefined;
+    if (relevant && relevant.length && info.ats) {
+      const ds = relevant.map((it) => info.ats![it]).filter((d): d is string => !!d);
+      if (ds.length) raw = ds.reduce((a, b) => (a < b ? a : b));
+    }
+    if (!raw) {
+      const atsVals = info.ats ? Object.values(info.ats) : [];
+      raw = atsVals.length ? atsVals.reduce((a, b) => (a < b ? a : b)) : info.at;
+    }
     return raw ? matchDayKey(raw) : fallbackDay;
   };
 
@@ -486,14 +494,16 @@ export function participantBreakdown(
     if (pts <= 0) continue;
     const tip = participant.bonusTips.find((t) => t.questionId === q.id);
     let answer = tip ? (Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer) : '';
-    // q7/q8 (rødt kort / selvmål): vis kun lagene som faktisk ga poeng (de i fasiten),
-    // så det er tydelig hvilket av de to lagene man fikk +2p for.
-    if (tip && PER_TEAM_IDS.has(q.id) && Array.isArray(q.answer)) {
-      const actual = new Set(q.answer.map(norm));
-      const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a)));
-      if (hits.length) answer = hits.join(' + ');
+    // Fasit-element(ene) som ga DENNE deltakeren poeng (for både dato og visning av liste-svar).
+    let relevant: string[] | null = null;
+    if (tip && Array.isArray(q.answer)) {
+      const mine = new Set(bonusAnswerOf(tip).map(norm));
+      relevant = q.answer.filter((ae) => mine.has(norm(ae)));
+      // q7/q8 (rødt kort / selvmål): vis kun lagene som faktisk ga poeng (de i fasiten),
+      // så det er tydelig hvilket av de to lagene man fikk +2p for.
+      if (PER_TEAM_IDS.has(q.id) && relevant.length) answer = relevant.join(' + ');
     }
-    items.push({ kind: 'bonus', question: q.question, answer, points: pts, date: bonusDate(q) });
+    items.push({ kind: 'bonus', question: q.question, answer, points: pts, date: bonusDate(q, relevant) });
   }
 
   // Kronologisk fletting kun når vi har krydder-datoer (ellers: kamper først, krydder sist).
