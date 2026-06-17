@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { MatchResult } from '../types';
+import { normalizeTeamName } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 const MIN_LABELS = ['1-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+'];
@@ -75,6 +76,7 @@ export default function FootballStats({
   const mins = goalMinutes ?? [];
   const totalGoals = mins.reduce((a, b) => a + b, 0);
   const maxMin = Math.max(1, ...mins);
+  const [openResult, setOpenResult] = useState<string | null>(null);
 
   const goalsByDay = useMemo(() => {
     const m = new Map<string, number>();
@@ -88,18 +90,21 @@ export default function FootballStats({
   const maxDay = Math.max(1, ...goalsByDay.map(([, g]) => g));
 
   // Vanligste faktiske resultater (ferdigspilte kamper); speilvendte slås sammen (2–1 = 1–2).
+  // Per resultat lagres også kampene (for klikk → hvilke kamper), sortert kronologisk.
   const commonResults = useMemo(() => {
-    const m = new Map<string, number>();
+    const m = new Map<string, MatchResult[]>();
     for (const r of results) {
       if (r.status !== 'FINISHED' || r.homeGoals == null || r.awayGoals == null) continue;
       const hi = Math.max(r.homeGoals, r.awayGoals);
       const lo = Math.min(r.homeGoals, r.awayGoals);
       const key = `${hi}–${lo}`;
-      m.set(key, (m.get(key) ?? 0) + 1);
+      if (!m.has(key)) m.set(key, []);
+      m.get(key)!.push(r);
     }
-    return [...m].sort((a, b) => b[1] - a[1]);
+    for (const list of m.values()) list.sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+    return [...m].sort((a, b) => b[1].length - a[1].length);
   }, [results]);
-  const maxResult = Math.max(1, ...commonResults.map(([, n]) => n));
+  const maxResult = Math.max(1, ...commonResults.map(([, list]) => list.length));
 
   return (
     <div className="space-y-3">
@@ -108,13 +113,40 @@ export default function FootballStats({
           <p className="px-3 py-2 text-xs text-slate-500">Ingen ferdigspilte kamper ennå.</p>
         ) : (
           <ul className="space-y-1 px-3 py-2">
-            {commonResults.map(([score, n]) => (
-              <li key={score} className="flex items-center gap-2 text-[11px]">
-                <span className="w-9 shrink-0 tabular-nums text-slate-300">{score}</span>
-                <div className="flex h-3 flex-1 overflow-hidden rounded bg-slate-900/70">
-                  <div className="bg-wc-lime" style={{ width: `${(n / maxResult) * 100}%` }} />
-                </div>
-                <span className="w-6 shrink-0 text-right tabular-nums text-slate-400">{n}</span>
+            {commonResults.map(([score, list]) => (
+              <li key={score}>
+                <button
+                  type="button"
+                  onClick={() => setOpenResult((v) => (v === score ? null : score))}
+                  className="flex w-full items-center gap-2 text-left text-[11px] active:opacity-70"
+                  aria-expanded={openResult === score}
+                >
+                  <span className="w-9 shrink-0 tabular-nums text-slate-300">{score}</span>
+                  <div className="flex h-3 flex-1 overflow-hidden rounded bg-slate-900/70">
+                    <div className="bg-wc-lime" style={{ width: `${(list.length / maxResult) * 100}%` }} />
+                  </div>
+                  <span className="w-6 shrink-0 text-right tabular-nums text-slate-400">
+                    {list.length}
+                  </span>
+                </button>
+                {openResult === score && (
+                  <ul className="mb-1 mt-1 space-y-0.5 pl-1">
+                    {list.map((m) => (
+                      <li
+                        key={m.apiId}
+                        className="flex items-center gap-1.5 text-[10px] text-slate-400"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-right">
+                          {normalizeTeamName(m.homeTeam)}
+                        </span>
+                        <span className="shrink-0 font-semibold tabular-nums text-slate-200">
+                          {m.homeGoals}–{m.awayGoals}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{normalizeTeamName(m.awayTeam)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>

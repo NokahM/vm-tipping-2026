@@ -447,7 +447,10 @@ export function participantBreakdown(
   questions: BonusQuestion[],
   bonusInfo?: BonusDates,
 ): ScoringItem[] {
-  const items: ScoringItem[] = [];
+  // Hver kilde får en sorteringsnøkkel `${matchday}#${innen-dag}` så krydder kan flettes
+  // kronologisk blant kampene (kun når `bonusInfo` er gitt). `innen-dag` = kampens utcDate for
+  // kamper og for krydder knyttet til en kamp (→ rett etter den kampen); ellers «ZZZ» (dagens slutt).
+  const rows: { key: string; item: ScoringItem }[] = [];
 
   const played = results.filter(isPlayed).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
   const matchDays = [...new Set(played.map((m) => matchDayKey(m.utcDate)))].sort();
@@ -460,22 +463,25 @@ export function participantBreakdown(
     if (!tip) continue;
     const pts = calcPoints(tip.home, tip.away, m.homeGoals, m.awayGoals);
     if (pts <= 0) continue;
-    items.push({
-      kind: 'match',
-      home: normalizeTeamName(m.homeTeam),
-      away: normalizeTeamName(m.awayTeam),
-      result: `${m.homeGoals}–${m.awayGoals}`,
-      points: pts,
-      date: matchDayKey(m.utcDate),
+    const day = matchDayKey(m.utcDate);
+    rows.push({
+      key: `${day}#${m.utcDate}`,
+      item: {
+        kind: 'match',
+        home: normalizeTeamName(m.homeTeam),
+        away: normalizeTeamName(m.awayTeam),
+        result: `${m.homeGoals}–${m.awayGoals}`,
+        points: pts,
+        date: day,
+      },
     });
   }
 
-  // Krydder-avgjort-dato til kronologisk plassering. For liste-spørsmål (q7/q8/q15) brukes
-  // datoen til DETTE deltakerens treff-element(er) – ikke tidligste element globalt (ellers
-  // havner f.eks. ett selvmål på feil dag). Enkelt-svar → `at`; udatert → siste matchday.
-  const bonusDate = (q: BonusQuestion, relevant: string[] | null): string | undefined => {
+  // Avgjort-matchday for krydder. For liste-spørsmål brukes DETTE deltakerens treff-element(er)
+  // – ikke tidligste element globalt. Enkelt-svar → `at`; udatert → siste matchday.
+  const decidedDay = (q: BonusQuestion, relevant: string[] | null): string => {
     const info = bonusInfo?.[q.id];
-    if (!info) return undefined;
+    if (!info) return fallbackDay;
     let raw: string | undefined;
     if (relevant && relevant.length && info.ats) {
       const ds = relevant.map((it) => info.ats![it]).filter((d): d is string => !!d);
@@ -487,31 +493,58 @@ export function participantBreakdown(
     }
     return raw ? matchDayKey(raw) : fallbackDay;
   };
+  // utcDate for lagets kamp den dagen (→ krydder-chip rett etter kampen); ellers dagens slutt.
+  const withinDay = (day: string, team?: string): string => {
+    if (team) {
+      const m = played.find(
+        (mm) =>
+          matchDayKey(mm.utcDate) === day &&
+          (norm(normalizeTeamName(mm.homeTeam)) === norm(team) ||
+            norm(normalizeTeamName(mm.awayTeam)) === norm(team)),
+      );
+      if (m) return m.utcDate;
+    }
+    return 'ZZZ';
+  };
 
   for (const q of questions) {
     if (q.answer === null) continue;
     const pts = scoreBonusQuestion(participants, q).get(participant.name) ?? 0;
     if (pts <= 0) continue;
     const tip = participant.bonusTips.find((t) => t.questionId === q.id);
+
+    // q7/q8 i kronologisk modus: én chip per nevnt lag, hver rett etter sin egen kamp.
+    if (bonusInfo && tip && PER_TEAM_IDS.has(q.id) && Array.isArray(q.answer)) {
+      const mine = new Set(bonusAnswerOf(tip).map(norm));
+      const relevant = q.answer.filter((ae) => mine.has(norm(ae)));
+      const perTeam = q.maxPoints / 2;
+      for (const team of relevant) {
+        const day = decidedDay(q, [team]);
+        rows.push({
+          key: `${day}#${withinDay(day, team)}`,
+          item: { kind: 'bonus', question: q.question, answer: team, points: perTeam, date: day },
+        });
+      }
+      continue;
+    }
+
+    // Kombinert chip (ingen bonusInfo, eller ikke-per-lag spørsmål).
     let answer = tip ? (Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer) : '';
-    // Fasit-element(ene) som ga DENNE deltakeren poeng (for både dato og visning av liste-svar).
     let relevant: string[] | null = null;
     if (tip && Array.isArray(q.answer)) {
       const mine = new Set(bonusAnswerOf(tip).map(norm));
       relevant = q.answer.filter((ae) => mine.has(norm(ae)));
-      // q7/q8 (rødt kort / selvmål): vis kun lagene som faktisk ga poeng (de i fasiten),
-      // så det er tydelig hvilket av de to lagene man fikk +2p for.
       if (PER_TEAM_IDS.has(q.id) && relevant.length) answer = relevant.join(' + ');
     }
-    items.push({ kind: 'bonus', question: q.question, answer, points: pts, date: bonusDate(q, relevant) });
+    const day = decidedDay(q, relevant);
+    rows.push({ key: `${day}#ZZZ`, item: { kind: 'bonus', question: q.question, answer, points: pts, date: day } });
   }
 
   // Kronologisk fletting kun når vi har krydder-datoer (ellers: kamper først, krydder sist).
-  if (bonusInfo) {
-    items.sort((a, b) => (a.date ?? fallbackDay).localeCompare(b.date ?? fallbackDay));
-  }
+  // Stabil sort: krydder knyttet til en kamp (lik nøkkel) havner rett etter kampen.
+  if (bonusInfo) rows.sort((a, b) => a.key.localeCompare(b.key));
 
-  return items;
+  return rows.map((r) => r.item);
 }
 
 // Grensen mellom «kampdager» settes til 10:00 UTC = 12:00 norsk sommertid – midt i det
