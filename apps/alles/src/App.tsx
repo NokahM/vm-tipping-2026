@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { STORAGE_KEYS } from './config';
 import { PARTICIPANTS } from './data/participants';
 import { BONUS_QUESTIONS } from './data/bonusQuestions';
@@ -436,6 +437,7 @@ export default function App() {
         )}
       </main>
       {showVictory && <VictoryPopup winners={winners} onClose={closeVictory} />}
+      <Analytics />
     </div>
   );
 }
