@@ -75,7 +75,7 @@ function isAdminUrl(): boolean {
 export default function App() {
   const { results, loading, error, lastUpdated, refresh } = useMatches();
   const [view, setView] = useState<View>('kamper');
-  const [tableView, setTableView] = useState<'tabell' | 'graf'>('tabell');
+  const [tableView, setTableView] = useState<'tabell' | 'graf' | 'snacks'>('tabell');
   const [krydderView, setKrydderView] = useState<'spørsmål' | 'favoritt'>('spørsmål');
   const [statsView, setStatsView] = useState<'lag' | 'spiller' | 'nerding'>('lag');
   // Hentes alltid (ikke bare på Stats-fanen): brukes også til auto-krydder (q7/q8).
@@ -343,7 +343,10 @@ export default function App() {
                 Tabell
               </SubTab>
               <SubTab active={tableView === 'graf'} onClick={() => setTableView('graf')}>
-                Utvikling
+                Graf
+              </SubTab>
+              <SubTab active={tableView === 'snacks'} onClick={() => setTableView('snacks')}>
+                Snacks
               </SubTab>
             </div>
             {tableView === 'tabell' && (
@@ -360,9 +363,9 @@ export default function App() {
                 />
               </>
             )}
-            {tableView === 'graf' && (
+            {tableView === 'graf' && <ProgressionChart progression={progression} />}
+            {tableView === 'snacks' && (
               <>
-                <ProgressionChart progression={progression} />
                 <ParticipantStats
                   standings={standings}
                   participants={participants}

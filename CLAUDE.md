@@ -284,13 +284,13 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   et **subtilt, gjennomsiktig tannhjul** (→ admin). Ingen offentlig refresh-knapp (auto-polling dekker
   det); manuell refresh ligger i admin.
 - **Faner:** fire (Stilling / Kamper / Krydder / Stats), én sentrert kolonne. Standard landingsfane er
-  **Kamper**. Under-toggles: «Stilling» → `Tabell | Utvikling`; «Krydder» → `Liste | Grafisk`; «Stats»
+  **Kamper**. Under-toggles: «Stilling» → `Tabell | Graf | Snacks`; «Krydder» → `Liste | Grafisk`; «Stats»
   → `Lagstats | Spillerstats | Nerding`.
-  - **Utvikling** (`Stilling`-fanen): utviklingsgrafen (`ProgressionChart`) + under den
-    **Treffsikkerhet** og **Poeng-kilde** (`ParticipantStats`): treffsikkerhet = snitt poeng/kamp
-    (eksakt/utfall/bom-søyler, klikk → eksakte 3p-kamper), poeng-kilde = totalpoeng delt på
-    gruppe/sluttspill/krydder (klikk → krydder-treff). «Utvikling» dekker bevisst både grafen og disse
-    kortene.
+  - **Graf** (`Stilling`-fanen): utviklingsgrafen (`ProgressionChart`) alene.
+  - **Snacks** (`Stilling`-fanen): **Treffsikkerhet** + **Poeng-kilde** (`ParticipantStats`):
+    treffsikkerhet = snitt poeng/kamp (eksakt/utfall/bom-søyler, klikk → eksakte 3p-kamper),
+    poeng-kilde = totalpoeng delt på gruppe/sluttspill/krydder (klikk → krydder-treff). Deretter
+    **Beste runde** (`BestRounds`) og **Vanligste tips** (`CommonTips`).
   - **Grafisk** (`Krydder`-fanen): **folkets favoritt** (`FolketsFavoritt`-eksport fra
     `ParticipantStats`) – fordeling av tipp på q1/q2/q3/q10/q12/q13/q14/q17, klikkbare søyler («hvem
     svarte hva»). «Liste» = selve spørsmålene/fasit/alle svar (`BonusQuestions`).
@@ -298,7 +298,7 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
     kampdag (vertikalt søylediagram fra resultatene).
   - **q5-tallinje** (`Q5NumberLine` i `BonusQuestions`): når q5 åpnes, alle deltakernes mål-gjett som
     prikker + projeksjon med ±5-bånd (grønn = innenfor).
-- **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Utvikling`).
+- **Stats-fanen:** sub-toggle `Lagstats | Spillerstats` (samme stil som Stilling sin `Tabell | Graf | Snacks`).
   - **Lagstats:** **gruppetabeller** (`GroupTables` + `utils/groupTables.ts`) regnet fra ferdigspilte
     gruppespill-kamper (poeng → målforskjell → scorede mål; lister alle kjente lag). Vises **to grupper
     per rad**, kompakt (logo + navn + ± + P). Under: **kort per lag** (`TeamCards`) fra aggregatoren.
@@ -459,12 +459,13 @@ hentes nå **alltid** (ikke bare på Stats-fanen) siden auto-krydder trenger det
 
 ## Utviklingsgraf + krydder-datering (implementert)
 
-**Graf (`Stilling`-fanen, under-toggle `Tabell | Utvikling`).** Lett, egen SVG-linjegraf (ingen
+**Graf (`Stilling`-fanen, under-toggle `Tabell | Graf | Snacks`).** Lett, egen SVG-linjegraf (ingen
 charting-bibliotek) som viser hver deltakers **kumulative totalsum dag-for-dag**.
-- Hovedfanen heter **«Stilling»**; under den en under-toggle (`SubTab`) `Tabell | Utvikling`. «Utvikling»
-  rommer grafen + `ParticipantStats` (Treffsikkerhet/Poeng-kilde). Grafen *er* tabellens utvikling over
-  tid, så den bor under Stilling (ikke egen hovedfane). «Trykk på en spiller»-hintet står mellom grafen
-  og navne-chipsene.
+- Hovedfanen heter **«Stilling»**; under den en under-toggle (`SubTab`) `Tabell | Graf | Snacks`. «Graf»
+  rommer selve utviklingsgrafen alene; «Snacks» rommer `ParticipantStats` (Treffsikkerhet/Poeng-kilde),
+  `BestRounds` (Beste runde) og `CommonTips` (Vanligste tips). Grafen *er* tabellens utvikling over tid,
+  så den bor under Stilling (ikke egen hovedfane). «Trykk på en spiller»-hintet står mellom grafen og
+  navne-chipsene.
 - `utils/progression.ts` → `computeProgression(participants, results, questions, bonusInfo)`:
   for hver matchday-key X (kronologisk) kjøres `computeStandings()` på et **filtrert** datasett –
   FINISHED-kamper med `matchDayKey ≤ X` + krydder med dato `≤ X`. Gir én (dag, kumulativ total)-serie
