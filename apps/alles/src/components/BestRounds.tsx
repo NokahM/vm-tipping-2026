@@ -17,6 +17,7 @@ interface Round {
   day: string;
   points: number;
   max: number; // maks mulige poeng den runden (alle kamper + krydder avgjort den dagen)
+  rank: number; // delt plassering ved lik poengsum (1, 2, 2, 4 …)
 }
 
 const PER_TEAM = new Set(['q7', 'q8']); // 2p per nevnt lag (rødt kort / selvmål)
@@ -85,7 +86,7 @@ export default function BestRounds({
 
   const top = useMemo<Round[]>(() => {
     const { days, series } = progression;
-    const rounds: Omit<Round, 'max'>[] = [];
+    const rounds: Omit<Round, 'max' | 'rank'>[] = [];
     for (const s of series) {
       // days[0] er syntetisk «start»-dag (alle på 0); ekte runder starter på index 1.
       for (let i = 1; i < s.totals.length; i++) {
@@ -94,13 +95,17 @@ export default function BestRounds({
       }
     }
     rounds.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'no'));
-    // Maks beregnes kun for de 5 vi viser (roundDatasets per runde).
+    // «Topp 5», men ta alltid med alle som er likt med 5.-plassen (kan bli > 5 rader).
+    const cutoff = rounds.length >= 5 ? rounds[4].points : 0;
+    const kept = rounds.filter((r) => r.points >= cutoff);
+    // Maks + delt plassering beregnes kun for de vi viser (roundDatasets per runde).
     const dayMax = new Map<string, number>();
-    return rounds.slice(0, 5).map((r) => {
+    return kept.map((r) => {
       if (!dayMax.has(r.day)) {
         dayMax.set(r.day, maxForRound(roundDatasets(r.day, results, questions, bonusInfo)));
       }
-      return { ...r, max: dayMax.get(r.day)! };
+      const rank = 1 + kept.filter((o) => o.points > r.points).length;
+      return { ...r, max: dayMax.get(r.day)!, rank };
     });
   }, [progression, results, questions, bonusInfo]);
 
@@ -133,7 +138,7 @@ export default function BestRounds({
                 aria-expanded={open === i}
               >
                 <span className="w-4 shrink-0 text-right font-semibold tabular-nums text-slate-500">
-                  {i + 1}
+                  {r.rank}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
