@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant } from '../types';
-import { participantBreakdown, scoreBonusQuestion, tipForMatch, type ScoringItem } from '../utils/scoring';
+import { calcPoints, matchDayKey, participantBreakdown, tipForMatch, type ScoringItem } from '../utils/scoring';
 import { roundDatasets, type BonusDateInfo, type Progression } from '../utils/progression';
-import { normalizeTeamName } from '../utils/teamNames';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 const MONTHS = ['jan.', 'feb.', 'mars', 'apr.', 'mai', 'juni', 'juli', 'aug.', 'sep.', 'okt.', 'nov.', 'des.'];
@@ -16,56 +15,9 @@ function dayLabel(ymd: string): string {
 interface Round {
   name: string;
   day: string;
-  points: number;
-  max: number; // maks DENNE deltakeren kunne fått den runden, gitt sine egne tips
-  rank: number; // delt plassering ved lik poengsum (1, 2, 2, 4 …)
-}
-
-// Krydder der «i spill» ⟺ oppnådd: ditt tippede lag/spiller kan slås ut, så poengene blir
-// uoppnåelige – maks teller da KUN det deltakeren faktisk fikk (aldri et gap). q7/q8 (per-lag),
-// q3 (toppscorer), q13 (Ronaldo/Messi), q12/q14 (øy/afrikansk land lengst), q2/q4 (spillerpriser).
-const MAX_EQ_ACTUAL = new Set(['q2', 'q3', 'q4', 'q7', 'q8', 'q12', 'q13', 'q14']);
-
-function hasAnswer(tip?: { answer: string | string[] }): boolean {
-  return !!tip && (Array.isArray(tip.answer) ? tip.answer.length > 0 : tip.answer.trim() !== '');
-}
-
-/**
- * Maks oppnåelige poeng for ÉN deltaker i ÉN runde, gitt deltakerens **egne** tips:
- * 3p per kamp deltakeren har tippet den dagen + krydder hen faktisk kunne fått.
- * - `MAX_EQ_ACTUAL` (lag/spiller kan slås ut): teller kun oppnådd – f.eks. q7/q8 teller bare
- *   lag deltakeren selv nevnte som faktisk fikk det (man kan ikke «bomme» på et nevnt lag).
- * - q1 (VM-vinner): kun oppnåelig for de som tippet et lag som faktisk **er i finalen** (begge
- *   finalistene var «i spill» den runden – taperens tipper bommet på reelt oppnåelige poeng).
- * - Øvrige (fri gjetning – svar-rommet finnes uansett, f.eks. q5/q9/q10/q15/q17): full pott
- *   hvis deltakeren har svart.
- */
-function maxForParticipantRound(
-  p: Participant,
-  ds: { results: MatchResult[]; questions: BonusQuestion[] },
-): number {
-  let max = 0;
-  for (const m of ds.results) if (tipForMatch(p, m)) max += 3;
-  for (const q of ds.questions) {
-    if (q.answer === null) continue;
-    const tip = p.bonusTips.find((t) => t.questionId === q.id);
-    if (MAX_EQ_ACTUAL.has(q.id)) {
-      max += scoreBonusQuestion([p], q).get(p.name) ?? 0;
-    } else if (q.id === 'q1') {
-      const final = ds.results.find((m) => m.stage === 'FINAL');
-      const finalists = final
-        ? [normalizeTeamName(final.homeTeam), normalizeTeamName(final.awayTeam)]
-        : null;
-      // Gjenbruk scoring (membership) for å sjekke om tipset er en av finalistene.
-      const inFinal = finalists
-        ? (scoreBonusQuestion([p], { ...q, answer: finalists }).get(p.name) ?? 0) > 0
-        : hasAnswer(tip);
-      if (inFinal) max += q.maxPoints;
-    } else if (hasAnswer(tip)) {
-      max += q.maxPoints;
-    }
-  }
-  return max;
+  points: number; // kamppoeng den runden (rangeres på dette)
+  bonus: number; // krydderpoeng den runden (vises subtilt som «+N»)
+  rank: number; // delt plassering ved lik kamppoengsum (1, 2, 2, 4 …)
 }
 
 function BreakdownChip({ item }: { item: ScoringItem }) {
@@ -97,10 +49,10 @@ function BreakdownChip({ item }: { item: ScoringItem }) {
 }
 
 /**
- * «Beste runde»: de 5 sterkeste enkelt-rundene (én matchday) på tvers av alle deltakere.
- * En rundes poeng = differansen i en deltakers kumulative total mellom to påfølgende dager
- * i `progression` (inkluderer både kamp- og krydderpoeng avgjort den runden). Kun
- * FINISHED/avgjort teller, akkurat som tabellen. Trykk på en rad → hvor poengene kom fra.
+ * «Beste runde»: de 5 sterkeste enkelt-rundene (én matchday) på tvers av alle deltakere,
+ * rangert på **kamppoeng**. Krydder den runden vises subtilt som «+N» (totalen fra `progression`
+ * minus kamppoengene). Kun FINISHED/avgjort teller, akkurat som tabellen. Trykk på en rad →
+ * hvor poengene kom fra (kamp + krydder).
  */
 export default function BestRounds({
   progression,
@@ -120,31 +72,44 @@ export default function BestRounds({
 
   const top = useMemo<Round[]>(() => {
     const { days, series } = progression;
-    const rounds: Omit<Round, 'max' | 'rank'>[] = [];
+    const byName = new Map(participants.map((p) => [p.name, p]));
+
+    // Ferdigspilte kamper gruppert per matchday (for kamppoeng-utregning).
+    const finishedByDay = new Map<string, MatchResult[]>();
+    for (const m of results) {
+      if (m.status !== 'FINISHED' || m.homeGoals == null || m.awayGoals == null) continue;
+      const d = matchDayKey(m.utcDate);
+      if (!finishedByDay.has(d)) finishedByDay.set(d, []);
+      finishedByDay.get(d)!.push(m);
+    }
+    const matchPointsOf = (p: Participant, day: string): number => {
+      let pts = 0;
+      for (const m of finishedByDay.get(day) ?? []) {
+        const tip = tipForMatch(p, m);
+        // homeGoals/awayGoals er garantert ikke-null her (filtrert i finishedByDay).
+        if (tip) pts += calcPoints(tip.home, tip.away, m.homeGoals ?? 0, m.awayGoals ?? 0);
+      }
+      return pts;
+    };
+
+    const rounds: Omit<Round, 'rank'>[] = [];
     for (const s of series) {
+      const p = byName.get(s.name);
+      if (!p) continue;
       // days[0] er syntetisk «start»-dag (alle på 0); ekte runder starter på index 1.
       for (let i = 1; i < s.totals.length; i++) {
-        const points = s.totals[i] - s.totals[i - 1];
-        if (points > 0) rounds.push({ name: s.name, day: days[i], points });
+        const matchPts = matchPointsOf(p, days[i]);
+        if (matchPts <= 0) continue;
+        const total = s.totals[i] - s.totals[i - 1];
+        rounds.push({ name: s.name, day: days[i], points: matchPts, bonus: Math.max(0, total - matchPts) });
       }
     }
     rounds.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'no'));
     // «Topp 5», men ta alltid med alle som er likt med 5.-plassen (kan bli > 5 rader).
     const cutoff = rounds.length >= 5 ? rounds[4].points : 0;
     const kept = rounds.filter((r) => r.points >= cutoff);
-    // Maks (per deltaker) + delt plassering beregnes kun for de vi viser.
-    const byName = new Map(participants.map((p) => [p.name, p]));
-    const dsByDay = new Map<string, ReturnType<typeof roundDatasets>>();
-    return kept.map((r) => {
-      if (!dsByDay.has(r.day)) {
-        dsByDay.set(r.day, roundDatasets(r.day, results, questions, bonusInfo));
-      }
-      const p = byName.get(r.name);
-      const max = p ? Math.max(r.points, maxForParticipantRound(p, dsByDay.get(r.day)!)) : r.points;
-      const rank = 1 + kept.filter((o) => o.points > r.points).length;
-      return { ...r, max, rank };
-    });
-  }, [progression, participants, results, questions, bonusInfo]);
+    return kept.map((r) => ({ ...r, rank: 1 + kept.filter((o) => o.points > r.points).length }));
+  }, [progression, participants, results]);
 
   const maxPoints = Math.max(1, ...top.map((r) => r.points));
 
@@ -182,8 +147,8 @@ export default function BestRounds({
                     <span className="truncate text-slate-200">{r.name}</span>
                     <span className="shrink-0 tabular-nums text-slate-400">
                       {dayLabel(r.day)} ·{' '}
-                      <span className="font-semibold text-wc-lime">{r.points}</span>
-                      <span className="text-slate-500"> av {r.max} mulige</span>
+                      <span className="font-semibold text-wc-lime">{r.points} p</span>
+                      {r.bonus > 0 && <span className="text-slate-500"> +{r.bonus}</span>}
                     </span>
                   </div>
                   <div className="mt-1 flex h-2.5 overflow-hidden rounded bg-slate-900/70">
@@ -207,7 +172,9 @@ export default function BestRounds({
           ))}
         </ul>
       )}
-      <p className="px-3 pb-2 text-center text-[10px] text-slate-600">Trykk på en runde for detaljer</p>
+      <p className="px-3 pb-2 text-center text-[10px] text-slate-600">
+        Kamppoeng (+ krydder) · trykk for detaljer
+      </p>
     </div>
   );
 }
