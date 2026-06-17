@@ -32,6 +32,7 @@ import ParticipantStats, { FolketsFavoritt } from './components/ParticipantStats
 import FootballStats from './components/FootballStats';
 import CommonTips from './components/CommonTips';
 import BestRounds from './components/BestRounds';
+import DaysLeading from './components/DaysLeading';
 import AdminPanel from './components/AdminPanel';
 import VictoryPopup from './components/VictoryPopup';
 import { useStats, type AutoBonus } from './hooks/useStats';
@@ -379,6 +380,7 @@ export default function App() {
                   questions={questions}
                   bonusInfo={bonusInfo}
                 />
+                <DaysLeading progression={progression} />
                 <CommonTips participants={participants} />
               </>
             )}

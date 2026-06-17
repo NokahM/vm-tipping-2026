@@ -290,7 +290,9 @@ Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt d
   - **Snacks** (`Stilling`-fanen): **Treffsikkerhet** + **Poeng-kilde** (`ParticipantStats`):
     treffsikkerhet = snitt poeng/kamp (eksakt/utfall/bom-søyler, klikk → eksakte 3p-kamper),
     poeng-kilde = totalpoeng delt på gruppe/sluttspill/krydder (klikk → krydder-treff). Deretter
-    **Beste runde** (`BestRounds`) og **Vanligste tips** (`CommonTips`).
+    **Beste runde** (`BestRounds`, rangert på kamppoeng + subtilt «+N» krydder, klikk → breakdown),
+    **Dager på topp** (`DaysLeading`: antall kampdager hver deltaker har ledet; delt 1.-plass teller)
+    og **Vanligste tips** (`CommonTips`).
   - **Grafisk** (`Krydder`-fanen): **folkets favoritt** (`FolketsFavoritt`-eksport fra
     `ParticipantStats`) – fordeling av tipp på q1/q2/q3/q10/q12/q13/q14/q17, klikkbare søyler («hvem
     svarte hva»). «Liste» = selve spørsmålene/fasit/alle svar (`BonusQuestions`).
