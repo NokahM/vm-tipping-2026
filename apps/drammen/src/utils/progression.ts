@@ -18,6 +18,44 @@ export interface Progression {
   series: ProgressionSeries[]; // sortert på final (synkende), så topp-N = de N første
 }
 
+/**
+ * Resultater + krydder filtrert til **én enkelt runde** (matchday `day`), med samme
+ * datering-logikk som grafen: kamper via `matchDayKey`, krydder via sin avgjort-dato
+ * (`at`/`ats`, udatert → siste matchday). Liste-spørsmål beholder kun elementene som ble
+ * avgjort akkurat den dagen. Matet inn i `participantBreakdown` gir nøyaktig **rundens**
+ * poenggivende treff (summen = rundens poeng-delta i grafen).
+ */
+export function roundDatasets(
+  day: string,
+  results: MatchResult[],
+  questions: BonusQuestion[],
+  bonusInfo: Record<string, BonusDateInfo>,
+): { results: MatchResult[]; questions: BonusQuestion[] } {
+  const finished = results.filter(
+    (m) => m.status === 'FINISHED' && m.homeGoals !== null && m.awayGoals !== null,
+  );
+  const matchDays = [...new Set(finished.map((m) => matchDayKey(m.utcDate)))].sort();
+  const fallbackDay = matchDays.length
+    ? matchDays[matchDays.length - 1]
+    : matchDayKey(new Date().toISOString());
+  const dayOf = (qid: string, item?: string): string => {
+    const info = bonusInfo[qid];
+    const raw = (item !== undefined ? info?.ats?.[item] : undefined) ?? info?.at;
+    return raw ? matchDayKey(raw) : fallbackDay;
+  };
+
+  const dayResults = finished.filter((m) => matchDayKey(m.utcDate) === day);
+  const dayQuestions = questions.map((q) => {
+    if (q.answer === null) return q;
+    if (Array.isArray(q.answer)) {
+      const items = q.answer.filter((item) => dayOf(q.id, item) === day);
+      return items.length ? { ...q, answer: items } : { ...q, answer: null };
+    }
+    return dayOf(q.id) === day ? q : { ...q, answer: null };
+  });
+  return { results: dayResults, questions: dayQuestions };
+}
+
 /** Dagen før (YYYY-MM-DD) – brukes til «start»-punktet der alle står på 0. */
 function dayBefore(ymd: string): string {
   const d = new Date(`${ymd}T00:00:00Z`);

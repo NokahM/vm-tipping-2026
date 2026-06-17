@@ -30,6 +30,8 @@ import TeamCards from './components/TeamCards';
 import PlayerStats from './components/PlayerStats';
 import ParticipantStats, { FolketsFavoritt } from './components/ParticipantStats';
 import FootballStats from './components/FootballStats';
+import CommonTips from './components/CommonTips';
+import BestRounds from './components/BestRounds';
 import AdminPanel from './components/AdminPanel';
 import VictoryPopup from './components/VictoryPopup';
 import { useStats, type AutoBonus } from './hooks/useStats';
@@ -366,6 +368,14 @@ export default function App() {
                   results={results}
                   questions={questions}
                 />
+                <BestRounds
+                  progression={progression}
+                  participants={participants}
+                  results={results}
+                  questions={questions}
+                  bonusInfo={bonusInfo}
+                />
+                <CommonTips participants={participants} />
               </>
             )}
           </div>
