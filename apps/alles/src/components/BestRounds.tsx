@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant } from '../types';
-import { participantBreakdown, type ScoringItem } from '../utils/scoring';
+import { participantBreakdown, scoreBonusQuestion, tipForMatch, type ScoringItem } from '../utils/scoring';
 import { roundDatasets, type BonusDateInfo, type Progression } from '../utils/progression';
 import { wcFrameStyle } from '../utils/wcFrame';
 
@@ -16,20 +16,35 @@ interface Round {
   name: string;
   day: string;
   points: number;
-  max: number; // maks mulige poeng den runden (alle kamper + krydder avgjort den dagen)
+  max: number; // maks DENNE deltakeren kunne fått den runden, gitt sine egne tips
   rank: number; // delt plassering ved lik poengsum (1, 2, 2, 4 …)
 }
 
 const PER_TEAM = new Set(['q7', 'q8']); // 2p per nevnt lag (rødt kort / selvmål)
 
-/** Maks oppnåelige poeng for én runde: 3p per kamp + krydder-maks avgjort den dagen. */
-function maxForRound(ds: { results: MatchResult[]; questions: BonusQuestion[] }): number {
-  let max = 3 * ds.results.length;
+/**
+ * Maks oppnåelige poeng for ÉN deltaker i ÉN runde, gitt deltakerens **egne** tips:
+ * 3p per kamp deltakeren har tippet den dagen + krydder hen faktisk kunne fått. For q7/q8
+ * (per-lag) teller kun lag deltakeren selv nevnte og som faktisk fikk rødt kort/selvmål den
+ * dagen (= det hen oppnådde – man kan ikke «bomme» på et lag man har nevnt). Øvrige avgjorte
+ * spørsmål: full pott hvis deltakeren har svart (kunne ha gjettet riktig).
+ */
+function maxForParticipantRound(
+  p: Participant,
+  ds: { results: MatchResult[]; questions: BonusQuestion[] },
+): number {
+  let max = 0;
+  for (const m of ds.results) if (tipForMatch(p, m)) max += 3;
   for (const q of ds.questions) {
     if (q.answer === null) continue;
-    max += PER_TEAM.has(q.id)
-      ? Math.min(2 * (Array.isArray(q.answer) ? q.answer.length : 1), q.maxPoints)
-      : q.maxPoints;
+    if (PER_TEAM.has(q.id)) {
+      max += scoreBonusQuestion([p], q).get(p.name) ?? 0;
+    } else {
+      const tip = p.bonusTips.find((t) => t.questionId === q.id);
+      const has =
+        tip && (Array.isArray(tip.answer) ? tip.answer.length > 0 : tip.answer.trim() !== '');
+      if (has) max += q.maxPoints;
+    }
   }
   return max;
 }
@@ -98,16 +113,19 @@ export default function BestRounds({
     // «Topp 5», men ta alltid med alle som er likt med 5.-plassen (kan bli > 5 rader).
     const cutoff = rounds.length >= 5 ? rounds[4].points : 0;
     const kept = rounds.filter((r) => r.points >= cutoff);
-    // Maks + delt plassering beregnes kun for de vi viser (roundDatasets per runde).
-    const dayMax = new Map<string, number>();
+    // Maks (per deltaker) + delt plassering beregnes kun for de vi viser.
+    const byName = new Map(participants.map((p) => [p.name, p]));
+    const dsByDay = new Map<string, ReturnType<typeof roundDatasets>>();
     return kept.map((r) => {
-      if (!dayMax.has(r.day)) {
-        dayMax.set(r.day, maxForRound(roundDatasets(r.day, results, questions, bonusInfo)));
+      if (!dsByDay.has(r.day)) {
+        dsByDay.set(r.day, roundDatasets(r.day, results, questions, bonusInfo));
       }
+      const p = byName.get(r.name);
+      const max = p ? Math.max(r.points, maxForParticipantRound(p, dsByDay.get(r.day)!)) : r.points;
       const rank = 1 + kept.filter((o) => o.points > r.points).length;
-      return { ...r, max: dayMax.get(r.day)!, rank };
+      return { ...r, max, rank };
     });
-  }, [progression, results, questions, bonusInfo]);
+  }, [progression, participants, results, questions, bonusInfo]);
 
   const maxPoints = Math.max(1, ...top.map((r) => r.points));
 
