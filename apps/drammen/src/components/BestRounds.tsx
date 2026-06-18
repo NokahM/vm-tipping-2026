@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BonusQuestion, MatchResult, Participant } from '../types';
-import { calcPoints, matchDayKey, participantBreakdown, tipForMatch, type ScoringItem } from '../utils/scoring';
+import { participantBreakdown, type ScoringItem } from '../utils/scoring';
 import { roundDatasets, type BonusDateInfo, type Progression } from '../utils/progression';
 import { wcFrameStyle } from '../utils/wcFrame';
 
@@ -15,9 +15,8 @@ function dayLabel(ymd: string): string {
 interface Round {
   name: string;
   day: string;
-  points: number; // kamppoeng den runden (rangeres på dette)
-  bonus: number; // krydderpoeng den runden (vises subtilt som «+N»)
-  rank: number; // delt plassering ved lik kamppoengsum (1, 2, 2, 4 …)
+  points: number; // totale poeng den runden (kamp + krydder), rangeres på dette
+  rank: number; // delt plassering ved lik poengsum (1, 2, 2, 4 …)
 }
 
 function BreakdownChip({ item }: { item: ScoringItem }) {
@@ -50,9 +49,9 @@ function BreakdownChip({ item }: { item: ScoringItem }) {
 
 /**
  * «Beste runde»: de 5 sterkeste enkelt-rundene (én matchday) på tvers av alle deltakere,
- * rangert på **kamppoeng**. Krydder den runden vises subtilt som «+N» (totalen fra `progression`
- * minus kamppoengene). Kun FINISHED/avgjort teller, akkurat som tabellen. Trykk på en rad →
- * hvor poengene kom fra (kamp + krydder).
+ * rangert på **totale poeng** den runden (kamp + krydder = differansen i kumulativ total
+ * mellom to dager i `progression`). Kun FINISHED/avgjort teller, akkurat som tabellen.
+ * Trykk på en rad → alle poenggivende treff den runden (summerer til tallet).
  */
 export default function BestRounds({
   progression,
@@ -72,36 +71,12 @@ export default function BestRounds({
 
   const top = useMemo<Round[]>(() => {
     const { days, series } = progression;
-    const byName = new Map(participants.map((p) => [p.name, p]));
-
-    // Ferdigspilte kamper gruppert per matchday (for kamppoeng-utregning).
-    const finishedByDay = new Map<string, MatchResult[]>();
-    for (const m of results) {
-      if (m.status !== 'FINISHED' || m.homeGoals == null || m.awayGoals == null) continue;
-      const d = matchDayKey(m.utcDate);
-      if (!finishedByDay.has(d)) finishedByDay.set(d, []);
-      finishedByDay.get(d)!.push(m);
-    }
-    const matchPointsOf = (p: Participant, day: string): number => {
-      let pts = 0;
-      for (const m of finishedByDay.get(day) ?? []) {
-        const tip = tipForMatch(p, m);
-        // homeGoals/awayGoals er garantert ikke-null her (filtrert i finishedByDay).
-        if (tip) pts += calcPoints(tip.home, tip.away, m.homeGoals ?? 0, m.awayGoals ?? 0);
-      }
-      return pts;
-    };
-
     const rounds: Omit<Round, 'rank'>[] = [];
     for (const s of series) {
-      const p = byName.get(s.name);
-      if (!p) continue;
       // days[0] er syntetisk «start»-dag (alle på 0); ekte runder starter på index 1.
       for (let i = 1; i < s.totals.length; i++) {
-        const matchPts = matchPointsOf(p, days[i]);
-        if (matchPts <= 0) continue;
-        const total = s.totals[i] - s.totals[i - 1];
-        rounds.push({ name: s.name, day: days[i], points: matchPts, bonus: Math.max(0, total - matchPts) });
+        const points = s.totals[i] - s.totals[i - 1];
+        if (points > 0) rounds.push({ name: s.name, day: days[i], points });
       }
     }
     rounds.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'no'));
@@ -109,7 +84,7 @@ export default function BestRounds({
     const cutoff = rounds.length >= 5 ? rounds[4].points : 0;
     const kept = rounds.filter((r) => r.points >= cutoff);
     return kept.map((r) => ({ ...r, rank: 1 + kept.filter((o) => o.points > r.points).length }));
-  }, [progression, participants, results]);
+  }, [progression]);
 
   const maxPoints = Math.max(1, ...top.map((r) => r.points));
 
@@ -148,7 +123,6 @@ export default function BestRounds({
                     <span className="shrink-0 tabular-nums text-slate-400">
                       {dayLabel(r.day)} ·{' '}
                       <span className="font-semibold text-wc-lime">{r.points} p</span>
-                      {r.bonus > 0 && <span className="text-slate-500"> +{r.bonus}</span>}
                     </span>
                   </div>
                   <div className="mt-1 flex h-2.5 overflow-hidden rounded bg-slate-900/70">
@@ -173,7 +147,7 @@ export default function BestRounds({
         </ul>
       )}
       <p className="px-3 pb-2 text-center text-[10px] text-slate-600">
-        Kamppoeng (+ krydder) · trykk for detaljer
+        Trykk på en runde for detaljer
       </p>
     </div>
   );
