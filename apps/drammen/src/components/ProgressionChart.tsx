@@ -139,7 +139,7 @@ export default function ProgressionChart({ progression }: Props) {
     });
 
   function renderSvg(vbW: number, vbH: number) {
-    const PAD = { left: 18, right: 52, top: 10, bottom: 20 };
+    const PAD = { left: 18, right: 56, top: 10, bottom: 20 };
     const plotW = vbW - PAD.left - PAD.right;
     const plotH = vbH - PAD.top - PAD.bottom;
     const x = (i: number) => PAD.left + (days.length > 1 ? i / (days.length - 1) : 0.5) * plotW;
@@ -154,24 +154,79 @@ export default function ProgressionChart({ progression }: Props) {
     const yTicks = mode === 'poeng' ? [] : rankTicks(N);
     if (mode === 'poeng') for (let v = 0; v <= yMax; v += step) yTicks.push(v);
 
-    // Sluttpunkt-etiketter med anti-overlapp.
+    // Sluttpunkt-etiketter: vinkelen klemmes mildt (følger streken, men aldri bratt), og
+    // anti-overlappen tar høyde for at rotert tekst tar mer vertikal plass enn fonthøyden.
+    const MAX_ANGLE = 12; // grader – flatere = mindre vertikalt fotavtrykk = tettere navn
+    const FONT_H = 7;
+    const clampAngle = (a: number) => Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, a));
+    const sinDeg = (d: number) => Math.sin((d * Math.PI) / 180);
+    // «Har vært der lengst»: ved lik sluttverdi sammenlignes bakover dag for dag – den som lå
+    // høyere PÅ SKJERMEN ved første dagen de skilte lag, er den etablerte (beholder navnet på
+    // linja). Vi bruker `yOf` (ikke rå verdi) så det blir riktig i begge moduser: i Poeng er
+    // høy verdi øverst, i Plassering er lav verdi (1. plass) øverst – `yOf` koder begge.
+    // Dekker både «ligget på verdien lengst» og «vært foran lengst» (den andre tok den nettopp
+    // igjen). Negativ = `a` er mest etablert → sorteres først.
+    const seniorCmp = (a: (typeof series)[number], b: (typeof series)[number]) => {
+      for (let i = a.totals.length - 1; i >= 0; i--) {
+        const ya = yOf(valAt(a, i));
+        const yb = yOf(valAt(b, i));
+        if (ya !== yb) return ya - yb; // høyere på skjermen (mindre y) = mer etablert = først
+      }
+      return a.name.localeCompare(b.name, 'no');
+    };
     const ends = shown.map((s) => {
       const n = s.totals.length;
       const lastV = valAt(s, n - 1);
       const prevV = n >= 2 ? valAt(s, n - 2) : lastV;
       const ly = yOf(lastV);
-      const angle =
+      const rawAngle =
         n >= 2 ? (Math.atan2(yOf(lastV) - yOf(prevV), x(n - 1) - x(n - 2)) * 180) / Math.PI : 0;
-      return { s, n, color: colorOf.get(s.name)!, lx: x(n - 1), ly, angle, labelY: ly };
+      const angle = clampAngle(rawAngle);
+      const labelW = shortLabel(s.name).length * 3.8; // grov tekstbredde ved fontSize 7
+      const half = (FONT_H + labelW * Math.abs(sinDeg(angle))) / 2; // kun til kant-klamp
+      return { s, n, color: colorOf.get(s.name)!, lx: x(n - 1), ly, angle, renderAngle: angle, labelW, half, labelY: ly, moved: 0, dx: 0 };
     });
-    const MIN_GAP = 8;
-    let lastY = -Infinity;
-    for (const e of [...ends].sort((a, b) => a.ly - b.ly)) {
-      e.labelY = Math.max(e.ly, lastY + MIN_GAP);
-      lastY = e.labelY;
+    // Vertikal anti-overlapp, men kun så streng som geometrien krever: ekstra avstand trengs
+    // BARE når den øvre etikettens hale dykker ned mot den nedre (vinklene konvergerer). To
+    // parallelle naboer (samme vinkel) – eller divergerende – trenger kun fonthøyden, uansett
+    // hvor bratte de er. `w·max(0, sinØvre − sinNedre)` er nettopp den nedstigningen.
+    // Ved lik høyde (samme verdi/linje) får den mest etablerte (seniorCmp) beholde plassen sin
+    // på linja; den andre presses nedover. Den øverste i hver kollisjon står alltid urørt.
+    const SEP = 1;
+    const sorted = [...ends].sort((a, b) => a.ly - b.ly || seniorCmp(a.s, b.s));
+    let prev: (typeof sorted)[number] | null = null;
+    for (const e of sorted) {
+      if (prev) {
+        // Geometrisk klaring mot naboen over (naboens vinkel mot egen).
+        const w = Math.min(prev.labelW, e.labelW);
+        const extra = w * Math.max(0, sinDeg(prev.renderAngle) - sinDeg(e.angle));
+        const minY = prev.labelY + FONT_H + extra + SEP;
+        if (e.ly >= minY) {
+          e.labelY = e.ly; // får plass på egen linje → behold egen vinkel
+        } else {
+          // Forskjøvet og «frakoblet» egen linje → arv vinkelen til navnet over (da blir de
+          // parallelle og trenger bare fonthøyden) og legg deg rett under det.
+          e.renderAngle = prev.renderAngle;
+          e.labelY = prev.labelY + FONT_H + SEP;
+        }
+      }
+      prev = e;
     }
-    const overflow = lastY - (vbH - PAD.bottom - 2);
-    if (overflow > 0) for (const e of ends) e.labelY -= overflow;
+    // Hvor langt hvert navn ble dyttet av STABLINGEN (før kant-klamp) – styrer hjelpestrek/nudge,
+    // så en global kant-justering aldri gir senioren (urørt av stablingen) en strek.
+    for (const e of ends) e.moved = e.labelY - e.ly;
+    // Kant-klamp så ingenting klippes (skyv hele stabelen som blokk). Liten toppmargin, så et navn
+    // på topp (f.eks. 1. plass i kanten) ikke dyttes vekk fra punktet sitt.
+    if (sorted.length) {
+      const lastE = sorted[sorted.length - 1];
+      const overBottom = lastE.labelY + lastE.half - (vbH - PAD.bottom - 2);
+      if (overBottom > 0) for (const e of ends) e.labelY -= overBottom;
+      const firstE = sorted[0];
+      const overTop = 2 + firstE.half - firstE.labelY;
+      if (overTop > 0) for (const e of ends) e.labelY += overTop;
+    }
+    // Frakoblede navn (forskjøvet av stablingen) nudges litt mot høyre; navn på egen linje urørt.
+    for (const e of ends) e.dx = e.moved > 0 ? Math.min(9, e.moved * 0.5) : 0;
 
     return (
       <svg viewBox={`0 0 ${vbW} ${vbH}`} className="w-full" role="img" aria-label="Poengutvikling over tid">
@@ -212,13 +267,24 @@ export default function ProgressionChart({ progression }: Props) {
                 />
               )}
               <circle cx={e.lx} cy={e.ly} r="2.2" fill={e.color} />
+              {e.moved > 4 && (
+                <line
+                  x1={e.lx}
+                  y1={e.ly}
+                  x2={e.lx + 2 + e.dx}
+                  y2={e.labelY}
+                  stroke={e.color}
+                  strokeWidth="0.5"
+                  opacity="0.5"
+                />
+              )}
               <text
-                x={e.lx + 3}
+                x={e.lx + 3 + e.dx}
                 y={e.labelY + 2.2}
                 fill={e.color}
                 fontSize="7"
                 fontWeight="600"
-                transform={`rotate(${e.angle} ${e.lx} ${e.labelY})`}
+                transform={`rotate(${e.renderAngle} ${e.lx + e.dx} ${e.labelY})`}
               >
                 {shortLabel(e.s.name)}
               </text>
