@@ -81,7 +81,8 @@ export default function FootballStats({
   const goalsByDay = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of results) {
-      if (r.status !== 'FINISHED' || r.homeGoals == null || r.awayGoals == null) continue;
+      // Teller alle kamper med stilling (live + ferdig) → oppdateres mens kamper spilles.
+      if (r.homeGoals == null || r.awayGoals == null) continue;
       const day = usDay(r.utcDate);
       m.set(day, (m.get(day) ?? 0) + r.homeGoals + r.awayGoals);
     }
