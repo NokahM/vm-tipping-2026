@@ -557,34 +557,64 @@ export function matchDayKey(utcDate: string): string {
 }
 
 /**
- * Plasseringsendring etter siste kampdag: navn → delta (positiv = opp, negativ =
- * ned, 0 = uendret). «Siste kampdag» = alle ferdige kamper i den seneste runden, der en
- * runde avgrenses ved 10:00 UTC / 12:00 norsk (samtidige kamper og hele rundens kamper –
- * inkl. de som krysser midnatt – teller som én hendelse). Sammenligner nåværende tabell mot
- * tabellen før den rundens resultater.
+ * Plasseringsendring etter siste runde: navn → delta (positiv = opp, negativ = ned,
+ * 0 = uendret). En «runde» avgrenses ved 10:00 UTC / 12:00 norsk (`matchDayKey`) – midt i det
+ * daglige kampfrie vinduet – slik at hele dagens kamper i Nord-Amerika (også de som krysser
+ * midnatt europeisk tid) teller som én hendelse. Den **siste runden** er den seneste dagen der
+ * noe ble avgjort: kamper **eller** krydder. Sammenligner nåværende tabell mot tabellen **før**
+ * den rundens kamper OG krydder, så et krydder som tikker inn i en runde flytter pilene i den
+ * runden (akkurat som i utviklingsgrafen). Krydder dateres via `bonusInfo` (per lag/element på
+ * liste-spørsmål via `ats`, ellers `at`; udatert → siste kampdag som fallback).
  */
 export function computeRankDeltas(
   current: ParticipantScore[],
   participants: Participant[],
   results: MatchResult[],
   questions: BonusQuestion[],
+  bonusInfo: BonusDates = {},
 ): Map<string, number> {
   const deltas = new Map<string, number>();
 
   const finished = results.filter(isPlayed);
-  if (finished.length === 0) return deltas; // ingen resultater ennå → ingen bevegelse
+  const matchDays = [...new Set(finished.map((m) => matchDayKey(m.utcDate)))].sort();
+  const fallbackDay = matchDays.length
+    ? matchDays[matchDays.length - 1]
+    : matchDayKey(new Date().toISOString());
 
-  let lastDay = '';
-  for (const m of finished) {
-    const day = matchDayKey(m.utcDate);
-    if (day > lastDay) lastDay = day;
+  // Avgjort-dag for et krydder-element (eller hele enkelt-spørsmålet hvis `item` utelates).
+  // Samme logikk som utviklingsgrafen, så piler og graf bøtter krydder likt.
+  const dayOf = (qid: string, item?: string): string => {
+    const info = bonusInfo[qid];
+    const raw = (item !== undefined ? info?.ats?.[item] : undefined) ?? info?.at;
+    return raw ? matchDayKey(raw) : fallbackDay;
+  };
+
+  // Alle hendelsesdager: kampdager + hver avgjort krydder-dag (per element på liste-spørsmål).
+  const answered = questions.filter((q) => q.answer !== null);
+  const bonusDays: string[] = [];
+  for (const q of answered) {
+    if (Array.isArray(q.answer)) for (const item of q.answer) bonusDays.push(dayOf(q.id, item));
+    else bonusDays.push(dayOf(q.id));
   }
-  const lastBatch = new Set(
-    finished.filter((m) => matchDayKey(m.utcDate) === lastDay).map((m) => m.apiId),
-  );
+  const allDays = [...matchDays, ...bonusDays];
+  if (allDays.length === 0) return deltas; // ingenting avgjort ennå → ingen bevegelse
+  const lastDay = allDays.reduce((a, b) => (b > a ? b : a));
 
-  const prevResults = results.filter((m) => !lastBatch.has(m.apiId));
-  const previous = computeStandings(participants, prevResults, questions);
+  // «Før»-tabellen: kamper OG krydder strengt før siste runde (siste rundes bidrag fjernet).
+  const prevResults = results.filter(
+    (m) => !(isPlayed(m) && matchDayKey(m.utcDate) === lastDay),
+  );
+  const prevQuestions = questions.map((q) => {
+    if (q.answer === null) return q;
+    if (Array.isArray(q.answer)) {
+      // Liste: behold kun elementene som ble avgjort før siste runde.
+      const items = q.answer.filter((item) => dayOf(q.id, item) !== lastDay);
+      return items.length ? { ...q, answer: items } : { ...q, answer: null };
+    }
+    return dayOf(q.id) !== lastDay ? q : { ...q, answer: null };
+  });
+
+  const previous = computeStandings(participants, prevResults, prevQuestions);
   const prevRank = new Map(previous.map((s) => [s.name, s.rank]));
 
   for (const s of current) {

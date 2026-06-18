@@ -293,6 +293,20 @@ const eDeltas = computeRankDeltas(computeStandings(eParts, eResults, BONUS_QUEST
 assert('E2 opp 1 (hele kampdagen gruppert)', eDeltas.get('E2'), 1);
 assert('E1 ned 1', eDeltas.get('E1'), -1);
 
+// 4e3) krydder avgjort i siste runde flytter pilene (tidsavgrenset via bonusInfo, som grafen).
+// K1 leder på kamp etter dag 1; et krydder dag 2 gir K2 nok til å gå forbi → pilen må vise det.
+const km1 = rkMatch(20, 'A1', 'A2', 1, 0, '2026-06-12T19:00:00Z'); // dag 1
+const kQuestions = BONUS_QUESTIONS.map((q) => (q.id === 'q1' ? { ...q, answer: 'Brasil' } : q));
+const kP1: Participant = { name: 'K1', groupTips: [gtip('A1', 'A2', 1, 0)], bonusTips: [{ questionId: 'q1', answer: 'Argentina' }], knockoutTips: [] }; // kamp 3, krydder 0
+const kP2: Participant = { name: 'K2', groupTips: [gtip('A1', 'A2', 0, 1)], bonusTips: [{ questionId: 'q1', answer: 'Brasil' }], knockoutTips: [] }; // kamp 0, krydder 5
+const kParts = [kP1, kP2];
+const kCurrent = computeStandings(kParts, [km1], kQuestions); // K2=5 #1, K1=3 #2
+const kInfo = { q1: { at: '2026-06-13T12:00:00.000Z' } }; // q1 avgjort på dag 2 (siste runde)
+const kDeltas = computeRankDeltas(kCurrent, kParts, [km1], kQuestions, kInfo);
+// Før dag 2 (krydder fjernet): K1 #1, K2 #2. Etter: K2 #1, K1 #2.
+assert('K2 opp 1 (krydder i siste runde teller)', kDeltas.get('K2'), 1);
+assert('K1 ned 1 (krydder i siste runde teller)', kDeltas.get('K1'), -1);
+
 // 4f) q7/q8: 2p per korrekt lag (maks 4); q15: full pott hvis kjendis i lista
 console.log('Liste-spørsmål:');
 const q7q = BONUS_QUESTIONS.find((q) => q.id === 'q7')!;

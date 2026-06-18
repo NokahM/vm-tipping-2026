@@ -25,8 +25,8 @@ export default function Leaderboard({ standings, participants, results, question
   );
 
   const deltas = useMemo(
-    () => computeRankDeltas(standings, participants, results, questions),
-    [standings, participants, results, questions],
+    () => computeRankDeltas(standings, participants, results, questions, bonusInfo),
+    [standings, participants, results, questions, bonusInfo],
   );
   const frameStyle = useMemo(wcFrameStyle, []);
 
