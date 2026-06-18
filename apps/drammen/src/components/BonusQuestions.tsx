@@ -23,6 +23,7 @@ interface Props {
   participants: Participant[];
   results: MatchResult[];
   fastestGoal?: FastestGoal | null;
+  fastestGoals?: FastestGoal[] | null; // alle mål på det laveste minuttet (API har ikke sekunder)
   preliminary?: Record<string, string>; // foreløpige «slik ligger det an»-verdier per spørsmål
   provisional?: Record<string, string | string[]>; // foreløpig fasit (scorbar) – kun chip-farge
 }
@@ -35,10 +36,11 @@ const FASTEST_GOAL_QUESTION_ID = 'q6'; // raskeste mål – pekepinn (eksakt tid
 // Akkumulerende spørsmål: poeng deles ut løpende, men lista kan vokse til turneringsslutt.
 const ACCUMULATING_IDS = new Set(['q7', 'q8', 'q15']); // rødt kort, selvmål, kjendis-dødsfall
 
-/** «Julián Quiñones» → «Quiñones» for kompakt visning. */
-function lastName(full: string): string {
+/** «Joao Neves» → «J. Neves»: fornavn til initial, etternavn fullt. */
+function initialLastName(full: string): string {
   const parts = full.trim().split(/\s+/);
-  return parts.length ? parts[parts.length - 1] : full;
+  if (parts.length < 2) return full;
+  return `${parts[0][0]}. ${parts[parts.length - 1]}`;
 }
 
 /**
@@ -183,6 +185,7 @@ export default function BonusQuestions({
   participants,
   results,
   fastestGoal,
+  fastestGoals,
   preliminary,
   provisional,
 }: Props) {
@@ -205,6 +208,7 @@ export default function BonusQuestions({
           groupLeaders={groupLeaders}
           worst={worst}
           fastestGoal={fastestGoal ?? null}
+          fastestGoals={fastestGoals ?? null}
           preliminary={preliminary?.[q.id] ?? null}
           provisional={provisional?.[q.id] ?? null}
         />
@@ -220,6 +224,7 @@ function BonusRow({
   groupLeaders,
   worst,
   fastestGoal,
+  fastestGoals,
   preliminary,
   provisional,
 }: {
@@ -229,6 +234,7 @@ function BonusRow({
   groupLeaders: GroupGoalStanding | null;
   worst: GroupRow | null;
   fastestGoal: FastestGoal | null;
+  fastestGoals: FastestGoal[] | null;
   preliminary: string | null;
   provisional: string | string[] | null;
 }) {
@@ -251,8 +257,17 @@ function BonusRow({
   const groupLead = question.id === GROUP_GOALS_QUESTION_ID && !hasFasit ? groupLeaders : null;
   const worstLead = question.id === WORST_TEAM_QUESTION_ID && !hasFasit ? worst : null;
   const worstName = worstLead ? normalizeTeamName(worstLead.team) : null;
+  // Alle mål på det laveste minuttet (flere kan dele «raskest» – API har kun minutt).
+  const fastestList =
+    fastestGoals && fastestGoals.length > 0
+      ? fastestGoals
+      : fastestGoal
+        ? [fastestGoal]
+        : [];
   const fastestLead =
-    question.id === FASTEST_GOAL_QUESTION_ID && !hasFasit ? fastestGoal : null;
+    question.id === FASTEST_GOAL_QUESTION_ID && !hasFasit && fastestList.length > 0
+      ? fastestList
+      : null;
 
   // q5-tallinje: alle deltakernes mål-gjett + projeksjonen (eller fasit) som markør.
   const q5Guesses =
@@ -311,7 +326,11 @@ function BonusRow({
             </p>
           ) : fastestLead ? (
             <p className="mt-0.5 text-xs text-wc-yellow">
-              Raskeste mål så langt: {fastestLead.minute}' {lastName(fastestLead.scorer)}
+              Raskeste mål så langt: {fastestLead[0].minute}' (
+              {fastestLead
+                .map((g) => `${initialLastName(g.scorer)} - ${normalizeTeamName(g.team)}`)
+                .join(', ')}
+              )
               <span className="text-slate-500"> · foreløpig (eksakt tid settes manuelt)</span>
             </p>
           ) : preliminary ? (
