@@ -367,12 +367,6 @@ export default function App() {
             {tableView === 'graf' && <ProgressionChart progression={progression} />}
             {tableView === 'snacks' && (
               <>
-                <ParticipantStats
-                  standings={standings}
-                  participants={participants}
-                  results={results}
-                  questions={questions}
-                />
                 <BestRounds
                   progression={progression}
                   participants={participants}
@@ -381,6 +375,12 @@ export default function App() {
                   bonusInfo={bonusInfo}
                 />
                 <DaysLeading progression={progression} />
+                <ParticipantStats
+                  standings={standings}
+                  participants={participants}
+                  results={results}
+                  questions={questions}
+                />
                 <CommonTips participants={participants} />
               </>
             )}
