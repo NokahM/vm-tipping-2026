@@ -212,9 +212,13 @@ export default function ProgressionChart({ progression }: Props) {
       }
       prev = e;
     }
-    // Hvor langt hvert navn ble dyttet av STABLINGEN (før kant-klamp) – styrer hjelpestrek/nudge,
-    // så en global kant-justering aldri gir senioren (urørt av stablingen) en strek.
-    for (const e of ends) e.moved = e.labelY - e.ly;
+    // Hvor langt hvert navn ble dyttet av STABLINGEN (før kant-klamp) styrer hjelpestrek + en liten
+    // høyre-nudge – så en global kant-justering aldri gir senioren (urørt av stablingen) en strek,
+    // og navn på egen linje står urørt.
+    for (const e of ends) {
+      e.moved = e.labelY - e.ly;
+      e.dx = e.moved > 0 ? Math.min(9, e.moved * 0.5) : 0;
+    }
     // Kant-klamp så ingenting klippes (skyv hele stabelen som blokk). Liten toppmargin, så et navn
     // på topp (f.eks. 1. plass i kanten) ikke dyttes vekk fra punktet sitt.
     if (sorted.length) {
@@ -225,8 +229,6 @@ export default function ProgressionChart({ progression }: Props) {
       const overTop = 2 + firstE.half - firstE.labelY;
       if (overTop > 0) for (const e of ends) e.labelY += overTop;
     }
-    // Frakoblede navn (forskjøvet av stablingen) nudges litt mot høyre; navn på egen linje urørt.
-    for (const e of ends) e.dx = e.moved > 0 ? Math.min(9, e.moved * 0.5) : 0;
 
     return (
       <svg viewBox={`0 0 ${vbW} ${vbH}`} className="w-full" role="img" aria-label="Poengutvikling over tid">
