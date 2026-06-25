@@ -10,7 +10,7 @@ import {
   type BonusStore,
   type KnockoutStore,
 } from '../utils/storage';
-import type { SaveResult } from '../utils/remoteStore';
+import { verifyPassword, type SaveResult } from '../utils/remoteStore';
 import VictoryPopup from './VictoryPopup';
 
 interface Props {
@@ -31,10 +31,10 @@ interface Props {
   onClose: () => void;
 }
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'vm2026';
 const AUTH_KEY = `${APP_CONFIG.storageSuffix}_admin_authed`;
 // Passordet huskes i admin sin egen nettleser så lagring (server-side sjekk) fungerer
-// etter reload. Delt friendskonk-passord – ikke en reell hemmelighet å beskytte her.
+// etter reload. Det sjekkes ALDRI mot en innebygd verdi – kun mot serveren (ADMIN_PASSWORD),
+// så passordet finnes aldri i klient-bundelen. localStorage er admins egen enhet.
 const PW_KEY = `${APP_CONFIG.storageSuffix}_admin_pw`;
 // Spørsmål med liste-fasit (komma-separert input): q7 (rødt kort), q8 (selvmål) og
 // q15 (kjendis som dør). q7/q8 gir poeng per korrekt lag; q15 full pott hvis kjendisen er i lista.
@@ -106,10 +106,17 @@ export default function AdminPanel(props: Props) {
 function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: (pw: string) => void }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (value === ADMIN_PASSWORD) {
+    if (checking || !value) return;
+    setChecking(true);
+    setError(false);
+    // Eneste ekte sjekk: serveren (ADMIN_PASSWORD via /api/state). Ingen innebygd verdi.
+    const ok = await verifyPassword(value);
+    setChecking(false);
+    if (ok) {
       localStorage.setItem(AUTH_KEY, 'true');
       localStorage.setItem(PW_KEY, value);
       onAuthed(value);
@@ -137,9 +144,10 @@ function Gate({ onClose, onAuthed }: { onClose: () => void; onAuthed: (pw: strin
         <div className="flex gap-2">
           <button
             type="submit"
-            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white"
+            disabled={checking}
+            className="min-h-[44px] flex-1 rounded-lg bg-wc-red font-semibold text-white disabled:opacity-60"
           >
-            Logg inn
+            {checking ? 'Sjekker …' : 'Logg inn'}
           </button>
           <button
             type="button"

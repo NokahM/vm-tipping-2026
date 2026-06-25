@@ -76,19 +76,19 @@ Lag en `.env.local` i hver app-mappe (commit den aldri):
 
 ```
 FOOTBALL_API_KEY=din_nøkkel_her        # server-side (brukt av proxyene)
-ADMIN_PASSWORD=ditt_admin_passord      # server-side (skriving til delt database)
-VITE_ADMIN_PASSWORD=ditt_admin_passord # klient-gate (samme verdi)
+ADMIN_PASSWORD=ditt_admin_passord      # server-side (innlogging + skriving til delt database)
 KV_REST_API_URL=...                    # fra Upstash-storen (Vercel → Storage)
 KV_REST_API_TOKEN=...
 ```
 
-På Vercel injiseres KV-nøklene automatisk når Upstash-storen kobles til prosjektet; `FOOTBALL_API_KEY`,
-`ADMIN_PASSWORD` og `VITE_ADMIN_PASSWORD` settes manuelt per prosjekt. Samme `FOOTBALL_API_KEY` brukes
+På Vercel injiseres KV-nøklene automatisk når Upstash-storen kobles til prosjektet; `FOOTBALL_API_KEY`
+og `ADMIN_PASSWORD` settes manuelt per prosjekt. Samme `FOOTBALL_API_KEY` brukes
 av både `/api/matches` og `/api/matchdetail` – ingen ekstra variabel for deep data.
 
-> ⚠️ Dette repoet er offentlig. `VITE_ADMIN_PASSWORD` har en dev-standard (`vm2026`) som dermed er
-> allment kjent – sett et **eget** admin-passord i produksjon. Hemmeligheter (API-nøkkel, KV-token,
-> admin-passord) ligger kun som miljøvariabler, aldri i koden.
+> ⚠️ Dette repoet er offentlig. Admin-passordet sjekkes **kun server-side** (`ADMIN_PASSWORD`) – det
+> finnes ingen `VITE_ADMIN_PASSWORD`, fordi en `VITE_`-variabel inlines i klar tekst i nettleser-
+> bundelen og aldri kan være hemmelig. Sett et **langt, tilfeldig** admin-passord. Hemmeligheter
+> (API-nøkkel, KV-token, admin-passord) ligger kun som miljøvariabler, aldri i koden eller bundelen.
 
 ## Kommandoer (per app)
 
@@ -111,9 +111,9 @@ Hver app deployes som sitt eget Vercel-prosjekt fra samme repo:
    deler ikke data.
 2. **Prosjekt:** «Add New Project» → importer repoet → sett **Root Directory** til `apps/drammen`.
    Gjenta med et eget prosjekt for `apps/alles`.
-3. **Miljøvariabler** per prosjekt: `FOOTBALL_API_KEY`, `ADMIN_PASSWORD`, `VITE_ADMIN_PASSWORD`
-   (samme verdi som `ADMIN_PASSWORD` – og *ikke* dev-standarden `vm2026`). KV-nøklene injiseres
-   automatisk når storen kobles til prosjektet.
+3. **Miljøvariabler** per prosjekt: `FOOTBALL_API_KEY` og `ADMIN_PASSWORD` (langt og tilfeldig –
+   repoet er offentlig). Ingen `VITE_ADMIN_PASSWORD`. KV-nøklene injiseres automatisk når storen
+   kobles til prosjektet.
 4. Deploy. Etter første deploy trigger hver `git push` automatisk redeploy av begge.
 
 `api/matches.js` + `api/matchdetail.js` proxer football-data.org (nøkkel server-side), og `api/state.js`

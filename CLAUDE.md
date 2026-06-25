@@ -235,12 +235,15 @@ tippekonk/                          # repo-root
 Åpnes via `?admin=true` (eller det subtile tannhjul-ikonet i headeren). Tre faner: **Sluttspill**,
 **Krydder**, **Oppdater**.
 
-- **Passord-gate:** klient-side via `VITE_ADMIN_PASSWORD` (dev-standard `vm2026`) – kun UI-skjul. Den
-  **ekte** låsen er server-side: skriving til databasen krever `ADMIN_PASSWORD`. Sett **begge til samme
-  verdi**. Passordet huskes i `<suffix>_admin_pw` (localStorage) så lagring virker etter reload.
-  > ⚠️ **Repoet er offentlig:** dev-standarden `vm2026` er dermed allment kjent. I produksjon **må**
-  > `ADMIN_PASSWORD` + `VITE_ADMIN_PASSWORD` settes til noe annet på Vercel (ellers kan hvem som helst
-  > skrive til databasen). Verdien ligger kun som miljøvariabel, aldri i repoet.
+- **Passord-gate:** admin-porten har **ingen innebygd passord-verdi**. Når admin skriver passordet,
+  verifiserer klienten det mot **serveren** (`verifyPassword` → tom `POST /api/state`, som returnerer
+  401 ved feil passord). Den **ekte** låsen er server-side: både innlogging og skriving krever
+  `ADMIN_PASSWORD`. Passordet havner dermed **aldri** i klient-bundelen. Det huskes i
+  `<suffix>_admin_pw` (localStorage) på admins egen enhet så lagring virker etter reload.
+  > ⚠️ **Repoet er offentlig.** Det finnes **ingen** `VITE_ADMIN_PASSWORD` lenger (en `VITE_`-variabel
+  > inlines i klar tekst i nettleser-bundelen, så den kan aldri være hemmelig). Sett **kun**
+  > `ADMIN_PASSWORD` (server-side, langt og tilfeldig) på Vercel. Verdien ligger kun som miljøvariabel,
+  > aldri i repoet eller i bundelen.
 - **Sluttspill-fanen:** velg runde (nedtrekksmeny) → kampene hentes fra allerede-lastede `results`
   (filtrert på runde, kun kjente lag) → 2-talls tips per deltaker per kamp.
 - **Krydder-fanen:** ett felt per spørsmål, merket **automatisk** (API henter svaret – la stå tomt)
@@ -358,15 +361,15 @@ For hvert prosjekt (`apps/drammen` og `apps/alles` som **Root Directory**):
 1. **Add New Project** → importer repoet → sett Root Directory.
 2. **Environment Variables:**
    - `FOOTBALL_API_KEY` – server-side nøkkel (brukt av `api/matches.js` + `api/matchdetail.js`).
-   - `ADMIN_PASSWORD` – server-side admin-passord (delt med admin-ansvarlig). **Ikke** bruk dev-standarden
-     `vm2026` – repoet er offentlig.
-   - `VITE_ADMIN_PASSWORD` – **samme verdi** (klient-gate).
+   - `ADMIN_PASSWORD` – server-side admin-passord (delt med admin-ansvarlig). Bruk et **langt, tilfeldig**
+     passord – repoet er offentlig. Dette er eneste passord-variabel; det finnes **ingen**
+     `VITE_ADMIN_PASSWORD` (den ville lekket i klient-bundelen).
    - KV-nøkler (`KV_REST_API_URL/TOKEN`) – **injiseres automatisk** når Upstash-storen kobles til
      prosjektet via Vercel → Storage (samme store kobles til begge prosjekter).
 3. Deploy. Etter første deploy trigger `git push` automatisk redeploy av begge.
 
 **Lokalt:** `.env.local` i hver app-mappe (commit aldri): `FOOTBALL_API_KEY`, `ADMIN_PASSWORD`,
-`VITE_ADMIN_PASSWORD`, og KV-nøklene (hentes fra Upstash-storen / `vercel env pull`).
+og KV-nøklene (hentes fra Upstash-storen / `vercel env pull`). Ingen `VITE_ADMIN_PASSWORD`.
 
 ---
 
