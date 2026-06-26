@@ -108,6 +108,31 @@ const bdBothItem = bdBoth.find((i) => i.kind === 'bonus');
 assert('begge lag = 4p (ikke 8)', bdBothItem?.points, 4);
 assert('viser begge lag', bdBothItem?.kind === 'bonus' ? bdBothItem.answer : '', 'Nederland + Portugal');
 
+// 1f2) breakdown-rekkefølge ved SAMTIDIGE kamper: et liste-krydder (q8 selvmål) skal havne rett
+// ETTER sin egen kamp, også når en annen kamp har nøyaktig samme avspark (apiId-tiebreak).
+console.log('breakdown kronologi ved samtidige kamper (q8):');
+const simP: Participant = {
+  name: 'X',
+  groupTips: [
+    { homeTeam: 'Tunisia', awayTeam: 'Nederland', group: 'GROUP_F', homeGoals: 0, awayGoals: 2 }, // 1p (utfall)
+    { homeTeam: 'Japan', awayTeam: 'Sverige', group: 'GROUP_F', homeGoals: 1, awayGoals: 1 }, // 3p (eksakt)
+  ],
+  knockoutTips: [],
+  bonusTips: [{ questionId: 'q8', answer: ['Tunisia'] }],
+};
+const simResults: MatchResult[] = [
+  { apiId: 100, stage: 'GROUP_STAGE', group: 'GROUP_F', homeTeam: 'Tunisia', awayTeam: 'Netherlands', homeGoals: 1, awayGoals: 3, status: 'FINISHED', utcDate: '2026-06-25T23:00:00Z' },
+  { apiId: 200, stage: 'GROUP_STAGE', group: 'GROUP_F', homeTeam: 'Japan', awayTeam: 'Sweden', homeGoals: 1, awayGoals: 1, status: 'FINISHED', utcDate: '2026-06-25T23:00:00Z' },
+];
+const q8def = BONUS_QUESTIONS.find((q) => q.id === 'q8')!;
+const simBreakdown = participantBreakdown(simP, [simP], simResults, [{ ...q8def, answer: ['Tunisia'] }], {
+  q8: { ats: { Tunisia: '2026-06-25T12:00:00Z' } },
+});
+assert('tre kilder (2 kamp + 1 krydder)', simBreakdown.length, 3);
+assert('rekkefølge: Tunisia-kamp, selvmål, Japan-kamp', simBreakdown.map((i) => i.kind), ['match', 'bonus', 'match']);
+assert('krydder rett etter sin kamp (Tunisia)', simBreakdown[1].kind === 'bonus' ? simBreakdown[1].answer : '', 'Tunisia');
+assert('og før den andre samtidige kampen (Japan)', simBreakdown[2].kind === 'match' ? simBreakdown[2].home : '', 'Japan');
+
 // 1g) computeProgression: kumulativ poengutvikling per dag (10:00 UTC-grense)
 console.log('computeProgression:');
 const pm = (h: string, a: string, hg: number, ag: number, g: string, date: string): MatchResult =>

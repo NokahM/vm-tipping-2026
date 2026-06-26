@@ -448,8 +448,11 @@ export function participantBreakdown(
   bonusInfo?: BonusDates,
 ): ScoringItem[] {
   // Hver kilde får en sorteringsnøkkel `${matchday}#${innen-dag}` så krydder kan flettes
-  // kronologisk blant kampene (kun når `bonusInfo` er gitt). `innen-dag` = kampens utcDate for
+  // kronologisk blant kampene (kun når `bonusInfo` er gitt). `innen-dag` = `${utcDate}#${apiId}` for
   // kamper og for krydder knyttet til en kamp (→ rett etter den kampen); ellers «ZZZ» (dagens slutt).
+  // apiId er med i tiebreaken så samtidige kamper (samme avspark) skilles fra hverandre – ellers
+  // ville et krydder knyttet til én av dem havnet etter ALLE de samtidige kampene, ikke rett etter
+  // sin egen. Krydder-chipen får i tillegg et `~`-suffiks så den sorterer rett ETTER sin egen kamp.
   const rows: { key: string; item: ScoringItem }[] = [];
 
   const played = results.filter(isPlayed).sort((a, b) => a.utcDate.localeCompare(b.utcDate));
@@ -465,7 +468,7 @@ export function participantBreakdown(
     if (pts <= 0) continue;
     const day = matchDayKey(m.utcDate);
     rows.push({
-      key: `${day}#${m.utcDate}`,
+      key: `${day}#${m.utcDate}#${m.apiId}`,
       item: {
         kind: 'match',
         home: normalizeTeamName(m.homeTeam),
@@ -493,7 +496,8 @@ export function participantBreakdown(
     }
     return raw ? matchDayKey(raw) : fallbackDay;
   };
-  // utcDate for lagets kamp den dagen (→ krydder-chip rett etter kampen); ellers dagens slutt.
+  // `${utcDate}#${apiId}` for lagets kamp den dagen (→ krydder-chip rett etter kampen, også når en
+  // annen kamp har samme avspark); ellers dagens slutt («ZZZ»).
   const withinDay = (day: string, team?: string): string => {
     if (team) {
       const m = played.find(
@@ -502,7 +506,7 @@ export function participantBreakdown(
           (norm(normalizeTeamName(mm.homeTeam)) === norm(team) ||
             norm(normalizeTeamName(mm.awayTeam)) === norm(team)),
       );
-      if (m) return m.utcDate;
+      if (m) return `${m.utcDate}#${m.apiId}`;
     }
     return 'ZZZ';
   };
@@ -520,8 +524,9 @@ export function participantBreakdown(
       const perTeam = q.maxPoints / 2;
       for (const team of relevant) {
         const day = decidedDay(q, [team]);
+        // `~` sorterer etter sifrene i apiId, så chipen lander rett ETTER sin egen kamp.
         rows.push({
-          key: `${day}#${withinDay(day, team)}`,
+          key: `${day}#${withinDay(day, team)}~`,
           item: { kind: 'bonus', question: q.question, answer: team, points: perTeam, date: day },
         });
       }
