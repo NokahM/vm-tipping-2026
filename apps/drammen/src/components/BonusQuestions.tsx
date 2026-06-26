@@ -35,6 +35,9 @@ const WORST_TEAM_QUESTION_ID = 'q10'; // VMs dårligste lag – dårligst-så-la
 const FASTEST_GOAL_QUESTION_ID = 'q6'; // raskeste mål – pekepinn (eksakt tid settes manuelt)
 // Akkumulerende spørsmål: poeng deles ut løpende, men lista kan vokse til turneringsslutt.
 const ACCUMULATING_IDS = new Set(['q7', 'q8', 'q15']); // rødt kort, selvmål, kjendis-dødsfall
+// «Kommer lengst»-spørsmål: under live finnes ingen «riktig» ennå – alle som fortsatt kan gå
+// videre farges gult, aldri grønt før vinneren er avgjort. q12 øynasjon, q14 afrikansk land.
+const CONTENDER_IDS = new Set(['q12', 'q14']);
 
 /** «Joao Neves» → «J. Neves»: fornavn til initial, etternavn fullt. */
 function initialLastName(full: string): string {
@@ -402,8 +405,10 @@ function BonusRow({
             } else if (provPoints) {
               // Foreløpig fasit (q3/q12/q13/q14/q16/q17): farge etter live-auto, men IKKE tellende.
               const pts = provPoints.get(p.name) ?? 0;
+              // «Kommer lengst» (q12/q14): positivt treff = gult (fortsatt med), aldri grønt før avgjort.
+              const positive = CONTENDER_IDS.has(question.id) ? AMBER : GREEN;
               cls =
-                text === null ? NEUTRAL : pts >= question.maxPoints ? GREEN : pts > 0 ? AMBER : RED;
+                text === null ? NEUTRAL : pts >= question.maxPoints ? positive : pts > 0 ? AMBER : RED;
             } else {
               const pts = points.get(p.name) ?? 0;
               cls = chipClasses(hasFasit, text !== null, pts, question.maxPoints);

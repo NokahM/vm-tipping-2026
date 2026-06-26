@@ -49,6 +49,24 @@ function furthestAmong(list: string[], results: MatchResult[]): { teams: string[
   return { teams, day };
 }
 
+/**
+ * Lag i `list` som fortsatt KAN gå videre = har minst én kamp som ikke er ferdigspilt
+ * (gjenstående gruppekamp, eller en allerede fylt sluttspill-slot). Robust på tvers av faser:
+ * et utslått lag har ingen kommende kamp igjen. Brukes KUN til den visuelle live-indikatoren for
+ * «kommer lengst»-spørsmålene (q12/q14) – aldri til scoring. Beholder rekkefølgen i `list`.
+ */
+function aliveAmong(list: string[], results: MatchResult[]): string[] {
+  const set = new Set(list);
+  const alive = new Set<string>();
+  for (const m of results) {
+    if (m.status === 'FINISHED') continue;
+    for (const team of [m.homeTeam, m.awayTeam]) {
+      if (team && team !== 'TBD' && set.has(team)) alive.add(team);
+    }
+  }
+  return list.filter((t) => alive.has(t));
+}
+
 /** Lagets lengste runde + den avgjørende kampdagen. */
 function furthestStageOf(team: string, results: MatchResult[]): { stage: Stage; day: string } | null {
   let bestRank = -1;
@@ -281,11 +299,13 @@ export function deriveProvisionalAnswers(
   const out: Record<string, string | string[]> = {};
   if (results.length === 0) return out;
 
-  // q12/q14/q17: lengst-kommende så langt.
-  const isl = furthestAmong(ISLAND_NATIONS, results);
-  if (isl) out.q12 = isl.teams.map(normalizeTeamName);
-  const afr = furthestAmong(AFRICAN_NATIONS, results);
-  if (afr) out.q14 = afr.teams.map(normalizeTeamName);
+  // q12/q14: ALLE øynasjoner/afrikanske land som fortsatt kan gå videre (gul = teoretisk med).
+  // Bevisst IKKE «lengst så langt» – vi vil aldri farge grønt før vinneren faktisk er avgjort.
+  const islAlive = aliveAmong(ISLAND_NATIONS, results);
+  if (islAlive.length) out.q12 = islAlive.map(normalizeTeamName);
+  const afrAlive = aliveAmong(AFRICAN_NATIONS, results);
+  if (afrAlive.length) out.q14 = afrAlive.map(normalizeTeamName);
+  // q17: hvor langt Norge har kommet så langt.
   const nor = furthestStageOf('Norway', results);
   if (nor) out.q17 = STAGE_LABELS[nor.stage];
 

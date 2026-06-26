@@ -19,7 +19,7 @@ import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, decidedOnly, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
-import { deriveDecidedBonus, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
+import { deriveDecidedBonus, deriveProvisionalAnswers, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
 
 let failures = 0;
@@ -411,6 +411,25 @@ assert('q3 ikke satt før turnering ferdig', deriveStatsBonus({ ...baseStats, to
 const q13store = deriveStatsBonus({ ...baseStats, goalsByPlayer: { '44': 3, '3218': 1 } }, overResults);
 assert('q13 = Ronaldo når flest', (q13store.q13 as { answer: string[] }).answer.includes('Ronaldo'), true);
 assert('q13 ikke Messi når færre', (q13store.q13 as { answer: string[] }).answer.includes('Messi'), false);
+
+// 4c2) q12/q14 live-indikator: GUL for ALLE som fortsatt kan gå videre (ikke bare lengst nådd),
+// og aldri grønn før avgjort. Et lag «lever» hvis det har en kamp som ikke er ferdigspilt.
+console.log('\nderiveProvisionalAnswers q12/q14 (fortsatt med):');
+const aliveResults = [
+  mk({ homeTeam: 'Japan', awayTeam: 'Brazil', status: 'TIMED' }), // øynasjon, kommende kamp -> med
+  mk({ homeTeam: 'New Zealand', awayTeam: 'Iran', status: 'TIMED' }), // øynasjon, gjenstående -> med
+  mk({ homeTeam: 'Haiti', awayTeam: 'Scotland', status: 'FINISHED' }), // øynasjon, kun ferdig -> ute
+  mk({ homeTeam: 'Egypt', awayTeam: 'Belgium', status: 'TIMED' }), // afrikansk, gjenstående -> med
+  mk({ homeTeam: 'Tunisia', awayTeam: 'Netherlands', status: 'FINISHED' }), // afrikansk, kun ferdig -> ute
+];
+const prov = deriveProvisionalAnswers(null, aliveResults);
+const q12alive = (prov.q12 as string[]) ?? [];
+const q14alive = (prov.q14 as string[]) ?? [];
+assert('q12: Japan fortsatt med (gul)', q12alive.includes('Japan'), true);
+assert('q12: New Zealand fortsatt med (gul)', q12alive.includes('New Zealand'), true);
+assert('q12: Haiti utslått (ikke med)', q12alive.includes('Haiti'), false);
+assert('q14: Egypt fortsatt med (gul)', q14alive.includes('Egypt'), true);
+assert('q14: Tunisia utslått (ikke med)', q14alive.includes('Tunisia'), false);
 
 // 4d) Avgjort-flagg (decidedOnly)
 console.log('\ndecidedOnly (Avgjort-checkbox):');
