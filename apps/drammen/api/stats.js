@@ -4,7 +4,7 @@
 //
 // Selv-inneholdt (ingen lokale imports) så den samme handleren kan kalles fra Vite-dev-proxyen.
 
-const CACHE_KEY = 'stats:v5'; // v5: lagrer også injuryTime per mål (90+-bolken)
+const CACHE_KEY = 'stats:v6'; // v6: `played` lagrer tidligste kampdag per spiller (q16-datering)
 const BATCH = 10; // maks antall kamp-detaljer å hente per kall (skåner rategrensen)
 const LIVE = ['FINISHED', 'IN_PLAY', 'PAUSED'];
 const MATCHDAY_BOUNDARY_MS = 10 * 60 * 60 * 1000; // 10:00 UTC = 12:00 norsk – samme som matchDayKey
@@ -61,14 +61,27 @@ function extractMatch(d) {
   return { lastUpdated: d.lastUpdated, utcDate: d.utcDate, stage: d.stage, referee, goals, bookings };
 }
 
-/** Spillere som faktisk fikk spilletid: startellever (lineup) + innbyttere (substitutions). */
+/**
+ * Spillere som faktisk fikk spilletid: startellever (lineup) + innbyttere (substitutions).
+ * Verdien er spillerens TIDLIGSTE kampdag (noon-ISO) – brukes til å datere q16 (Bodø/Glimt-
+ * spilletid) til kampen der den siste av de tre debuterte. Eldre cache kan ha `true` (uten dato);
+ * vi oppgraderer til ISO når vi ser kampen igjen, og beholder alltid den minste datoen.
+ */
 function collectPlayed(d, played) {
+  const iso = matchDayIso(d.utcDate);
+  const mark = (id) => {
+    if (id == null) return;
+    const prev = played[id];
+    if (!iso) {
+      if (prev == null) played[id] = true; // ingen dato tilgjengelig – marker kun tilstedeværelse
+    } else if (prev == null || prev === true || iso < prev) {
+      played[id] = iso;
+    }
+  };
   for (const t of [d.homeTeam, d.awayTeam]) {
-    for (const p of t?.lineup || []) if (p?.id != null) played[p.id] = true;
+    for (const p of t?.lineup || []) mark(p?.id);
   }
-  for (const s of d.substitutions || []) {
-    if (s?.playerIn?.id != null) played[s.playerIn.id] = true;
-  }
+  for (const s of d.substitutions || []) mark(s?.playerIn?.id);
 }
 
 /**
@@ -267,6 +280,7 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     ...aggregate(cache),
     autoBonus: autoBonusFrom(cache),
     playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
+    playedAt: cache.played, // spiller-id → tidligste kampdag (noon-ISO) el. true – daterer q16
     finalReferee: finalMatch?.referee || null, // for q11
     fastestGoal, // for q6 live-indikator
     fastestGoals, // alle mål på det laveste minuttet (q6 – sekunder mangler i API-et)

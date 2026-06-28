@@ -92,6 +92,19 @@ function lastName(full: string): string {
   return parts.length ? parts[parts.length - 1] : full;
 }
 
+/**
+ * Datoen (noon-ISO) da alle tre Bodø/Glimt-spillerne hadde spilt – dvs. kampdagen der den SISTE
+ * av de tre debuterte (maks av tidligste-spilte-dato per spiller). Mater q16 sin `at` så chipen
+ * dateres til Norges kamp i breakdown/graf i stedet for «siste kampdag». `null` hvis vi mangler
+ * dato for en av dem (eldre stats-cache uten datoer).
+ */
+function glimtAllPlayedIso(stats: StatsData): string | null {
+  const at = stats.playedAt ?? {};
+  const ds = GLIMT_IDS.map((id) => at[id]).filter((d): d is string => typeof d === 'string');
+  if (ds.length < GLIMT_IDS.length) return null;
+  return ds.reduce((a, b) => (a > b ? a : b));
+}
+
 /** Seneste matchday-dato blant kampene (for «avgjort»-datoen). */
 function latestDay(matches: MatchResult[]): string {
   return matches.reduce((d, m) => {
@@ -205,7 +218,7 @@ export function deriveStatsBonus(stats: StatsData | null, results: MatchResult[]
   // (akkumulerende); ellers «Nei» først når turneringen er ferdig.
   const played = new Set(stats.playedIds ?? []);
   const all3 = GLIMT_IDS.every((id) => played.has(id));
-  if (all3) store.q16 = { answer: 'Ja', at: endIso };
+  if (all3) store.q16 = { answer: 'Ja', at: glimtAllPlayedIso(stats) ?? endIso };
   else if (over) store.q16 = { answer: 'Nei', at: endIso };
 
   return store;

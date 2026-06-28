@@ -133,6 +133,31 @@ assert('rekkefølge: Tunisia-kamp, selvmål, Japan-kamp', simBreakdown.map((i) =
 assert('krydder rett etter sin kamp (Tunisia)', simBreakdown[1].kind === 'bonus' ? simBreakdown[1].answer : '', 'Tunisia');
 assert('og før den andre samtidige kampen (Japan)', simBreakdown[2].kind === 'match' ? simBreakdown[2].home : '', 'Japan');
 
+// 1f3) q16 (Bodø/Glimt-spilletid) avgjøres i Norges kamp → chipen skal lande rett ETTER Norge-kampen,
+// og før en senere kamp samme kampdag (ikke sist på dagen som før).
+console.log('breakdown q16 plasseres etter Norges kamp:');
+const q16P: Participant = {
+  name: 'X',
+  groupTips: [
+    { homeTeam: 'Norge', awayTeam: 'Frankrike', group: 'GROUP_E', homeGoals: 1, awayGoals: 1 }, // eksakt = 3p
+    { homeTeam: 'Brasil', awayTeam: 'Sveits', group: 'GROUP_G', homeGoals: 2, awayGoals: 0 }, // eksakt = 3p
+  ],
+  knockoutTips: [],
+  bonusTips: [{ questionId: 'q16', answer: 'Ja' }],
+};
+const q16Results: MatchResult[] = [
+  { apiId: 300, stage: 'GROUP_STAGE', group: 'GROUP_E', homeTeam: 'Norway', awayTeam: 'France', homeGoals: 1, awayGoals: 1, status: 'FINISHED', utcDate: '2026-06-20T18:00:00Z' },
+  { apiId: 400, stage: 'GROUP_STAGE', group: 'GROUP_G', homeTeam: 'Brazil', awayTeam: 'Switzerland', homeGoals: 2, awayGoals: 0, status: 'FINISHED', utcDate: '2026-06-20T22:00:00Z' },
+];
+const q16def = BONUS_QUESTIONS.find((q) => q.id === 'q16')!;
+const q16Breakdown = participantBreakdown(q16P, [q16P], q16Results, [{ ...q16def, answer: 'Ja' }], {
+  q16: { at: '2026-06-20T12:00:00.000Z' },
+});
+assert('tre kilder (2 kamp + q16)', q16Breakdown.length, 3);
+assert('rekkefølge: Norge-kamp, q16, senere kamp', q16Breakdown.map((i) => i.kind), ['match', 'bonus', 'match']);
+assert('q16 rett etter Norges kamp (svar Ja)', q16Breakdown[1].kind === 'bonus' ? q16Breakdown[1].answer : '', 'Ja');
+assert('og før den senere kampen (Brasil)', q16Breakdown[2].kind === 'match' ? q16Breakdown[2].home : '', 'Brasil');
+
 // 1g) computeProgression: kumulativ poengutvikling per dag (10:00 UTC-grense)
 console.log('computeProgression:');
 const pm = (h: string, a: string, hg: number, ag: number, g: string, date: string): MatchResult =>
@@ -402,6 +427,10 @@ assert('q11 = finaledommer når kjent', (deriveStatsBonus({ ...baseStats, finalR
 assert('q16 = Ja når alle tre Glimt spilte', (deriveStatsBonus({ ...baseStats, playedIds: [37913, 37924, 37916, 99] }, []).q16 as { answer: string }).answer, 'Ja');
 assert('q16 ikke satt før avgjort (mangler spiller)', deriveStatsBonus({ ...baseStats, playedIds: [37913] }, []).q16, undefined);
 assert('q16 = Nei når turnering ferdig og mangler', (deriveStatsBonus({ ...baseStats, playedIds: [37913] }, overResults).q16 as { answer: string }).answer, 'Nei');
+// q16-dato = kampdagen der den SISTE Glimt-spilleren debuterte (maks av per-spiller-datoer), ikke «siste kampdag».
+const q16dated = deriveStatsBonus({ ...baseStats, playedIds: [37913, 37924, 37916],
+  playedAt: { 37913: '2026-06-14T12:00:00.000Z', 37924: '2026-06-14T12:00:00.000Z', 37916: '2026-06-20T12:00:00.000Z' } }, overResults);
+assert('q16 dato = siste Glimt-debut (Norge-kampen)', (q16dated.q16 as { at: string }).at, '2026-06-20T12:00:00.000Z');
 const q3store = deriveStatsBonus({ ...baseStats, topScorers: [
   { id: 1, name: 'Kylian Mbappe', team: 'France', position: '', goals: 8 },
   { id: 2, name: 'Harry Kane', team: 'England', position: '', goals: 6 },

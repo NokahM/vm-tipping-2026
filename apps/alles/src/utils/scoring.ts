@@ -161,6 +161,11 @@ function bonusAnswerOf(tip: BonusTip): string[] {
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
 
+// Krydder som avgjøres i ett bestemt lags kamp → chipen plasseres rett etter den kampen i
+// breakdownen (samme «~»-triks som q7/q8), i stedet for sist på dagen. q16 (får alle tre Bodø/
+// Glimt-spillerne spilletid?) avgjøres når den siste av dem spiller – alltid i en Norge-kamp.
+const BONUS_MATCH_TEAM: Record<string, string> = { q16: 'Norge' };
+
 // q5 (antall mål totalt): full pott til ALLE som er innenfor ±5 mål av fasit.
 const GOAL_MARGIN = 5;
 
@@ -542,7 +547,14 @@ export function participantBreakdown(
       if (PER_TEAM_IDS.has(q.id) && relevant.length) answer = relevant.join(' + ');
     }
     const day = decidedDay(q, relevant);
-    rows.push({ key: `${day}#ZZZ`, item: { kind: 'bonus', question: q.question, answer, points: pts, date: day } });
+    // Lag-knyttet krydder (q16) plasseres rett etter sin egen kamp («~»); ellers sist på dagen.
+    const placeTeam = BONUS_MATCH_TEAM[q.id];
+    let within = 'ZZZ';
+    if (bonusInfo && placeTeam) {
+      const w = withinDay(day, placeTeam);
+      within = w === 'ZZZ' ? 'ZZZ' : `${w}~`;
+    }
+    rows.push({ key: `${day}#${within}`, item: { kind: 'bonus', question: q.question, answer, points: pts, date: day } });
   }
 
   // Kronologisk fletting kun når vi har krydder-datoer (ellers: kamper først, krydder sist).
