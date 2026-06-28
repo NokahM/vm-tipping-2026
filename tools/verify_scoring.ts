@@ -66,10 +66,10 @@ assert('ingen startede kamper → null', projectTotalGoals([gm('TIMED', null, nu
 // 1d) q5: full pott til ALLE innenfor ±5 mål av fasit (grensetilfeller)
 console.log('q5 ±5-regel:');
 const q5q = BONUS_QUESTIONS.find((q) => q.id === 'q5')!;
-const mkP = (name: string, goals: string): Participant =>
+const mkBonusP = (name: string, goals: string): Participant =>
   ({ name, groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q5', answer: goals }] }) as Participant;
 const q5score = scoreBonusQuestion(
-  [mkP('A', '305'), mkP('B', '295'), mkP('C', '306'), mkP('D', '294')],
+  [mkBonusP('A', '305'), mkBonusP('B', '295'), mkBonusP('C', '306'), mkBonusP('D', '294')],
   { ...q5q, answer: '300' },
 );
 assert('+5 = full pott', q5score.get('A'), q5q.maxPoints);
@@ -440,6 +440,51 @@ assert('q3 ikke satt før turnering ferdig', deriveStatsBonus({ ...baseStats, to
 const q13store = deriveStatsBonus({ ...baseStats, goalsByPlayer: { '44': 3, '3218': 1 } }, overResults);
 assert('q13 = Ronaldo når flest', (q13store.q13 as { answer: string[] }).answer.includes('Ronaldo'), true);
 assert('q13 ikke Messi når færre', (q13store.q13 as { answer: string[] }).answer.includes('Messi'), false);
+
+// 4c3) R32-krydder: q18 (mest målrik) + q19 (flest gule) kamp-match, q20 (Superior Player) per-spiller.
+console.log('\nq18/q19 kamp-match + q20 per-spiller:');
+const mkR32P = (name: string, ans: string | string[], qid = 'q18'): Participant =>
+  ({ name, groupTips: [], knockoutTips: [], bonusTips: [{ questionId: qid, answer: ans }] });
+const q18def = BONUS_QUESTIONS.find((q) => q.id === 'q18')!;
+const q18parts = [
+  mkR32P('Eksakt', 'Frankrike - Sverige'),
+  mkR32P('Typo', 'Frankriket-Sverige'),
+  mkR32P('Reversert', 'Sverige - Frankrike'),
+  mkR32P('ZcVariant', 'USA - Bosnia-Herzegovina'),
+  mkR32P('Feil', 'Mexico - Ecuador'),
+];
+const q18pts = scoreBonusQuestion(q18parts, { ...q18def, answer: 'Frankrike - Sverige' });
+assert('q18 eksakt = 2p', q18pts.get('Eksakt'), 2);
+assert('q18 typo «Frankriket» = 2p', q18pts.get('Typo'), 2);
+assert('q18 reversert rekkefølge = 2p', q18pts.get('Reversert'), 2);
+assert('q18 feil kamp = 0p', q18pts.get('Feil'), 0);
+assert('q18 Herzegovina vs Hercegovina = 2p',
+  scoreBonusQuestion(q18parts, { ...q18def, answer: 'USA - Bosnia-Hercegovina' }).get('ZcVariant'), 2);
+const q18tie = scoreBonusQuestion(q18parts, { ...q18def, answer: ['Mexico - Ecuador', 'Frankrike - Sverige'] });
+assert('q18 fasit-liste (likhet): Feil-tipper treffer Mexico = 2p', q18tie.get('Feil'), 2);
+assert('q18 fasit-liste (likhet): Eksakt treffer Frankrike = 2p', q18tie.get('Eksakt'), 2);
+
+const q20def = BONUS_QUESTIONS.find((q) => q.id === 'q20')!;
+const q20parts = [
+  mkR32P('Begge', ['Messi', 'Haaland'], 'q20'),
+  mkR32P('Ett', ['Messi', 'Mbappe'], 'q20'),
+  mkR32P('Ingen', ['Kane', 'Ronaldo'], 'q20'),
+];
+const q20pts = scoreBonusQuestion(q20parts, { ...q20def, answer: ['Messi', 'Haaland'] });
+assert('q20 begge riktige = 4p', q20pts.get('Begge'), 4);
+assert('q20 ett riktig = 2p', q20pts.get('Ett'), 2);
+assert('q20 ingen riktige = 0p', q20pts.get('Ingen'), 0);
+
+console.log('\nderiveDecidedBonus/deriveStatsBonus q18/q19 (R32):');
+const r32done = [
+  mk({ stage: 'ROUND_OF_32', homeTeam: 'France', awayTeam: 'Sweden', homeGoals: 3, awayGoals: 2, status: 'FINISHED', apiId: 1, utcDate: '2026-06-29T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_32', homeTeam: 'Mexico', awayTeam: 'Ecuador', homeGoals: 1, awayGoals: 0, status: 'FINISHED', apiId: 2, utcDate: '2026-06-29T20:00:00Z' }),
+];
+assert('q18 = mest målrik R32-kamp', (deriveDecidedBonus(r32done).q18 as { answer: string }).answer, 'Frankrike - Sverige');
+assert('q18 ikke satt før alle R32 ferdige',
+  deriveDecidedBonus([r32done[0], mk({ stage: 'ROUND_OF_32', homeTeam: 'Mexico', awayTeam: 'Ecuador', status: 'TIMED', apiId: 2 })]).q18, undefined);
+assert('q19 = R32-kamp med flest gule', (deriveStatsBonus({ ...baseStats, matchYellows: { 1: 5, 2: 8 } }, r32done).q19 as { answer: string }).answer, 'Mexico - Ecuador');
+assert('q19 ikke satt uten matchYellows', deriveStatsBonus({ ...baseStats }, r32done).q19, undefined);
 
 // 4c2) q12/q14 live-indikator: GUL for ALLE som fortsatt kan gå videre (ikke bare lengst nådd),
 // og aldri grønn før avgjort. Et lag «lever» hvis det har en kamp som ikke er ferdigspilt.

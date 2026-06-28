@@ -276,11 +276,18 @@ async function computeStats(apiKey, kvUrl, kvToken) {
       goalMinutes[i]++;
     }
   }
+  // Gule kort per kamp (apiId → antall straight YELLOW) – for q19 (flest gule kort-kamp).
+  const matchYellows = {};
+  for (const [id, m] of Object.entries(cache.matches)) {
+    matchYellows[id] = (m.bookings || []).filter((b) => b.card === 'YELLOW').length;
+  }
+
   return {
     ...aggregate(cache),
     autoBonus: autoBonusFrom(cache),
     playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
     playedAt: cache.played, // spiller-id → tidligste kampdag (noon-ISO) el. true – daterer q16
+    matchYellows, // apiId → antall gule kort – for q19
     finalReferee: finalMatch?.referee || null, // for q11
     fastestGoal, // for q6 live-indikator
     fastestGoals, // alle mål på det laveste minuttet (q6 – sekunder mangler i API-et)

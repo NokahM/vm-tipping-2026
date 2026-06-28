@@ -9,7 +9,7 @@ import type {
   ParticipantScore,
   Stage,
 } from '../types';
-import { normalizeTeamName } from './teamNames';
+import { normalizeTeamName, TEAM_NAME_MAP } from './teamNames';
 import { spellKey } from './teamCanon';
 
 // ---------------------------------------------------------------------------
@@ -160,6 +160,37 @@ function bonusAnswerOf(tip: BonusTip): string[] {
 // Liste-fasit-spørsmål der deltakeren nevner FLERE og får poeng per korrekt (maxPoints/2 per lag).
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
+// Liste-spørsmål som gir 2p per korrekt element (maks `maxPoints`): q7/q8 = lag, q20 = spillere
+// («Superior Player of the Match», deltakeren nevner 2). q20 er IKKE i PER_TEAM_IDS, så den får
+// ikke kamp-plassering i breakdownen (spillere knyttes ikke til én kamp).
+const PER_ITEM_IDS = new Set(['q7', 'q8', 'q20']);
+// Krydder der svaret er én R32-kamp (mest målrik / flest gule kort). Matches rekkefølge-uavhengig
+// på lag-par, robust mot typoer/varianter (matchKey).
+const MATCH_QUESTION_IDS = new Set(['q18', 'q19']);
+
+// Kanoniske lag-nøkler (kun bokstaver) – lengste først for grådig delstreng-matching i matchKey.
+const TEAM_KEYS = [...new Set(Object.values(TEAM_NAME_MAP))]
+  .map((n) => spellKey(n).replace(/[^a-z]/g, ''))
+  .sort((a, b) => b.length - a.length);
+
+/**
+ * «A - B»-kamp → rekkefølge-uavhengig nøkkel (sortert lag-par). Tåler lagnavn med bindestrek
+ * (Bosnia-Hercegovina), manglende mellomrom, typoer (Frankriket→Frankrike via delstreng) og
+ * z/c-variant (Herzegovina→Hercegovina). `null` om ikke nøyaktig to lag gjenkjennes.
+ */
+function matchKey(s: string): string | null {
+  let k = spellKey(s).replace(/herz/g, 'herc').replace(/[^a-z]/g, '');
+  const found: string[] = [];
+  for (const t of TEAM_KEYS) {
+    if (found.length === 2) break;
+    const i = k.indexOf(t);
+    if (i >= 0) {
+      found.push(t);
+      k = k.slice(0, i) + k.slice(i + t.length); // fjern treffet så samme del ikke matches to ganger
+    }
+  }
+  return found.length === 2 ? [...found].sort().join('|') : null;
+}
 
 // Krydder som avgjøres i ett bestemt lags kamp → chipen plasseres rett etter den kampen i
 // breakdownen (samme «~»-triks som q7/q8), i stedet for sist på dagen. q16 (får alle tre Bodø/
@@ -209,6 +240,24 @@ export function scoreBonusQuestion(
     return points;
   }
 
+  if (MATCH_QUESTION_IDS.has(q.id)) {
+    // q18/q19: svaret er én R32-kamp. Fasit kan være flere kamper (likhet på toppen → alle gjelder).
+    // Tip matcher hvis samme lag-par (rekkefølge-uavhengig, typo-tolerant).
+    const fasitKeys = new Set(
+      (Array.isArray(q.answer) ? q.answer : [String(q.answer)])
+        .map(matchKey)
+        .filter((k): k is string => k !== null),
+    );
+    if (fasitKeys.size === 0) return points;
+    for (const p of participants) {
+      const tip = tipFor(p);
+      if (!tip) continue;
+      const k = matchKey(bonusAnswerOf(tip)[0] ?? '');
+      if (k && fasitKeys.has(k)) add(p.name, q.maxPoints);
+    }
+    return points;
+  }
+
   if (q.id === 'q9') {
     // Gruppe flest mål: sammenlign gruppe-bokstaver (robust mot «I» / «Gruppe I» / «gruppe i»).
     // Fasit kan være flere bokstaver (uavgjort på toppen → poeng til alle som tippet en av dem).
@@ -240,8 +289,8 @@ export function scoreBonusQuestion(
 
   if (Array.isArray(q.answer)) {
     const actual = new Set(q.answer.map(norm));
-    if (PER_TEAM_IDS.has(q.id)) {
-      // q7/q8: deltakerne nevner 2 lag, hvert korrekt lag er verdt maxPoints/2 (begge nå 2p, maks 4).
+    if (PER_ITEM_IDS.has(q.id)) {
+      // q7/q8/q20: deltakerne nevner 2 (lag/spillere), hvert korrekt er verdt maxPoints/2 (maks 4).
       const perTeam = q.maxPoints / 2;
       for (const p of participants) {
         const tip = tipFor(p);
@@ -544,7 +593,7 @@ export function participantBreakdown(
     if (tip && Array.isArray(q.answer)) {
       const mine = new Set(bonusAnswerOf(tip).map(norm));
       relevant = q.answer.filter((ae) => mine.has(norm(ae)));
-      if (PER_TEAM_IDS.has(q.id) && relevant.length) answer = relevant.join(' + ');
+      if (PER_ITEM_IDS.has(q.id) && relevant.length) answer = relevant.join(' + ');
     }
     const day = decidedDay(q, relevant);
     // Lag-knyttet krydder (q16) plasseres rett etter sin egen kamp («~»); ellers sist på dagen.

@@ -36,16 +36,16 @@ const AUTH_KEY = `${APP_CONFIG.storageSuffix}_admin_authed`;
 // etter reload. Det sjekkes ALDRI mot en innebygd verdi – kun mot serveren (ADMIN_PASSWORD),
 // så passordet finnes aldri i klient-bundelen. localStorage er admins egen enhet.
 const PW_KEY = `${APP_CONFIG.storageSuffix}_admin_pw`;
-// Spørsmål med liste-fasit (komma-separert input): q7 (rødt kort), q8 (selvmål) og
-// q15 (kjendis som dør). q7/q8 gir poeng per korrekt lag; q15 full pott hvis kjendisen er i lista.
-const LIST_ANSWER_IDS = new Set(['q7', 'q8', 'q15']);
+// Spørsmål med liste-fasit (komma-separert input): q7 (rødt kort), q8 (selvmål), q15 (kjendis)
+// og q20 (Superior Player of the Match). q7/q8/q20 gir 2p per korrekt; q15 full pott om i lista.
+const LIST_ANSWER_IDS = new Set(['q7', 'q8', 'q15', 'q20']);
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
 // «Sett dato» vises kun for hendelsesbaserte spørsmål (skjer på en bestemt tidligere dag,
 // kan trenge tilbakedatering). Alt vi først vet ved VM-slutt får dagens/auto-dato uansett.
 const DATE_OVERRIDE_IDS = new Set(['q6', 'q7', 'q8', 'q15']);
 // Spørsmål som settes automatisk fra deep data/resultater (admin trenger ikke gjøre noe).
-// Resten (q2, q4, q6, q15) krever manuell fasit.
-const AUTO_IDS = new Set(['q1', 'q3', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q16', 'q17']);
+// Resten (q2, q4, q6, q15, q20) krever manuell fasit.
+const AUTO_IDS = new Set(['q1', 'q3', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q16', 'q17', 'q18', 'q19']);
 // Akkumulerende: poeng deles ut løpende, men lista kan vokse til turneringsslutt («ikke avsluttet»).
 const ACCUMULATING_IDS = new Set(['q7', 'q8', 'q15']); // rødt kort, selvmål, kjendis-dødsfall
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');

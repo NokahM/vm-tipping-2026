@@ -21,7 +21,8 @@ Ingen personnavn ligger i denne dokumentasjonen; deltakerdata bor i `participant
 - **1 poeng** – riktig utfall (seier/uavgjort/tap riktig, men feil score)
 - **0 poeng** – feil utfall
 
-**Krydderspørsmål** (17 stk) – poeng varierer per spørsmål; fasit settes manuelt. Spesialregler under.
+**Krydderspørsmål** (20 stk; q1–q17 før gruppespillet, q18–q20 til sluttspillet) – poeng varierer per
+spørsmål; fasit settes manuelt eller auto-utledes. Spesialregler under.
 
 ---
 
@@ -111,7 +112,7 @@ tippekonk/                          # repo-root
 │   │   │   │                       # TeamCards, PlayerStats, FootballStats, AdminPanel, TeamLogo, BroadcasterBadge
 │   │   │   ├── data/
 │   │   │   │   ├── participants.ts     # gruppespill- + krydder-tips per deltaker (auto-generert)
-│   │   │   │   ├── bonusQuestions.ts    # de 17 krydderspørsmålene (auto-generert)
+│   │   │   │   ├── bonusQuestions.ts    # de 20 krydderspørsmålene (q1–q17 auto-generert, q18–q20 R32-tillegg)
 │   │   │   │   ├── knockoutTips.json    # innbakt sluttspill-tips (fallback for KV)
 │   │   │   │   ├── bonusAnswers.json    # innbakt krydder-fasit (fallback for KV)
 │   │   │   │   └── broadcasters.json    # apiId → "NRK" | "TV2"
@@ -181,7 +182,10 @@ tippekonk/                          # repo-root
 
 ---
 
-## Krydderspørsmål (17 spørsmål, begge grupper)
+## Krydderspørsmål (20 spørsmål, begge grupper)
+
+q1–q17 ble samlet inn før gruppespillet; **q18–q20 er R32-krydder** (samlet inn til
+sekstendelsfinalene, lagt til i datalaget senere).
 
 | Nr | Spørsmål | Poeng |
 |----|----------|-------|
@@ -202,6 +206,9 @@ tippekonk/                          # repo-root
 | 15 | Nevn en kjendis som dør i løpet av VM. | 3p |
 | 16 | Får alle tre Bodø/Glimt-spillerne spilletid i VM? | 1p |
 | 17 | Hvor langt kommer Norge? | 2p |
+| 18 | Hvilken kamp i sekstendelsfinalen blir mest målrik? | 2p |
+| 19 | I hvilken kamp deles det ut flest gule kort? | 2p |
+| 20 | Nevn to spillere som blir «Superior Player of the Match». | 4p (2p per riktig) |
 
 **Spesialregler (`scoreBonusQuestion`):**
 - **q5 (antall mål totalt):** full pott til **alle** innenfor **±5 mål** av fasit (`GOAL_MARGIN`).
@@ -224,6 +231,15 @@ tippekonk/                          # repo-root
   gjorde det.
 - **q15 (kjendis):** fasit er en komma-separert liste (flere kan dø). Deltakeren nevner én → **full pott**
   hvis den er i lista («medlemskap», ikke per-element).
+- **q18 / q19 (mest målrik / flest gule kort-kamp):** svaret er **én R32-kamp**. Matches rekkefølge-
+  uavhengig på lag-par via `matchKey` (i `scoring.ts`) – robust mot typoer («Frankriket»), manglende
+  mellomrom («Elfenbenskysten-Norge»), lagnavn med bindestrek («Bosnia-Hercegovina») og z/c-variant
+  («Herzegovina»). Fasit kan være **flere kamper** ved likhet (alle gjelder). Begge **auto-utledes**:
+  q18 fra resultatene (R32-kamp med flest mål), q19 fra deep data (`stats.matchYellows` = gule kort per
+  kamp) – begge **låses når alle sekstendelsfinaler er ferdige**, med live-indikator underveis.
+- **q20 (to «Superior Player of the Match»):** **2p per korrekt navnt spiller, maks 4p** (samme modell
+  som q7/q8 via `PER_ITEM_IDS`, men IKKE kamp-knyttet i breakdownen). Liste-svar; **manuell** fasit
+  (komma-separert liste over alle MOTM-spillere; medlemskap-matching per nevnt spiller).
 - Øvrige: eksakt tekstmatch (case-insensitiv).
 - Poeng beregnes kun når `answer` er satt (ellers 0 for alle).
 - Krydder-svar lagres som **rå fritekst** (skrivefeil bevisst bevart) siden de poengsettes/justeres manuelt.
@@ -440,16 +456,18 @@ så løpende auto-scoring er alltid riktig, og datoene mater grafen per lag. **A
 verdier** (`bonusManual`, uten auto) i panelet, så auto-fasit «fryses» aldri ved lagring. `useStats`
 hentes nå **alltid** (ikke bare på Stats-fanen) siden auto-krydder trenger det.
 
-**Auto-krydder – implementert (13 av 17):** all auto-utledning ligger i `utils/autoDerive.ts`
+**Auto-krydder – implementert (15 av 20):** all auto-utledning ligger i `utils/autoDerive.ts`
 (`deriveDecidedBonus(results)` + `deriveStatsBonus(stats, results)`) og `api/stats.js` (`autoBonus`).
 - **Akkumulerende (alltid riktig, scorer løpende):** q7 (rødt kort), q8 (selvmål), q16 (Bodø/Glimt
   «Ja» når alle tre har spilt).
 - **Lås når avgjort** (aldri auto-score på en midlertidig leder): q9/q10 (gruppespill ferdig), q5 (alle
   kamper ferdig), q1/q3/q13 (finalen ferdig), q11 (finaledommer kjent), q12/q14/q17 (turneringsslutt;
-  «kommer lengst» via stage-rangering, likt på toppen → alle).
-- **Live-indikator (visuelt, eksakt fasit manuelt):** q5, q6 (raskeste mål), q9, q10.
+  «kommer lengst» via stage-rangering, likt på toppen → alle), **q18/q19 (alle sekstendelsfinaler
+  ferdige; mest målrik kamp fra resultatene, flest gule fra `stats.matchYellows`)**.
+- **Live-indikator (visuelt, eksakt fasit manuelt):** q5, q6 (raskeste mål), q9, q10, q18, q19.
 - **Format-robust scoring:** q9 (`groupLetters`), q17 (`parseStage`). q13/q3 inkluderer etternavn for treff.
-- **Manuelt:** q2 (Gullball), q4 (Young Player), q15 (kjendis). q6 sin eksakte mm:ss (API har kun minutt).
+- **Manuelt:** q2 (Gullball), q4 (Young Player), q15 (kjendis), q20 (Superior Player of the Match –
+  liste, 2p per riktig). q6 sin eksakte mm:ss (API har kun minutt).
 - Alt flettes UNDER manuell KV: `{ …innbakt, …auto, …KV }` – ethvert manuelt KV-svar overstyrer auto
   (ingen «avgjort»-gate lenger; `decidedOnly`/`decided` er beholdt i `storage.ts` for bakoverkompat +
   tester, men admin setter dem ikke).

@@ -113,6 +113,19 @@ function latestDay(matches: MatchResult[]): string {
   }, '');
 }
 
+// --- R32-kamp-spørsmål (q18 mest målrik, q19 flest gule kort) ---
+const r32Of = (results: MatchResult[]) => results.filter((m) => m.stage === 'ROUND_OF_32');
+const goalsOf = (m: MatchResult) => (m.homeGoals ?? 0) + (m.awayGoals ?? 0);
+/** Kanonisk «Hjemme - Borte»-navn (norske lagnavn). */
+const matchName = (m: MatchResult) => `${normalizeTeamName(m.homeTeam)} - ${normalizeTeamName(m.awayTeam)}`;
+/** Kamp(er) med høyest `val` (likhet på toppen → flere). Tom liste hvis maks ≤ 0. */
+function topMatches(matches: MatchResult[], val: (m: MatchResult) => number): string[] {
+  if (matches.length === 0) return [];
+  const max = Math.max(...matches.map(val));
+  if (max <= 0) return [];
+  return matches.filter((m) => val(m) === max).map(matchName);
+}
+
 /**
  * Auto-utledet krydder-fasit for «slutt-tilstand»-spørsmål – men KUN når de er **avgjort**
  * (fasen ferdig), så vi aldri scorer på en midlertidig leder. Datoen settes til den
@@ -157,6 +170,15 @@ export function deriveDecidedBonus(results: MatchResult[]): BonusStore {
     const worst = worstTeamSoFar(results);
     if (worst) {
       store.q10 = { answer: normalizeTeamName(worst.team), at: groupDay };
+    }
+  }
+
+  // q18: mest målrik R32-kamp – låses når alle sekstendelsfinaler er ferdige (likt → flere gjelder).
+  const r32 = r32Of(results);
+  if (r32.length > 0 && r32.every((m) => m.status === 'FINISHED')) {
+    const top = topMatches(r32, goalsOf);
+    if (top.length) {
+      store.q18 = { answer: top.length === 1 ? top[0] : top, at: `${latestDay(r32)}T12:00:00.000Z` };
     }
   }
 
@@ -221,6 +243,16 @@ export function deriveStatsBonus(stats: StatsData | null, results: MatchResult[]
   if (all3) store.q16 = { answer: 'Ja', at: glimtAllPlayedIso(stats) ?? endIso };
   else if (over) store.q16 = { answer: 'Nei', at: endIso };
 
+  // q19: R32-kamp med flest gule kort – låses når alle sekstendelsfinaler er ferdige.
+  const r32 = r32Of(results);
+  if (r32.length > 0 && r32.every((m) => m.status === 'FINISHED') && stats.matchYellows) {
+    const yel = (m: MatchResult) => stats.matchYellows![m.apiId] ?? 0;
+    const top = topMatches(r32, yel);
+    if (top.length) {
+      store.q19 = { answer: top.length === 1 ? top[0] : top, at: `${latestDay(r32)}T12:00:00.000Z` };
+    }
+  }
+
   return store;
 }
 
@@ -260,7 +292,19 @@ export function derivePreliminaryBonus(
   const nor = furthestStageOf('Norway', results);
   if (nor) out.q17 = STAGE_LABELS[nor.stage];
 
+  // q18: mest målrik R32-kamp så langt.
+  const r32 = r32Of(results);
+  const topGoals = topMatches(r32, goalsOf);
+  if (topGoals.length) out.q18 = `${topGoals.join(', ')} (${Math.max(...r32.map(goalsOf))} mål)`;
+
   if (stats) {
+    // q19: R32-kamp med flest gule kort så langt.
+    if (stats.matchYellows) {
+      const yel = (m: MatchResult) => stats.matchYellows![m.apiId] ?? 0;
+      const topY = topMatches(r32, yel);
+      if (topY.length) out.q19 = `${topY.join(', ')} (${Math.max(...r32.map(yel))} gule)`;
+    }
+
     // q3: toppscorer så langt – alle som deler ledelsen (likt antall mål).
     if (stats.topScorers && stats.topScorers.length > 0) {
       const max = stats.topScorers[0].goals ?? 0;
@@ -322,7 +366,18 @@ export function deriveProvisionalAnswers(
   const nor = furthestStageOf('Norway', results);
   if (nor) out.q17 = STAGE_LABELS[nor.stage];
 
+  // q18: mest målrik R32-kamp så langt (kamp-navn; scoringen matcher lag-par).
+  const topGoals = topMatches(r32Of(results), goalsOf);
+  if (topGoals.length) out.q18 = topGoals;
+
   if (stats) {
+    // q19: R32-kamp med flest gule kort så langt.
+    if (stats.matchYellows) {
+      const yel = (m: MatchResult) => stats.matchYellows![m.apiId] ?? 0;
+      const topY = topMatches(r32Of(results), yel);
+      if (topY.length) out.q19 = topY;
+    }
+
     // q3: toppscorer(e) så langt (alle som deler ledelsen; inkluder etternavn for treff).
     if (stats.topScorers && stats.topScorers.length > 0) {
       const max = stats.topScorers[0].goals ?? 0;

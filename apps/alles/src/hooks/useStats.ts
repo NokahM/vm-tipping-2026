@@ -32,6 +32,7 @@ export interface StatsData {
   goalsByPlayer?: Record<string, number>; // spiller-id → mål (for q13)
   playedIds?: number[]; // spillere m/ spilletid (for q16)
   playedAt?: Record<string, string | boolean>; // spiller-id → tidligste kampdag (noon-ISO) – daterer q16
+  matchYellows?: Record<string, number>; // apiId → antall gule kort (for q19)
   finalReferee?: string | null; // for q11
   fastestGoal?: { minute: number; scorer: string; team: string } | null; // for q6
   fastestGoals?: { minute: number; scorer: string; team: string }[]; // alle mål på laveste minutt (q6)
