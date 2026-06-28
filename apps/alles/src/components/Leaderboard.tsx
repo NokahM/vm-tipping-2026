@@ -152,10 +152,13 @@ function MovementArrow({ delta }: { delta: number | undefined }) {
 }
 
 function BreakdownChip({ item }: { item: ScoringItem }) {
-  const color =
-    item.points === 1
-      ? 'border-amber-600/40 bg-amber-500/15 text-amber-300'
-      : 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
+  // Kamper: 3p (eksakt) grønn, 1p (riktig utfall) gul/«delvis». Krydder: breakdownen lister kun
+  // poenggivende treff, og hvert treff er full pott (per spørsmål, eller per lag for q7/q8) → alltid
+  // grønn. (q13/q16 har maxPoints 1, så «points === 1» betyr full pott der, ikke delvis.)
+  const partial = item.kind === 'match' && item.points === 1;
+  const color = partial
+    ? 'border-amber-600/40 bg-amber-500/15 text-amber-300'
+    : 'border-emerald-600/40 bg-emerald-500/15 text-emerald-300';
 
   if (item.kind === 'match') {
     return (
