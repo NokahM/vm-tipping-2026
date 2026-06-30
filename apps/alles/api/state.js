@@ -2,9 +2,10 @@
 // «Vercel KV»/Upstash injiserer KV_REST_API_URL + KV_REST_API_TOKEN automatisk når
 // storen kobles til prosjektet. Skriving krever admin-passordet (ADMIN_PASSWORD).
 //
-//   GET  /api/state?app=drammen          → { knockoutTips, bonusAnswers }   (offentlig)
+//   GET  /api/state?app=drammen          → { knockoutTips, bonusAnswers,
+//                                            bonusQuestions, bonusTips }      (offentlig)
 //   POST /api/state?app=drammen          → { ok: true }                     (krever passord)
-//        body: { password, knockoutTips?, bonusAnswers? }
+//        body: { password, knockoutTips?, bonusAnswers?, bonusQuestions?, bonusTips? }
 
 const APPS = new Set(['drammen', 'alles']);
 
@@ -40,18 +41,24 @@ export default async function handler(req, res) {
 
   const kKnock = `${app}:knockoutTips`;
   const kBonus = `${app}:bonusAnswers`;
+  const kQuestions = `${app}:bonusQuestions`;
+  const kTips = `${app}:bonusTips`;
 
   if (req.method === 'GET') {
     try {
-      const [knock, bonus] = await Promise.all([
+      const [knock, bonus, questions, tips] = await Promise.all([
         kvCommand(['GET', kKnock]),
         kvCommand(['GET', kBonus]),
+        kvCommand(['GET', kQuestions]),
+        kvCommand(['GET', kTips]),
       ]);
       // Kort edge-cache: nær-sanntid, men skåner KV mot mange samtidige lesere.
       res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=60');
       return res.status(200).json({
         knockoutTips: knock ? JSON.parse(knock) : {},
         bonusAnswers: bonus ? JSON.parse(bonus) : {},
+        bonusQuestions: questions ? JSON.parse(questions) : [],
+        bonusTips: tips ? JSON.parse(tips) : {},
       });
     } catch (e) {
       return res.status(502).json({ error: `Kunne ikke lese fra KV: ${e.message}` });
@@ -85,6 +92,12 @@ export default async function handler(req, res) {
       }
       if (body.bonusAnswers !== undefined) {
         ops.push(kvCommand(['SET', kBonus, JSON.stringify(body.bonusAnswers)]));
+      }
+      if (body.bonusQuestions !== undefined) {
+        ops.push(kvCommand(['SET', kQuestions, JSON.stringify(body.bonusQuestions)]));
+      }
+      if (body.bonusTips !== undefined) {
+        ops.push(kvCommand(['SET', kTips, JSON.stringify(body.bonusTips)]));
       }
       await Promise.all(ops);
       return res.status(200).json({ ok: true });

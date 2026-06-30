@@ -64,13 +64,22 @@ function kvStatePlugin(env: Record<string, string>): Plugin {
         if (!APPS.has(app)) return send(400, { error: 'Ukjent app.' });
         const kKnock = `${app}:knockoutTips`;
         const kBonus = `${app}:bonusAnswers`;
+        const kQuestions = `${app}:bonusQuestions`;
+        const kTips = `${app}:bonusTips`;
 
         try {
           if (req.method === 'GET') {
-            const [k, b] = await Promise.all([kv(['GET', kKnock]), kv(['GET', kBonus])]);
+            const [k, b, q, t] = await Promise.all([
+              kv(['GET', kKnock]),
+              kv(['GET', kBonus]),
+              kv(['GET', kQuestions]),
+              kv(['GET', kTips]),
+            ]);
             return send(200, {
               knockoutTips: k ? JSON.parse(k as string) : {},
               bonusAnswers: b ? JSON.parse(b as string) : {},
+              bonusQuestions: q ? JSON.parse(q as string) : [],
+              bonusTips: t ? JSON.parse(t as string) : {},
             });
           }
           if (req.method === 'POST') {
@@ -88,6 +97,10 @@ function kvStatePlugin(env: Record<string, string>): Plugin {
               ops.push(kv(['SET', kKnock, JSON.stringify(body.knockoutTips)]));
             if (body.bonusAnswers !== undefined)
               ops.push(kv(['SET', kBonus, JSON.stringify(body.bonusAnswers)]));
+            if (body.bonusQuestions !== undefined)
+              ops.push(kv(['SET', kQuestions, JSON.stringify(body.bonusQuestions)]));
+            if (body.bonusTips !== undefined)
+              ops.push(kv(['SET', kTips, JSON.stringify(body.bonusTips)]));
             await Promise.all(ops);
             return send(200, { ok: true });
           }

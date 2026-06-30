@@ -1,5 +1,5 @@
 import { APP_CONFIG } from '../config';
-import type { BonusStore, KnockoutStore } from './storage';
+import type { BonusStore, CustomQuestionStore, CustomTipStore, KnockoutStore } from './storage';
 
 /**
  * Klient mot /api/state (vår serverless-funksjon med Upstash Redis/«Vercel KV» bak).
@@ -15,6 +15,8 @@ const APP = APP_CONFIG.storageSuffix;
 export interface RemoteState {
   knockoutTips?: KnockoutStore;
   bonusAnswers?: BonusStore;
+  bonusQuestions?: CustomQuestionStore; // admin-opprettede krydderspørsmål
+  bonusTips?: CustomTipStore; // deltakernes svar på dem
 }
 
 export interface SaveResult {

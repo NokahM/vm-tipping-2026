@@ -19,7 +19,7 @@ import {
 import { extraTimeResult } from '../apps/drammen/src/utils/labels';
 import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
-import { applyBonusAnswers, decidedOnly, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
+import { applyBonusAnswers, decidedOnly, mergeCustomBonusTips, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
 import { deriveDecidedBonus, deriveProvisionalAnswers, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
@@ -588,6 +588,38 @@ const spellP: Participant[] = [
 ];
 assert('q10 «Curacau» mot fasit «Curaçao» = full pott', scoreBonusQuestion(spellP, { ...q10q, answer: 'Curaçao' }).get('Bent'), q10q.maxPoints);
 assert('q10 «Curacao» mot «Curaçao» = full pott', scoreBonusQuestion(spellP, { ...q10q, answer: 'Curaçao' }).get('Curaco'), q10q.maxPoints);
+
+// 4g) Admin-opprettede krydderspørsmål (q.scoring-modus) + mergeCustomBonusTips
+console.log('\nCustom krydder (scoring-modus):');
+const cParts: Participant[] = [
+  { name: 'A', groupTips: [], bonusTips: [], knockoutTips: [] },
+  { name: 'B', groupTips: [], bonusTips: [], knockoutTips: [] },
+];
+// Flett admin-svar inn i bonusTips (slik App.tsx gjør), så de scores som vanlig krydder.
+const cMerged = mergeCustomBonusTips(cParts, {
+  A: { k1: 'Brasil', k2: '50', k3: 'Norge', k4: ['Norge', 'Brasil'] },
+  B: { k1: 'brasil', k2: '60', k3: 'Sverige', k4: ['Norge', 'Danmark'] },
+});
+assert('mergeCustomBonusTips la til 4 svar for A', cMerged[0].bonusTips.length, 4);
+
+const exactQ: BonusQuestion = { id: 'k1', question: 'Vinner?', maxPoints: 5, answer: 'Brasil', scoring: 'exact', custom: true };
+assert('custom exact: riktig (case-insensitiv) = 5p', scoreBonusQuestion(cMerged, exactQ).get('B'), 5);
+assert('custom exact: feil = 0p', scoreBonusQuestion(cMerged, { ...exactQ, answer: 'Argentina' }).get('A') ?? 0, 0);
+
+const numQ: BonusQuestion = { id: 'k2', question: 'Antall?', maxPoints: 2, answer: '52', scoring: 'number', margin: 5, custom: true };
+assert('custom number: innenfor ±5 = 2p', scoreBonusQuestion(cMerged, numQ).get('A'), 2); // 50 vs 52
+assert('custom number: utenfor ±5 = 0p', scoreBonusQuestion(cMerged, numQ).get('B') ?? 0, 0); // 60 vs 52
+
+const listQ: BonusQuestion = { id: 'k3', question: 'Land?', maxPoints: 3, answer: ['Norge', 'Island'], scoring: 'list', custom: true };
+assert('custom list: svar i lista = full pott', scoreBonusQuestion(cMerged, listQ).get('A'), 3);
+assert('custom list: svar ikke i lista = 0p', scoreBonusQuestion(cMerged, listQ).get('B') ?? 0, 0);
+
+const perItemQ: BonusQuestion = { id: 'k4', question: 'To land?', maxPoints: 4, answer: ['Norge', 'Brasil'], scoring: 'perItem', perItemPoints: 2, custom: true };
+assert('custom perItem: begge riktige = 4p', scoreBonusQuestion(cMerged, perItemQ).get('A'), 4);
+assert('custom perItem: ett riktig = 2p', scoreBonusQuestion(cMerged, perItemQ).get('B'), 2);
+assert('custom perItem: cap på maxPoints', scoreBonusQuestion(cMerged, { ...perItemQ, perItemPoints: 3 }).get('A'), 4);
+// Tom fasit → 0 for alle (ikke avgjort ennå).
+assert('custom uten fasit = 0p', scoreBonusQuestion(cMerged, { ...exactQ, answer: null }).get('A'), 0);
 
 // 5) Full stilling – sanity
 console.log('\nStilling (kun gruppespill, 4 kjente resultater):');

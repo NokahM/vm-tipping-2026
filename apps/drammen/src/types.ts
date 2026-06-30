@@ -60,11 +60,27 @@ export interface BonusTip {
   answer: string | string[]; // string[] for spørsmål med to svar (rødt kort etc.)
 }
 
+/**
+ * Poeng-modus for ADMIN-opprettede krydderspørsmål (q.scoring). De innbakte q1–q20 bruker
+ * id-basert spesiallogikk i scoring.ts og setter ikke dette feltet.
+ * - `exact`   = eksakt tekstmatch → full pott / 0
+ * - `list`    = fasit er flere gyldige svar; deltakerens ene svar i lista → full pott
+ * - `perItem` = deltakeren nevner flere; `perItemPoints` per korrekt, opp til `maxPoints`
+ * - `number`  = tall innenfor ±`margin` av fasit → full pott
+ */
+export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number';
+
 export interface BonusQuestion {
   id: string;
   question: string;
   maxPoints: number;
   answer: string | string[] | null; // null = ikke avgjort ennå
+  // Kun satt på admin-opprettede spørsmål (id «k…»):
+  scoring?: BonusScoring; // poeng-modus (mangler = innbakt q1–q20 med id-basert logikk)
+  perItemPoints?: number; // poeng per korrekt element når scoring = 'perItem'
+  margin?: number; // ± margin for full pott når scoring = 'number'
+  stage?: Stage; // valgfri runde-merkelapp (visning/gruppering)
+  custom?: boolean; // true = opprettet via admin (ikke innbakt)
 }
 
 export interface ParticipantScore {

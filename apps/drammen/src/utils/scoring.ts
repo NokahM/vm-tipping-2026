@@ -214,6 +214,51 @@ export function scoreBonusQuestion(
   const add = (name: string, p: number) => points.set(name, (points.get(name) ?? 0) + p);
   const tipFor = (p: Participant) => p.bonusTips.find((t) => t.questionId === q.id);
 
+  // Admin-opprettede spørsmål: poengsettes etter valgt modus (q.scoring), ikke id.
+  if (q.scoring) {
+    if (q.scoring === 'number') {
+      const fasit = firstNumber(String(q.answer));
+      if (Number.isNaN(fasit)) return points;
+      const margin = q.margin ?? GOAL_MARGIN;
+      for (const p of participants) {
+        const tip = tipFor(p);
+        if (!tip) continue;
+        const guess = firstNumber(bonusAnswerOf(tip)[0] ?? '');
+        if (!Number.isNaN(guess) && Math.abs(guess - fasit) <= margin) add(p.name, q.maxPoints);
+      }
+      return points;
+    }
+    if (q.scoring === 'list' || q.scoring === 'perItem') {
+      const actual = new Set(
+        (Array.isArray(q.answer) ? q.answer : [String(q.answer)]).map(norm),
+      );
+      if (q.scoring === 'perItem') {
+        const per = q.perItemPoints ?? q.maxPoints / 2;
+        for (const p of participants) {
+          const tip = tipFor(p);
+          if (!tip) continue;
+          const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
+          if (hits > 0) add(p.name, Math.min(hits * per, q.maxPoints));
+        }
+      } else {
+        for (const p of participants) {
+          const tip = tipFor(p);
+          if (!tip) continue;
+          if (bonusAnswerOf(tip).some((a) => actual.has(norm(a)))) add(p.name, q.maxPoints);
+        }
+      }
+      return points;
+    }
+    // exact
+    const fasit = norm(String(q.answer));
+    for (const p of participants) {
+      const tip = tipFor(p);
+      if (!tip) continue;
+      if (norm(bonusAnswerOf(tip)[0] ?? '') === fasit) add(p.name, q.maxPoints);
+    }
+    return points;
+  }
+
   if (q.id === 'q5') {
     // Antall mål totalt: full pott til alle innenfor ±GOAL_MARGIN mål av fasit.
     const fasit = firstNumber(String(q.answer));

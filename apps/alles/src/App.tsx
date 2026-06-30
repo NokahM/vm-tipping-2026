@@ -13,11 +13,18 @@ import {
   bonusDateOf,
   bonusItemDatesOf,
   loadBonusStore,
+  loadCustomQuestions,
+  loadCustomTips,
   loadKnockoutStore,
+  mergeCustomBonusTips,
   mergeKnockoutTips,
   saveBonusStore,
+  saveCustomQuestions,
+  saveCustomTips,
   saveKnockoutStore,
   type BonusStore,
+  type CustomQuestionStore,
+  type CustomTipStore,
   type KnockoutStore,
 } from './utils/storage';
 import { fetchRemoteState, saveRemoteState } from './utils/remoteStore';
@@ -86,6 +93,9 @@ export default function App() {
   // Initialiseres fra localStorage-cache (rask visning), oppdateres så fra KV (delt sannhet).
   const [knockoutStore, setKnockoutStore] = useState<KnockoutStore>(loadKnockoutStore);
   const [bonusStore, setBonusStore] = useState<BonusStore>(loadBonusStore);
+  // Admin-opprettede krydderspørsmål + deltakernes svar på dem (sluttspill-runder).
+  const [customQuestions, setCustomQuestions] = useState<CustomQuestionStore>(loadCustomQuestions);
+  const [customTips, setCustomTips] = useState<CustomTipStore>(loadCustomTips);
 
   // Hent delt admin-data fra KV ved oppstart, jevnlig (live), og når fanen blir synlig
   // igjen. Cache i localStorage så reload viser siste kjente fasit umiddelbart. Slik
@@ -102,6 +112,14 @@ export default function App() {
       if (remote.bonusAnswers) {
         setBonusStore(remote.bonusAnswers);
         saveBonusStore(remote.bonusAnswers);
+      }
+      if (remote.bonusQuestions) {
+        setCustomQuestions(remote.bonusQuestions);
+        saveCustomQuestions(remote.bonusQuestions);
+      }
+      if (remote.bonusTips) {
+        setCustomTips(remote.bonusTips);
+        saveCustomTips(remote.bonusTips);
       }
     };
     void sync();
@@ -170,13 +188,18 @@ export default function App() {
     [autoBonusStore, autoDecided, autoStats, bonusStore],
   );
 
+  // Full spørsmåls-katalog = innbakte q1–q20 + admin-opprettede (id «k…»).
+  const allQuestions = useMemo(
+    () => [...BONUS_QUESTIONS, ...customQuestions],
+    [customQuestions],
+  );
   const participants = useMemo(
-    () => mergeKnockoutTips(PARTICIPANTS, knockoutMerged),
-    [knockoutMerged],
+    () => mergeCustomBonusTips(mergeKnockoutTips(PARTICIPANTS, knockoutMerged), customTips),
+    [knockoutMerged, customTips],
   );
   const questions = useMemo(
-    () => applyBonusAnswers(BONUS_QUESTIONS, bonusMerged),
-    [bonusMerged],
+    () => applyBonusAnswers(allQuestions, bonusMerged),
+    [allQuestions, bonusMerged],
   );
 
   const standings = useMemo(
@@ -226,9 +249,11 @@ export default function App() {
       <AdminPanel
         results={results}
         participants={PARTICIPANTS}
-        questions={BONUS_QUESTIONS}
+        questions={allQuestions}
         knockoutStore={knockoutMerged}
         bonusStore={bonusManual}
+        customQuestions={customQuestions}
+        customTips={customTips}
         autoBonus={autoBonus}
         autoPreliminary={autoPreliminary}
         previewWinners={winners}
@@ -243,6 +268,16 @@ export default function App() {
           setBonusStore(s);
           saveBonusStore(s);
           return saveRemoteState(password, { bonusAnswers: s });
+        }}
+        onSaveCustom={(questionsStore, tipsStore, password) => {
+          setCustomQuestions(questionsStore);
+          saveCustomQuestions(questionsStore);
+          setCustomTips(tipsStore);
+          saveCustomTips(tipsStore);
+          return saveRemoteState(password, {
+            bonusQuestions: questionsStore,
+            bonusTips: tipsStore,
+          });
         }}
         onRefresh={() => void refresh()}
         onClearCache={() => {

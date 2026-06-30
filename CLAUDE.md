@@ -248,8 +248,8 @@ sekstendelsfinalene, lagt til i datalaget senere).
 
 ## Admin-panel (`src/components/AdminPanel.tsx`)
 
-Åpnes via `?admin=true` (eller det subtile tannhjul-ikonet i headeren). Tre faner: **Sluttspill**,
-**Krydder**, **Oppdater**.
+Åpnes via `?admin=true` (eller det subtile tannhjul-ikonet i headeren). Fire faner: **Sluttspill**,
+**Krydder**, **Nye spørsmål**, **Oppdater**.
 
 - **Passord-gate:** admin-porten har **ingen innebygd passord-verdi**. Når admin skriver passordet,
   verifiserer klienten det mot **serveren** (`verifyPassword` → tom `POST /api/state`, som returnerer
@@ -270,6 +270,16 @@ sekstendelsfinalene, lagt til i datalaget senere).
   **read-only auto-hint** «Auto nå: X» (eller «Auto nå: X – ikke avgjort ennå» for foreløpige verdier
   fra `derivePreliminaryBonus`), og **«↺ Nullstill til auto»** tømmer et manuelt svar så auto overtar
   igjen. Liste-svar (q7/q8/q15) tas som komma-separert liste.
+- **Nye spørsmål-fanen:** opprett **admin-egne krydderspørsmål** for sluttspill-rundene (id `k1`,
+  `k2`… så de aldri kolliderer med q1–q20) og legg inn **hver deltakers svar** i et rutenett (som
+  Sluttspill-fanen). Et spørsmål har tekst, maks-poeng, valgfri runde-merkelapp og en **poeng-type**
+  (`scoring`): `exact` (eksakt tekst), `list` (full pott om svaret er i fasit-lista), `perItem`
+  (`perItemPoints` per korrekt element opp til maks, deltaker nevner flere), `number` (±`margin`).
+  Lagrer to nye KV-nøkler (`bonusQuestions` + `bonusTips`). Selve **fasiten** settes på Krydder-fanen
+  (de nye spørsmålene dukker opp der + i den offentlige Krydder-lista automatisk, da `BonusQuestions`
+  er generisk). I App flettes `questions = [...innbakte, ...custom]` og custom-svar inn i hver
+  `participant.bonusTips` (`mergeCustomBonusTips`); `scoreBonusQuestion` ruter på `q.scoring` for
+  custom-spørsmål i stedet for den id-baserte logikken til q1–q20.
 - **Oppdater-fanen:** tøm resultat- + kamp-event-cache og hent på nytt, med **synlig bekreftelse**
   (Oppdatert ✓ / feilmelding via `error` fra `useMatches`). Begrenset nytte – edge-cache + kildelag
   styrer ferskheten uansett.
@@ -281,7 +291,8 @@ sekstendelsfinalene, lagt til i datalaget senere).
 Admin-ansvaret kan delegeres til en person uten git-tilgang – derfor en delt database i stedet for
 «rediger kode + redeploy».
 - **Én delt Upstash Redis-store**, nøkler namespacet per app: `<suffix>:knockoutTips`,
-  `<suffix>:bonusAnswers`.
+  `<suffix>:bonusAnswers`, `<suffix>:bonusQuestions` (admin-opprettede krydderspørsmål) og
+  `<suffix>:bonusTips` (deltakernes svar på dem).
 - **`api/state.js`** (serverless, begge apper): `GET ?app=<suffix>` leser (offentlig, kort edge-cache);
   `POST ?app=<suffix>` skriver (krever `ADMIN_PASSWORD`). Bruker Upstash REST API via `fetch` – ingen
   npm-avhengighet. Leser `KV_REST_API_URL/TOKEN` (eller `UPSTASH_REDIS_REST_URL/TOKEN`).

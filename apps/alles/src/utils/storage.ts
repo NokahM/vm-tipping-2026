@@ -1,8 +1,14 @@
-import type { BonusQuestion, KnockoutTip, Participant } from '../types';
+import type { BonusQuestion, BonusTip, KnockoutTip, Participant } from '../types';
 import { STORAGE_KEYS } from '../config';
 
 /** Sluttspill-tips lagt inn via admin: deltakernavn → tips (nøklet på apiId). */
 export type KnockoutStore = Record<string, KnockoutTip[]>;
+
+/** Admin-opprettede krydderspørsmål (id «k…»), lagret delt i KV. */
+export type CustomQuestionStore = BonusQuestion[];
+
+/** Deltakernes svar på de admin-opprettede spørsmålene: navn → (questionId → svar). */
+export type CustomTipStore = Record<string, Record<string, string | string[]>>;
 
 /**
  * En krydder-fasit. Enten en ren verdi, eller et objekt med dato(er) brukt av
@@ -83,6 +89,51 @@ export function mergeKnockoutTips(participants: Participant[], store: KnockoutSt
   return participants.map((p) =>
     store[p.name]?.length ? { ...p, knockoutTips: store[p.name] } : p,
   );
+}
+
+export function loadCustomQuestions(): CustomQuestionStore {
+  return read<CustomQuestionStore>(STORAGE_KEYS.bonusQuestions, []);
+}
+
+export function saveCustomQuestions(store: CustomQuestionStore): void {
+  write(STORAGE_KEYS.bonusQuestions, store);
+}
+
+export function loadCustomTips(): CustomTipStore {
+  return read<CustomTipStore>(STORAGE_KEYS.bonusTips, {});
+}
+
+export function saveCustomTips(store: CustomTipStore): void {
+  write(STORAGE_KEYS.bonusTips, store);
+}
+
+/** Tomt svar? (tom streng eller tom liste teller ikke som et tip.) */
+function isBlankAnswer(a: string | string[] | undefined): boolean {
+  if (a === undefined) return true;
+  return Array.isArray(a) ? a.length === 0 : a.trim() === '';
+}
+
+/**
+ * Fletter admin-opprettede krydder-svar inn i deltakernes `bonusTips`, så de scores som
+ * vanlige krydder. Custom-svar (id «k…») legges til/erstatter; innbakte q-svar beholdes.
+ */
+export function mergeCustomBonusTips(
+  participants: Participant[],
+  store: CustomTipStore,
+): Participant[] {
+  return participants.map((p) => {
+    const mine = store[p.name];
+    if (!mine) return p;
+    const extra: BonusTip[] = Object.entries(mine)
+      .filter(([, a]) => !isBlankAnswer(a))
+      .map(([questionId, answer]) => ({ questionId, answer }));
+    if (!extra.length) return p;
+    const customIds = new Set(extra.map((e) => e.questionId));
+    return {
+      ...p,
+      bonusTips: [...p.bonusTips.filter((b) => !customIds.has(b.questionId)), ...extra],
+    };
+  });
 }
 
 /** Overstyrer fasit på krydderspørsmål med admin-lagrede svar. */

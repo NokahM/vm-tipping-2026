@@ -13,5 +13,8 @@ export const STORAGE_KEYS = {
   results: 'wc2026_results',
   knockoutTips: `knockout_tips_${APP_CONFIG.storageSuffix}`,
   bonusAnswers: `bonus_answers_${APP_CONFIG.storageSuffix}`,
+  // Admin-opprettede krydderspørsmål + deltakernes svar på dem (sluttspill-runder).
+  bonusQuestions: `bonus_questions_${APP_CONFIG.storageSuffix}`,
+  bonusTips: `bonus_tips_${APP_CONFIG.storageSuffix}`,
   victorySeen: `victory_seen_${APP_CONFIG.storageSuffix}`,
 } as const;

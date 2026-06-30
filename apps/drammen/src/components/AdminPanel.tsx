@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { BonusQuestion, KnockoutTip, MatchResult, Participant, Stage } from '../types';
+import type {
+  BonusQuestion,
+  BonusScoring,
+  KnockoutTip,
+  MatchResult,
+  Participant,
+  Stage,
+} from '../types';
 import { APP_CONFIG } from '../config';
 import { STAGE_LABELS, STAGE_ORDER, formatKickoff } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
@@ -8,6 +15,8 @@ import {
   bonusDateOf,
   bonusItemDatesOf,
   type BonusStore,
+  type CustomQuestionStore,
+  type CustomTipStore,
   type KnockoutStore,
 } from '../utils/storage';
 import { verifyPassword, type SaveResult } from '../utils/remoteStore';
@@ -19,6 +28,8 @@ interface Props {
   questions: BonusQuestion[];
   knockoutStore: KnockoutStore;
   bonusStore: BonusStore;
+  customQuestions: CustomQuestionStore;
+  customTips: CustomTipStore;
   autoBonus: BonusStore;
   autoPreliminary: Record<string, string>;
   previewWinners: string[];
@@ -26,6 +37,11 @@ interface Props {
   error: string | null;
   onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
   onSaveBonus: (store: BonusStore, password: string) => Promise<SaveResult>;
+  onSaveCustom: (
+    questions: CustomQuestionStore,
+    tips: CustomTipStore,
+    password: string,
+  ) => Promise<SaveResult>;
   onRefresh: () => void;
   onClearCache: () => void;
   onClose: () => void;
@@ -62,8 +78,25 @@ function autoText(v: BonusStore[string] | undefined): string {
   return Array.isArray(ans) ? ans.join(', ') : ans;
 }
 
-type Tab = 'sluttspill' | 'krydder' | 'oppdater';
+type Tab = 'sluttspill' | 'krydder' | 'nye' | 'oppdater';
 type SaveState = 'idle' | 'saving' | 'ok' | 'error';
+
+/** Et krydderspørsmål med liste-fasit (komma-separert): innbakte q7/q8/q15/q20 + custom list/perItem. */
+function isListQuestion(q: BonusQuestion): boolean {
+  return LIST_ANSWER_IDS.has(q.id) || q.scoring === 'list' || q.scoring === 'perItem';
+}
+
+/** Et krydderspørsmål med poeng-per-element (deltakeren nevner flere): q7/q8 + custom perItem. */
+function isPerItemQuestion(q: BonusQuestion): boolean {
+  return PER_TEAM_IDS.has(q.id) || q.scoring === 'perItem';
+}
+
+const SCORING_LABELS: Record<BonusScoring, string> = {
+  exact: 'Eksakt tekst (full pott / 0)',
+  list: 'Liste – full pott om svaret er i fasit',
+  perItem: 'Liste – poeng per korrekt element',
+  number: 'Tall ± margin',
+};
 
 async function copyJson(value: unknown): Promise<boolean> {
   try {
@@ -168,6 +201,8 @@ function AdminContent({
   questions,
   knockoutStore,
   bonusStore,
+  customQuestions,
+  customTips,
   autoBonus,
   autoPreliminary,
   previewWinners,
@@ -176,6 +211,7 @@ function AdminContent({
   password,
   onSaveKnockout,
   onSaveBonus,
+  onSaveCustom,
   onRefresh,
   onClearCache,
   onClose,
@@ -213,6 +249,9 @@ function AdminContent({
           <TabBtn active={tab === 'krydder'} onClick={() => setTab('krydder')}>
             Krydder
           </TabBtn>
+          <TabBtn active={tab === 'nye'} onClick={() => setTab('nye')}>
+            Nye spørsmål
+          </TabBtn>
           <TabBtn active={tab === 'oppdater'} onClick={() => setTab('oppdater')}>
             Oppdater
           </TabBtn>
@@ -237,6 +276,15 @@ function AdminContent({
             autoPreliminary={autoPreliminary}
             password={password}
             onSave={onSaveBonus}
+          />
+        )}
+        {tab === 'nye' && (
+          <CustomBonusTab
+            participants={participants}
+            customQuestions={customQuestions}
+            customTips={customTips}
+            password={password}
+            onSave={onSaveCustom}
           />
         )}
         {tab === 'oppdater' && (
@@ -529,7 +577,7 @@ function BonusTab({
     for (const q of questions) {
       const raw = (draft[q.id] ?? '').trim();
       if (!raw) continue;
-      if (LIST_ANSWER_IDS.has(q.id)) {
+      if (isListQuestion(q)) {
         const arr = raw
           .split(',')
           .map((s) => s.trim())
@@ -577,7 +625,7 @@ function BonusTab({
         vil overstyre.
       </p>
       {questions.map((q) => {
-        const isList = LIST_ANSWER_IDS.has(q.id);
+        const isList = isListQuestion(q);
         const teams = isList
           ? (draft[q.id] ?? '')
               .split(',')
@@ -610,17 +658,17 @@ function BonusTab({
             placeholder={
               AUTO_IDS.has(q.id)
                 ? 'La stå tomt (skriv for å overstyre)'
-                : !LIST_ANSWER_IDS.has(q.id)
+                : !isList
                   ? 'Fasit (tom = ikke avgjort)'
-                  : PER_TEAM_IDS.has(q.id)
-                    ? 'Alle lag, komma-separert (Norge, Brasil, …)'
-                    : 'Alle, komma-separert (Pave Frans, Charter-Svein, …)'
+                  : isPerItemQuestion(q)
+                    ? 'Alle gyldige, komma-separert (Norge, Brasil, …)'
+                    : 'Alle som gjelder, komma-separert'
             }
           />
-          {LIST_ANSWER_IDS.has(q.id) && (
+          {isList && (
             <p className="mt-1 text-[11px] text-slate-500">
-              {PER_TEAM_IDS.has(q.id)
-                ? `Legg inn alle lagene som gjorde det – deltakerne får ${q.maxPoints / 2}p per korrekt nevnt lag (maks ${q.maxPoints}p hver).`
+              {isPerItemQuestion(q)
+                ? `Legg inn alle gyldige – deltakerne får ${q.perItemPoints ?? q.maxPoints / 2}p per korrekt (maks ${q.maxPoints}p hver).`
                 : `Legg inn alle som gjelder – deltakeren får full pott (${q.maxPoints}p) hvis sitt svar er i lista.`}
             </p>
           )}
@@ -723,7 +771,288 @@ function BonusTab({
   );
 }
 
-// --- Tab 3: oppdater -------------------------------------------------------
+// --- Tab 3: nye (admin-opprettede) krydderspørsmål -------------------------
+
+const SCORING_OPTIONS: BonusScoring[] = ['exact', 'list', 'perItem', 'number'];
+
+/** Laveste ledige «k»-id (k1, k2 …), så custom-spørsmål aldri kolliderer med q1–q20. */
+function newQuestionId(existing: BonusQuestion[]): string {
+  const used = new Set(existing.map((q) => q.id));
+  let n = 1;
+  while (used.has(`k${n}`)) n += 1;
+  return `k${n}`;
+}
+
+function CustomBonusTab({
+  participants,
+  customQuestions,
+  customTips,
+  password,
+  onSave,
+}: {
+  participants: Participant[];
+  customQuestions: CustomQuestionStore;
+  customTips: CustomTipStore;
+  password: string;
+  onSave: (
+    questions: CustomQuestionStore,
+    tips: CustomTipStore,
+    password: string,
+  ) => Promise<SaveResult>;
+}) {
+  const [questions, setQuestions] = useState<BonusQuestion[]>(() =>
+    customQuestions.map((q) => ({ ...q })),
+  );
+  // navn → (qid → tekst). Liste-svar (perItem) lagres komma-separert i feltet.
+  const [tips, setTips] = useState<Record<string, Record<string, string>>>(() => {
+    const d: Record<string, Record<string, string>> = {};
+    for (const [name, byQ] of Object.entries(customTips)) {
+      d[name] = {};
+      for (const [qid, ans] of Object.entries(byQ)) {
+        d[name][qid] = Array.isArray(ans) ? ans.join(', ') : ans;
+      }
+    }
+    return d;
+  });
+  const [status, setStatus] = useState<SaveState>('idle');
+  const [errMsg, setErrMsg] = useState('');
+
+  // Skjema for nytt spørsmål.
+  const [text, setText] = useState('');
+  const [points, setPoints] = useState('2');
+  const [scoring, setScoring] = useState<BonusScoring>('exact');
+  const [perItem, setPerItem] = useState('2');
+  const [margin, setMargin] = useState('5');
+  const [stage, setStage] = useState<Stage | ''>('');
+
+  function addQuestion() {
+    const q = text.trim();
+    const max = Number(points);
+    if (!q || !Number.isFinite(max) || max <= 0) return;
+    const nq: BonusQuestion = {
+      id: newQuestionId(questions),
+      question: q,
+      maxPoints: max,
+      answer: null,
+      scoring,
+      custom: true,
+    };
+    if (scoring === 'perItem') nq.perItemPoints = Number(perItem) || max / 2;
+    if (scoring === 'number') nq.margin = Number(margin) || 0;
+    if (stage) nq.stage = stage;
+    setQuestions((qs) => [...qs, nq]);
+    setText('');
+    setStatus('idle');
+  }
+
+  function removeQuestion(id: string) {
+    setQuestions((qs) => qs.filter((q) => q.id !== id));
+    setTips((t) => {
+      const n: Record<string, Record<string, string>> = {};
+      for (const [name, byQ] of Object.entries(t)) {
+        const rest = { ...byQ };
+        delete rest[id];
+        n[name] = rest;
+      }
+      return n;
+    });
+    setStatus('idle');
+  }
+
+  function setTip(name: string, qid: string, v: string) {
+    setTips((t) => ({ ...t, [name]: { ...(t[name] ?? {}), [qid]: v } }));
+    setStatus('idle');
+  }
+
+  function buildStores(): { questions: CustomQuestionStore; tips: CustomTipStore } {
+    const outTips: CustomTipStore = {};
+    for (const p of participants) {
+      const byQ = tips[p.name];
+      if (!byQ) continue;
+      const entry: Record<string, string | string[]> = {};
+      for (const q of questions) {
+        const raw = (byQ[q.id] ?? '').trim();
+        if (!raw) continue;
+        if (q.scoring === 'perItem') {
+          const arr = raw
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+          if (arr.length) entry[q.id] = arr;
+        } else {
+          entry[q.id] = raw;
+        }
+      }
+      if (Object.keys(entry).length) outTips[p.name] = entry;
+    }
+    return { questions, tips: outTips };
+  }
+
+  async function save() {
+    setStatus('saving');
+    const { questions: qs, tips: ts } = buildStores();
+    const r = await onSave(qs, ts, password);
+    if (r.ok) {
+      setStatus('ok');
+    } else {
+      setStatus('error');
+      setErrMsg(r.error ?? 'Ukjent feil.');
+    }
+  }
+
+  const answeredCount = (qid: string) =>
+    participants.filter((p) => (tips[p.name]?.[qid] ?? '').trim() !== '').length;
+
+  return (
+    <div className="space-y-4">
+      <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
+        Opprett <span className="text-slate-300">nye krydderspørsmål</span> for sluttspill-rundene og
+        legg inn hver deltakers svar. Selve <span className="text-slate-300">fasiten</span> setter du
+        på <span className="text-slate-300">Krydder</span>-fanen (de nye spørsmålene dukker opp der
+        også). Husk <span className="text-slate-300">«Lagre &amp; publiser»</span> nederst → synlig
+        for alle.
+      </p>
+
+      {/* Skjema: opprett nytt spørsmål */}
+      <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-800 p-3">
+        <p className="text-sm font-semibold text-slate-200">Nytt spørsmål</p>
+        <TextInput value={text} onChange={setText} placeholder="Spørsmålstekst" />
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="block">
+            <span className="mb-1 block text-[11px] text-slate-400">Maks poeng</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={points}
+              onChange={(e) => setPoints(e.target.value.replace(/\D/g, '').slice(0, 2))}
+              className="h-10 w-20 rounded-lg border border-slate-700 bg-slate-900 px-2 text-center text-sm text-slate-100"
+            />
+          </label>
+          <label className="block min-w-[12rem] flex-1">
+            <span className="mb-1 block text-[11px] text-slate-400">Poeng-type</span>
+            <select
+              value={scoring}
+              onChange={(e) => setScoring(e.target.value as BonusScoring)}
+              className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+            >
+              {SCORING_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {SCORING_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {scoring === 'perItem' && (
+            <label className="block">
+              <span className="mb-1 block text-[11px] text-slate-400">Poeng pr. korrekt</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={perItem}
+                onChange={(e) => setPerItem(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                className="h-10 w-24 rounded-lg border border-slate-700 bg-slate-900 px-2 text-center text-sm text-slate-100"
+              />
+            </label>
+          )}
+          {scoring === 'number' && (
+            <label className="block">
+              <span className="mb-1 block text-[11px] text-slate-400">± margin</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={margin}
+                onChange={(e) => setMargin(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                className="h-10 w-20 rounded-lg border border-slate-700 bg-slate-900 px-2 text-center text-sm text-slate-100"
+              />
+            </label>
+          )}
+          <label className="block min-w-[10rem]">
+            <span className="mb-1 block text-[11px] text-slate-400">Runde (valgfritt)</span>
+            <select
+              value={stage}
+              onChange={(e) => setStage(e.target.value as Stage | '')}
+              className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+            >
+              <option value="">– ingen –</option>
+              {KNOCKOUT_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {STAGE_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={addQuestion}
+          disabled={!text.trim()}
+          className="min-h-[40px] rounded-lg border border-slate-600 px-4 text-sm font-semibold text-slate-100 disabled:opacity-50"
+        >
+          + Legg til spørsmål
+        </button>
+      </div>
+
+      {questions.length === 0 ? (
+        <p className="rounded-lg border border-slate-700 bg-slate-800 p-4 text-sm text-slate-400">
+          Ingen egne spørsmål ennå. Opprett ett over – så fyller du inn svar per deltaker her.
+        </p>
+      ) : (
+        questions.map((q) => (
+          <details key={q.id} className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+            <summary className="cursor-pointer list-none px-3 py-2.5">
+              <span className="text-sm font-medium">{q.question}</span>
+              <span className="ml-2 text-[11px] text-slate-500">
+                {q.maxPoints}p · {SCORING_LABELS[q.scoring ?? 'exact'].split(' ')[0]}
+                {q.stage ? ` · ${STAGE_LABELS[q.stage]}` : ''} · {answeredCount(q.id)}/
+                {participants.length} svart
+              </span>
+            </summary>
+            <div className="border-t border-slate-700 px-3 py-2">
+              {(q.scoring === 'perItem' || q.scoring === 'list') && (
+                <p className="mb-2 text-[11px] text-slate-500">
+                  {q.scoring === 'perItem'
+                    ? 'Deltakeren kan nevne flere – skriv komma-separert.'
+                    : 'Deltakerens ene svar – fasit er lista med gyldige svar (settes på Krydder).'}
+                </p>
+              )}
+              <ul className="divide-y divide-slate-700/70">
+                {participants.map((p) => (
+                  <li key={p.name} className="flex items-center gap-2 py-2">
+                    <span className="min-w-0 flex-[0_0_8rem] truncate text-sm">{p.name}</span>
+                    <input
+                      type="text"
+                      value={tips[p.name]?.[q.id] ?? ''}
+                      onChange={(e) => setTip(p.name, q.id, e.target.value)}
+                      placeholder={q.scoring === 'number' ? 'tall' : 'svar'}
+                      className="h-9 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100 placeholder:text-slate-600"
+                    />
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => removeQuestion(q.id)}
+                className="mt-2 text-[11px] text-red-400/80 hover:text-red-300"
+              >
+                🗑 Slett spørsmål
+              </button>
+            </div>
+          </details>
+        ))
+      )}
+
+      <PublishBar
+        label="Lagre & publiser"
+        status={status}
+        errMsg={errMsg}
+        onSave={() => void save()}
+        onExport={() => copyJson(buildStores())}
+      />
+    </div>
+  );
+}
+
+// --- Tab 4: oppdater -------------------------------------------------------
 
 function RefreshTab({
   loading,
