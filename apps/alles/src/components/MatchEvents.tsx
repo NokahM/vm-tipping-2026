@@ -94,6 +94,35 @@ function Mark({ scored }: { scored: boolean }) {
   );
 }
 
+/**
+ * Renser konk-sparkene fra `penalties`-arrayen:
+ *  1) fjerner straffer tatt i ÅPENT SPILL (de scorede ligger i `goals` som PENALTY og vises i
+ *     tidslinjen) – matchet på skytternavn, én per PENALTY-mål, siden de ligger først i arrayen.
+ *  2) slår sammen påfølgende identiske spark (samme skytter+lag) – kildefeeden kan liste samme
+ *     skytter to ganger på rad, noe som er umulig i en ekte straffekonk.
+ * Den offisielle stillingen (score.penalties) brukes uansett til overskrift/«str. x–y».
+ */
+function cleanShootout(penalties: MatchPenalty[], inPlayPenScorers: string[]): MatchPenalty[] {
+  const remove = new Map<string, number>();
+  for (const n of inPlayPenScorers) remove.set(n, (remove.get(n) ?? 0) + 1);
+  const filtered: MatchPenalty[] = [];
+  for (const p of penalties) {
+    const n = remove.get(p.player) ?? 0;
+    if (p.scored && n > 0) {
+      remove.set(p.player, n - 1); // dette er straffen fra åpent spill – hopp over i konken
+      continue;
+    }
+    filtered.push(p);
+  }
+  const out: MatchPenalty[] = [];
+  for (const p of filtered) {
+    const prev = out[out.length - 1];
+    if (prev && prev.player === p.player && prev.team === p.team) continue; // dropp påfølgende dublett
+    out.push(p);
+  }
+  return out;
+}
+
 /** Straffesparkkonkurranse i to kolonner: hjemmelaget venstre, bortelaget høyre, ✓ scoret / ✗ bom. */
 function Shootout({ pens, home, away }: { pens: MatchPenalty[]; home: string; away: string }) {
   const homeKicks = pens.filter((p) => p.team === home);
@@ -150,6 +179,9 @@ export default function MatchEvents({ match }: Props) {
   // åpent spill (scorede ligger også i `goals` → tas derfra; her trenger vi kun bommene).
   const isShootout = match.duration === 'PENALTY_SHOOTOUT';
   const inPlayMisses = isShootout ? [] : penalties.filter((p) => !p.scored);
+  // Konk-sparkene, renset for straffer i åpent spill + kilde-dubletter.
+  const inPlayPenScorers = goals.filter((g) => g.type === 'PENALTY').map((g) => g.scorer);
+  const shootoutKicks = isShootout ? cleanShootout(penalties, inPlayPenScorers) : [];
   if (goals.length === 0 && redCards.length === 0 && penalties.length === 0) return null;
 
   const home = normalizeTeamName(match.homeTeam);
@@ -224,8 +256,8 @@ export default function MatchEvents({ match }: Props) {
             settes kun foran en fase som faktisk har innhold, så vi aldri får doble striper. */}
         {extraRows.length > 0 && regularRows.length > 0 && <PhaseDivider />}
         {renderRows(extraRows)}
-        {isShootout && penalties.length > 0 && (regularRows.length > 0 || extraRows.length > 0) && <PhaseDivider />}
-        {isShootout && penalties.length > 0 && <Shootout pens={penalties} home={home} away={away} />}
+        {shootoutKicks.length > 0 && (regularRows.length > 0 || extraRows.length > 0) && <PhaseDivider />}
+        {shootoutKicks.length > 0 && <Shootout pens={shootoutKicks} home={home} away={away} />}
       </div>
     </div>
   );
