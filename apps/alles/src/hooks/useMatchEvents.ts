@@ -10,7 +10,8 @@ interface Entry {
 // Modul-cache (rask, per fane-økt) + localStorage (overlever sideoppdatering). Ferdige kamper
 // hentes dermed kun ÉN gang – deretter serveres de fra lager, ikke nytt API-kall ved hvert klikk.
 const memCache = new Map<number, Entry>();
-const LS_PREFIX = 'wc_match_events_';
+// v2: hendelsene inkluderer nå straffesparkkonkurranse → bumpet så ferdige kamper hentes på nytt.
+const LS_PREFIX = 'wc_match_events_v2_';
 
 function loadLS(id: number): Entry | null {
   try {

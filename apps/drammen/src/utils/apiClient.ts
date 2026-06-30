@@ -88,9 +88,16 @@ export interface MatchBooking {
   card: CardType;
 }
 
+export interface MatchPenalty {
+  player: string;
+  team: string; // normalisert (norsk)
+  scored: boolean; // true = scoret, false = bom/reddet
+}
+
 export interface MatchEvents {
   goals: MatchGoal[];
   bookings: MatchBooking[];
+  shootout: MatchPenalty[]; // straffesparkkonkurranse i rekkefølge (tom for vanlige kamper)
 }
 
 interface RawDetail {
@@ -107,6 +114,12 @@ interface RawDetail {
     team: { name: string | null } | null;
     player: { name: string | null } | null;
     card: string;
+  }>;
+  // Straffesparkkonkurranse (egen top-level array, IKKE i `goals`): ett objekt per spark i rekkefølge.
+  penalties?: Array<{
+    player?: { name: string | null } | null;
+    team?: { name: string | null } | null;
+    scored?: boolean;
   }>;
   error?: string;
 }
@@ -134,6 +147,11 @@ export async function fetchMatchEvents(id: number): Promise<MatchEvents | null> 
         team: normalizeTeamName(b.team?.name ?? ''),
         player: b.player?.name ?? '',
         card: (b.card as CardType) ?? 'YELLOW',
+      })),
+      shootout: (m.penalties ?? []).map((p) => ({
+        player: p.player?.name ?? '',
+        team: normalizeTeamName(p.team?.name ?? ''),
+        scored: !!p.scored,
       })),
     };
   } catch {
