@@ -175,6 +175,12 @@ export default function MatchEvents({ match }: Props) {
   const redCards = events?.bookings.filter((b) => b.card === 'RED' || b.card === 'YELLOW_RED') ?? [];
   const goals = events?.goals ?? [];
   const penalties = events?.penalties ?? [];
+
+  const home = normalizeTeamName(match.homeTeam);
+  const away = normalizeTeamName(match.awayTeam);
+  const sideOf = (team: string): Side | null =>
+    team === home ? 'home' : team === away ? 'away' : null;
+
   // Straffekonk-kampene har hele konken i `penalties`. For andre kamper er `penalties` straffer i
   // åpent spill (scorede ligger også i `goals` → tas derfra; her trenger vi kun bommene).
   const isShootout = match.duration === 'PENALTY_SHOOTOUT';
@@ -182,12 +188,18 @@ export default function MatchEvents({ match }: Props) {
   // Konk-sparkene, renset for straffer i åpent spill + kilde-dubletter.
   const inPlayPenScorers = goals.filter((g) => g.type === 'PENALTY').map((g) => g.scorer);
   const shootoutKicks = isShootout ? cleanShootout(penalties, inPlayPenScorers) : [];
+  // Vis per-spark-lista KUN når den stemmer med den offisielle stillingen (score.penalties).
+  // Den simulerte feeden kan ha feil `scored`-flagg (skytter vist som bom selv om hen scoret) →
+  // da dropper vi den misvisende ✓/✗-visningen og lar «str. x–y» (på kampraden) stå som fasit.
+  const homeScored = shootoutKicks.filter((p) => p.team === home && p.scored).length;
+  const awayScored = shootoutKicks.filter((p) => p.team === away && p.scored).length;
+  const showShootout =
+    shootoutKicks.length > 0 &&
+    match.penHomeGoals != null &&
+    match.penAwayGoals != null &&
+    homeScored === match.penHomeGoals &&
+    awayScored === match.penAwayGoals;
   if (goals.length === 0 && redCards.length === 0 && penalties.length === 0) return null;
-
-  const home = normalizeTeamName(match.homeTeam);
-  const away = normalizeTeamName(match.awayTeam);
-  const sideOf = (team: string): Side | null =>
-    team === home ? 'home' : team === away ? 'away' : null;
 
   // Mål gruppert per spiller (per fase + type). API-et setter `goal.team` = scorerens lag; for
   // SELVMÅL teller målet for motstanderen, så det havner på motstanderens side (kolonnen summerer
@@ -256,8 +268,8 @@ export default function MatchEvents({ match }: Props) {
             settes kun foran en fase som faktisk har innhold, så vi aldri får doble striper. */}
         {extraRows.length > 0 && regularRows.length > 0 && <PhaseDivider />}
         {renderRows(extraRows)}
-        {shootoutKicks.length > 0 && (regularRows.length > 0 || extraRows.length > 0) && <PhaseDivider />}
-        {shootoutKicks.length > 0 && <Shootout pens={shootoutKicks} home={home} away={away} />}
+        {showShootout && (regularRows.length > 0 || extraRows.length > 0) && <PhaseDivider />}
+        {showShootout && <Shootout pens={shootoutKicks} home={home} away={away} />}
       </div>
     </div>
   );
