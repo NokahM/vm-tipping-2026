@@ -77,7 +77,7 @@ export default function MatchRow({ match, participants }: Props) {
             <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
           )}
           {played && extra && (
-            <span className="whitespace-nowrap text-[9px] tabular-nums text-amber-300/80">{extra.short}</span>
+            <span className="whitespace-nowrap text-[9px] tabular-nums text-amber-300/80">{extra}</span>
           )}
           {liveNow && (
             <span
@@ -107,9 +107,6 @@ export default function MatchRow({ match, participants }: Props) {
             <div className="mb-2 flex justify-center">
               <BroadcasterBadge apiId={match.apiId} className="h-4" />
             </div>
-          )}
-          {extra && (
-            <div className="mb-1.5 text-center text-[11px] font-medium text-amber-300/90">{extra.detail}</div>
           )}
           <MatchEvents match={match} />
           <TipChips match={match} participants={participants} />

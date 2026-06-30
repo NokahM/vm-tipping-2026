@@ -527,8 +527,8 @@ assert('q18 ikke blåst opp av straffer (e.o.-kampen vinner)',
 // q5 (totale mål): 2 + 5 + 4 = 11 (straffer teller ikke).
 assert('q5 teller e.o.-mål men ikke straffer (11)', (deriveDecidedBonus(etR32).q5 as { answer: string }).answer, '11');
 // Visnings-indikator.
-assert('extraTimeResult straffekamp', extraTimeResult(penMatch)?.short, 'str. 3–4');
-assert('extraTimeResult e.o.-kamp', extraTimeResult(etMatch)?.short, 'e.o. 3–2');
+assert('extraTimeResult straffekamp', extraTimeResult(penMatch), 'str. 3–4');
+assert('extraTimeResult e.o.-kamp', extraTimeResult(etMatch), 'e.o. 3–2');
 assert('extraTimeResult vanlig = null', extraTimeResult(regMatch), null);
 
 // 4c2) q12/q14 live-indikator: GUL for ALLE som fortsatt kan gå videre (ikke bare lengst nådd),

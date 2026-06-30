@@ -69,7 +69,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
                 </div>
               )}
               {showScore && extra && (
-                <div className="text-[10px] tabular-nums text-amber-300/80">{extra.short}</div>
+                <div className="text-[10px] tabular-nums text-amber-300/80">{extra}</div>
               )}
               {liveNow ? (
                 <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-red-400">
@@ -100,9 +100,6 @@ export default function FeaturedMatch({ match, participants }: Props) {
 
         {open && (
           <div className="border-t border-slate-700/70 px-3 pb-3 pt-2">
-            {extra && (
-              <div className="mb-1.5 text-center text-[11px] font-medium text-amber-300/90">{extra.detail}</div>
-            )}
             <MatchEvents match={match} />
             <TipChips match={match} participants={participants} />
           </div>
