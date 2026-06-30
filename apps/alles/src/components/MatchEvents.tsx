@@ -28,7 +28,8 @@ type Phase = 'regular' | 'extra'; // ordinær tid (≤ 90') vs. ekstraomganger (
 // Tidspunkt med overtid: 90+3 lagres som minute:90 + injuryTime:3.
 type Stamp = { minute: number | null; injuryTime: number | null };
 // Mål grupperes per spiller (flere minutter + én ⚽ per mål); røde kort/straffer står alltid alene.
-type Kind = 'goal' | 'pen' | 'own' | 'red';
+// 'penmiss' = bommet straffe i åpent spill (API-et har ingen minutt for den → vises uten klokkeslett).
+type Kind = 'goal' | 'pen' | 'own' | 'red' | 'penmiss';
 type EventRow = { side: Side; phase: Phase; minutes: Stamp[]; kind: Kind; name: string };
 
 /** Mål etter 90. minutt = ekstraomganger. Ukjent minutt → ordinær tid. */
@@ -41,11 +42,11 @@ function fmtStamp(s: Stamp): string | null {
 }
 
 function iconsFor(r: EventRow): string {
-  return r.kind === 'red' ? '🟥' : '⚽'.repeat(r.minutes.length);
+  return r.kind === 'red' ? '🟥' : r.kind === 'penmiss' ? '✗' : '⚽'.repeat(r.minutes.length);
 }
 
 function nameSuffix(kind: Kind): string {
-  return kind === 'own' ? ' (selvm.)' : kind === 'pen' ? ' (str.)' : '';
+  return kind === 'own' ? ' (selvm.)' : kind === 'pen' ? ' (str.)' : kind === 'penmiss' ? ' (str. bom)' : '';
 }
 
 /** Én lag-celle: navn + ikon, pakket inn mot midten (minutt-kolonnen). */
@@ -80,18 +81,9 @@ function SideCell({ row, side }: { row: EventRow; side: Side }) {
   );
 }
 
-/** Tynn skillelinje med en liten etikett (+ ev. stilling), spenner over hele bredden. */
-function PhaseDivider({ label, score }: { label: string; score?: string }) {
-  return (
-    <div className="col-span-3 my-1 flex items-center gap-2">
-      <span className="h-px flex-1 bg-slate-700/60" />
-      <span className="whitespace-nowrap text-[10px] font-medium uppercase tracking-wide text-slate-500">
-        {label}
-        {score ? <span className="ml-1 tabular-nums text-slate-400">{score}</span> : null}
-      </span>
-      <span className="h-px flex-1 bg-slate-700/60" />
-    </div>
-  );
+/** Subtil, horisontal skillestripe mellom fasene (ordinær tid / ekstraomganger / straffer). */
+function PhaseDivider() {
+  return <div className="col-span-3 my-1.5 h-px bg-slate-700/50" />;
 }
 
 function Mark({ scored }: { scored: boolean }) {
@@ -153,8 +145,12 @@ export default function MatchEvents({ match }: Props) {
   const events = useMatchEvents(match.apiId, liveNow || finished, liveNow);
   const redCards = events?.bookings.filter((b) => b.card === 'RED' || b.card === 'YELLOW_RED') ?? [];
   const goals = events?.goals ?? [];
-  const shootout = events?.shootout ?? [];
-  if (goals.length === 0 && redCards.length === 0 && shootout.length === 0) return null;
+  const penalties = events?.penalties ?? [];
+  // Straffekonk-kampene har hele konken i `penalties`. For andre kamper er `penalties` straffer i
+  // åpent spill (scorede ligger også i `goals` → tas derfra; her trenger vi kun bommene).
+  const isShootout = match.duration === 'PENALTY_SHOOTOUT';
+  const inPlayMisses = isShootout ? [] : penalties.filter((p) => !p.scored);
+  if (goals.length === 0 && redCards.length === 0 && penalties.length === 0) return null;
 
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
@@ -189,17 +185,20 @@ export default function MatchEvents({ match }: Props) {
       : [];
   });
 
+  // Bommede straffer i åpent spill: egen rad uten minutt (API-et har ingen) → havner sist i
+  // ordinær tid (firstMin = 999). Plasseres på lagets side.
+  const penMisses: EventRow[] = inPlayMisses.flatMap((p) => {
+    const side = sideOf(p.team);
+    return side
+      ? [{ side, phase: 'regular' as const, kind: 'penmiss' as const, name: p.player, minutes: [{ minute: null, injuryTime: null }] }]
+      : [];
+  });
+
   const firstMin = (e: EventRow) => e.minutes[0]?.minute ?? 999;
-  const all = [...groups.values(), ...reds];
+  const all = [...groups.values(), ...reds, ...penMisses];
   const sortByMin = (rows: EventRow[]) => rows.sort((a, b) => firstMin(a) - firstMin(b));
   const regularRows = sortByMin(all.filter((r) => r.phase === 'regular'));
   const extraRows = sortByMin(all.filter((r) => r.phase === 'extra'));
-
-  const wentToShootout = shootout.length > 0;
-  // Kampen gikk utover 90 → vis fase-skiller. (duration finnes for ferdige/live e.o.-kamper.)
-  const wentPast90 = match.duration === 'EXTRA_TIME' || match.duration === 'PENALTY_SHOOTOUT' || extraRows.length > 0 || wentToShootout;
-  const score = (h: number | null | undefined, a: number | null | undefined) =>
-    h == null || a == null ? undefined : `${h}–${a}`;
 
   const renderRows = (rows: EventRow[]) =>
     rows.map((r, i) => (
@@ -221,18 +220,12 @@ export default function MatchEvents({ match }: Props) {
         {/* Ordinær tid; hjemme venstre, borte høyre, minutt i midten. */}
         {renderRows(regularRows)}
 
-        {/* Sluttspill utover 90 min: skillelinjer med stilling per fase. */}
-        {wentPast90 && <PhaseDivider label="Etter 90 min" score={score(match.homeGoals, match.awayGoals)} />}
+        {/* Sluttspill utover 90 min: subtile skillestriper mellom fasene (uten tekst). En stripe
+            settes kun foran en fase som faktisk har innhold, så vi aldri får doble striper. */}
+        {extraRows.length > 0 && regularRows.length > 0 && <PhaseDivider />}
         {renderRows(extraRows)}
-        {wentToShootout && extraRows.length > 0 && (
-          <PhaseDivider label="Etter eks.oms." score={score(match.aetHomeGoals, match.aetAwayGoals)} />
-        )}
-        {wentToShootout && (
-          <>
-            <PhaseDivider label="Straffer" score={score(match.penHomeGoals, match.penAwayGoals)} />
-            <Shootout pens={shootout} home={home} away={away} />
-          </>
-        )}
+        {isShootout && penalties.length > 0 && (regularRows.length > 0 || extraRows.length > 0) && <PhaseDivider />}
+        {isShootout && penalties.length > 0 && <Shootout pens={penalties} home={home} away={away} />}
       </div>
     </div>
   );

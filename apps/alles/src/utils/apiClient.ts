@@ -97,7 +97,9 @@ export interface MatchPenalty {
 export interface MatchEvents {
   goals: MatchGoal[];
   bookings: MatchBooking[];
-  shootout: MatchPenalty[]; // straffesparkkonkurranse i rekkefølge (tom for vanlige kamper)
+  // ALLE straffespark i kampen (åpent spill OG straffekonk), i rekkefølge, UTEN minutt. Scorede
+  // straffer i spill ligger også i `goals` (type PENALTY); bom finnes kun her (scored:false).
+  penalties: MatchPenalty[];
 }
 
 interface RawDetail {
@@ -148,7 +150,7 @@ export async function fetchMatchEvents(id: number): Promise<MatchEvents | null> 
         player: b.player?.name ?? '',
         card: (b.card as CardType) ?? 'YELLOW',
       })),
-      shootout: (m.penalties ?? []).map((p) => ({
+      penalties: (m.penalties ?? []).map((p) => ({
         player: p.player?.name ?? '',
         team: normalizeTeamName(p.team?.name ?? ''),
         scored: !!p.scored,
