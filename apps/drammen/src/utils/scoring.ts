@@ -417,10 +417,23 @@ export interface GoalProjection {
 }
 
 /**
+ * Mål scoret i spill (inkl. ekstraomganger, EKSKL. straffesparkkonkurranse) – brukes til
+ * målbaserte krydder/statistikk (q5 totalt, q18 mest målrik, mål per kampdag). For vanlige
+ * kamper og kamper avgjort innen 90 min er dette identisk med 90-min-resultatet; for sluttspill
+ * med ekstraomganger teller også ekstraomgangsmålene, men aldri straffemålene.
+ */
+export function playGoals(m: MatchResult): { home: number; away: number } {
+  return {
+    home: m.aetHomeGoals ?? m.homeGoals ?? 0,
+    away: m.aetAwayGoals ?? m.awayGoals ?? 0,
+  };
+}
+
+/**
  * Live-projeksjon av totalt antall mål i hele VM, basert på mål-per-kamp så langt
- * (ferdige + pågående kamper, inkl. ekstraomganger via score.fullTime). Brukes KUN til
- * visuell projeksjon/fargekoding av q5 – påvirker ikke poeng (q5 scores mot faktisk
- * fasit når VM er ferdig).
+ * (ferdige + pågående kamper, inkl. ekstraomganger men ekskl. straffekonk via playGoals).
+ * Brukes KUN til visuell projeksjon/fargekoding av q5 – påvirker ikke poeng (q5 scores mot
+ * faktisk fasit når VM er ferdig).
  */
 export function projectTotalGoals(results: MatchResult[]): GoalProjection | null {
   let goalsSoFar = 0;
@@ -429,7 +442,8 @@ export function projectTotalGoals(results: MatchResult[]): GoalProjection | null
     const started =
       m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED';
     if (!started || m.homeGoals === null || m.awayGoals === null) continue;
-    goalsSoFar += m.homeGoals + m.awayGoals;
+    const g = playGoals(m);
+    goalsSoFar += g.home + g.away;
     matchesCounted += 1;
   }
   if (matchesCounted === 0) return null;

@@ -23,8 +23,11 @@ interface RawMatch {
   awayTeam: { id: number | null; name: string | null; tla: string | null };
   score: {
     winner: string | null;
-    fullTime: { home: number | null; away: number | null };
+    duration?: string; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+    fullTime: { home: number | null; away: number | null }; // inkl. ekstraomganger + straffekonk
     halfTime: { home: number | null; away: number | null };
+    regularTime?: { home: number | null; away: number | null }; // satt KUN når kampen gikk utover 90 min
+    penalties?: { home: number | null; away: number | null }; // satt KUN ved straffekonk
   };
 }
 
@@ -139,14 +142,34 @@ export async function fetchMatchEvents(id: number): Promise<MatchEvents | null> 
 }
 
 function mapMatch(m: RawMatch): MatchResult {
+  const ft = m.score.fullTime;
+  const reg = m.score.regularTime; // satt kun når kampen gikk utover 90 min
+  const pens = m.score.penalties; // satt kun ved straffekonk
+  const went120 = reg != null;
+
+  // Resultatet tips scores mot = stillingen etter 90 min. Når kampen gikk til ekstraomganger/
+  // straffer ligger 90-min-resultatet i `regularTime`; ellers er `fullTime` allerede 90-min-stillingen.
+  const homeGoals = went120 ? reg!.home : ft.home;
+  const awayGoals = went120 ? reg!.away : ft.away;
+
+  // Fullt spille-resultat (inkl. ekstraomganger, EKSKL. straffekonk) = fullTime − straffer.
+  // Straffemål er en egen avgjørelse og skal ikke telle som «resultat» eller i målstatistikken.
+  const sub = (a: number | null, b: number | null | undefined) => (a == null ? null : a - (b ?? 0));
+
   return {
     apiId: m.id,
     stage: normalizeStage(m.stage),
     group: m.group ?? undefined,
     homeTeam: m.homeTeam.name ?? 'TBD',
     awayTeam: m.awayTeam.name ?? 'TBD',
-    homeGoals: m.score.fullTime.home,
-    awayGoals: m.score.fullTime.away,
+    homeGoals,
+    awayGoals,
+    aetHomeGoals: went120 ? sub(ft.home, pens?.home) : undefined,
+    aetAwayGoals: went120 ? sub(ft.away, pens?.away) : undefined,
+    penHomeGoals: pens?.home ?? undefined,
+    penAwayGoals: pens?.away ?? undefined,
+    duration: (m.score.duration as MatchResult['duration']) ?? undefined,
+    winner: (m.score.winner as MatchResult['winner']) ?? null,
     status: m.status as MatchResult['status'],
     utcDate: m.utcDate,
     minute: m.minute ?? null,

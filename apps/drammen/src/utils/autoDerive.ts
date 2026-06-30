@@ -1,7 +1,7 @@
 import type { MatchResult, Stage } from '../types';
 import type { StatsData } from '../hooks/useStats';
 import type { BonusStore } from './storage';
-import { groupGoalLeaders, matchDayKey, projectTotalGoals } from './scoring';
+import { groupGoalLeaders, matchDayKey, playGoals, projectTotalGoals } from './scoring';
 import { STAGE_LABELS, STAGE_ORDER } from './labels';
 import { normalizeTeamName } from './teamNames';
 import { worstTeamSoFar } from './groupTables';
@@ -115,7 +115,11 @@ function latestDay(matches: MatchResult[]): string {
 
 // --- R32-kamp-spørsmål (q18 mest målrik, q19 flest gule kort) ---
 const r32Of = (results: MatchResult[]) => results.filter((m) => m.stage === 'ROUND_OF_32');
-const goalsOf = (m: MatchResult) => (m.homeGoals ?? 0) + (m.awayGoals ?? 0);
+// Mål i spill (inkl. ekstraomganger, ekskl. straffekonk) – straffemål skal aldri telle for q18.
+const goalsOf = (m: MatchResult) => {
+  const g = playGoals(m);
+  return g.home + g.away;
+};
 /** Kanonisk «Hjemme - Borte»-navn (norske lagnavn). */
 const matchName = (m: MatchResult) => `${normalizeTeamName(m.homeTeam)} - ${normalizeTeamName(m.awayTeam)}`;
 /** Kamp(er) med høyest `val` (likhet på toppen → flere). Tom liste hvis maks ≤ 0. */
@@ -137,23 +141,22 @@ export function deriveDecidedBonus(results: MatchResult[]): BonusStore {
   const store: BonusStore = {};
   if (results.length === 0) return store;
 
-  // q1: VM-vinner – når finalen er ferdig. Hopper over uavgjort (straffer kan ikke avgjøres
-  // fra fullTime-score) → admin setter den i det sjeldne tilfellet.
+  // q1: VM-vinner – når finalen er ferdig. Bruker API-ets `winner` (riktig også når finalen
+  // avgjøres på ekstraomganger eller straffer, der 90-min-resultatet er uavgjort).
   const final = results.find((m) => m.stage === 'FINAL');
   if (
     final &&
     final.status === 'FINISHED' &&
-    final.homeGoals != null &&
-    final.awayGoals != null &&
-    final.homeGoals !== final.awayGoals
+    (final.winner === 'HOME_TEAM' || final.winner === 'AWAY_TEAM')
   ) {
-    const winner = final.homeGoals > final.awayGoals ? final.homeTeam : final.awayTeam;
+    const winner = final.winner === 'HOME_TEAM' ? final.homeTeam : final.awayTeam;
     store.q1 = { answer: normalizeTeamName(winner), at: noon(final.utcDate) };
   }
 
-  // q5: antall mål totalt – når ALLE kamper er ferdige.
+  // q5: antall mål totalt – når ALLE kamper er ferdige. Teller spille-mål (inkl. ekstraomganger,
+  // ekskl. straffekonk) via playGoals/goalsOf.
   if (results.every((m) => m.status === 'FINISHED')) {
-    const total = results.reduce((s, m) => s + (m.homeGoals ?? 0) + (m.awayGoals ?? 0), 0);
+    const total = results.reduce((s, m) => s + goalsOf(m), 0);
     store.q5 = { answer: String(total), at: `${latestDay(results)}T12:00:00.000Z` };
   }
 

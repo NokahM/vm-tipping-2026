@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
-import { formatKickoff } from '../utils/labels';
+import { formatKickoff, extraTimeResult } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
 import MatchEvents from './MatchEvents';
@@ -30,6 +30,7 @@ export default function FeaturedMatch({ match, participants }: Props) {
   const showScore = finished || (liveNow && hasScore);
   const home = normalizeTeamName(match.homeTeam);
   const away = normalizeTeamName(match.awayTeam);
+  const extra = extraTimeResult(match); // ekstraomganger/straffer (kun ferdige sluttspillskamper)
 
   // Kampklokke fra API-et (oppdateres ved polling). PAUSE = «Pause», ellers minutt (+ tilleggstid).
   const liveLabel =
@@ -67,6 +68,9 @@ export default function FeaturedMatch({ match, participants }: Props) {
                   {formatKickoff(match.utcDate)}
                 </div>
               )}
+              {showScore && extra && (
+                <div className="text-[10px] tabular-nums text-amber-300/80">{extra.short}</div>
+              )}
               {liveNow ? (
                 <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-red-400">
                   <span className="animate-pulse">●</span>
@@ -96,6 +100,9 @@ export default function FeaturedMatch({ match, participants }: Props) {
 
         {open && (
           <div className="border-t border-slate-700/70 px-3 pb-3 pt-2">
+            {extra && (
+              <div className="mb-1.5 text-center text-[11px] font-medium text-amber-300/90">{extra.detail}</div>
+            )}
             <MatchEvents match={match} />
             <TipChips match={match} participants={participants} />
           </div>

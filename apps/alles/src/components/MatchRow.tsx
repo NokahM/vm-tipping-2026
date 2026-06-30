@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { MatchResult, Participant } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
 import { koSlotLabel, koMatchNumber } from '../data/knockoutSlots';
-import { formatKickoff } from '../utils/labels';
+import { formatKickoff, extraTimeResult } from '../utils/labels';
 import TeamLogo from './TeamLogo';
 import TipChips from './TipChips';
 import MatchEvents from './MatchEvents';
@@ -34,6 +34,7 @@ export default function MatchRow({ match, participants }: Props) {
   const home = homeKnown ? normalizeTeamName(match.homeTeam) : (koSlotLabel(match.apiId, 'home') ?? 'TBD');
   const away = awayKnown ? normalizeTeamName(match.awayTeam) : (koSlotLabel(match.apiId, 'away') ?? 'TBD');
   const matchNum = koMatchNumber(match.apiId); // FIFAs kampnummer (sluttspill), ellers null
+  const extra = extraTimeResult(match); // ekstraomganger/straffer (kun ferdige sluttspillskamper)
 
   // Kampklokke fra API-et (oppdateres ved polling). PAUSE = «Pause», ellers minutt (+ tilleggstid).
   const liveLabel =
@@ -75,6 +76,9 @@ export default function MatchRow({ match, participants }: Props) {
           ) : (
             <span className="text-xs tabular-nums text-slate-400">{formatKickoff(match.utcDate)}</span>
           )}
+          {played && extra && (
+            <span className="whitespace-nowrap text-[9px] tabular-nums text-amber-300/80">{extra.short}</span>
+          )}
           {liveNow && (
             <span
               className="whitespace-nowrap text-[9px] font-semibold tabular-nums text-red-400"
@@ -103,6 +107,9 @@ export default function MatchRow({ match, participants }: Props) {
             <div className="mb-2 flex justify-center">
               <BroadcasterBadge apiId={match.apiId} className="h-4" />
             </div>
+          )}
+          {extra && (
+            <div className="mb-1.5 text-center text-[11px] font-medium text-amber-300/90">{extra.detail}</div>
           )}
           <MatchEvents match={match} />
           <TipChips match={match} participants={participants} />

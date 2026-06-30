@@ -17,8 +17,15 @@ export interface MatchResult {
   group?: string; // "GROUP_A" etc., kun for gruppespill
   homeTeam: string;
   awayTeam: string;
-  homeGoals: number | null;
+  homeGoals: number | null; // resultat etter 90 min – det tips scores mot
   awayGoals: number | null;
+  // Sluttspill som gikk utover 90 min (ekstraomganger/straffer):
+  aetHomeGoals?: number | null; // fullt spille-resultat (inkl. ekstraomganger, EKSKL. straffekonk)
+  aetAwayGoals?: number | null;
+  penHomeGoals?: number | null; // straffesparkkonkurranse
+  penAwayGoals?: number | null;
+  duration?: 'REGULAR' | 'EXTRA_TIME' | 'PENALTY_SHOOTOUT';
+  winner?: 'HOME_TEAM' | 'AWAY_TEAM' | 'DRAW' | null;
   status: MatchStatus;
   utcDate: string;
   minute?: number | null; // kampminutt mens den spilles (kun live)

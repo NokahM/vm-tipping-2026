@@ -12,9 +12,11 @@ import {
   displayPointsForTip,
   groupGoalLeaders,
   participantBreakdown,
+  playGoals,
   projectTotalGoals,
   scoreBonusQuestion,
 } from '../apps/drammen/src/utils/scoring';
+import { extraTimeResult } from '../apps/drammen/src/utils/labels';
 import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, decidedOnly, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
@@ -408,14 +410,17 @@ const q9p: Participant[] = [
 assert('q9 «Gruppe I» mot fasit [I] = full pott', scoreBonusQuestion(q9p, { ...q9q, answer: ['I'] }).get('A'), q9q.maxPoints);
 assert('q9 feil gruppe = 0', scoreBonusQuestion(q9p, { ...q9q, answer: ['I'] }).get('B') ?? 0, 0);
 assert('q9 uavgjort [I,L] – tippet I = full pott', scoreBonusQuestion(q9p, { ...q9q, answer: ['I', 'L'] }).get('A'), q9q.maxPoints);
-// q1: finale ferdig (ikke uavgjort)
+// q1: finale ferdig – bruker API-ets `winner`.
 const withFinal = [
-  mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-19T18:00:00Z' }),
+  mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', winner: 'HOME_TEAM', utcDate: '2026-07-19T18:00:00Z' }),
 ];
 assert('q1 = finalevinner (Frankrike)', (deriveDecidedBonus(withFinal).q1 as { answer: string }).answer, 'Frankrike');
-// q1: uavgjort finale (straffer) → ikke auto
-const drawFinal = [mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 1, awayGoals: 1, status: 'FINISHED' })];
-assert('q1 ikke satt ved uavgjort finale', deriveDecidedBonus(drawFinal).q1, undefined);
+// q1: finale avgjort på straffer (1–1 etter 90, men `winner` peker på borte) → Brasil.
+const penFinal = [mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 1, awayGoals: 1, penHomeGoals: 3, penAwayGoals: 4, duration: 'PENALTY_SHOOTOUT', winner: 'AWAY_TEAM', status: 'FINISHED' })];
+assert('q1 = straffevinner (Brasil)', (deriveDecidedBonus(penFinal).q1 as { answer: string }).answer, 'Brasil');
+// q1: ingen winner ennå → ikke auto.
+const noWinnerFinal = [mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 1, awayGoals: 1, status: 'FINISHED' })];
+assert('q1 ikke satt uten winner', deriveDecidedBonus(noWinnerFinal).q1, undefined);
 
 // 4c) Auto-krydder pulje 1 (deriveStatsBonus) – aggregator-basert
 console.log('\nderiveStatsBonus (aggregator-basert):');
@@ -485,6 +490,46 @@ assert('q18 ikke satt før alle R32 ferdige',
   deriveDecidedBonus([r32done[0], mk({ stage: 'ROUND_OF_32', homeTeam: 'Mexico', awayTeam: 'Ecuador', status: 'TIMED', apiId: 2 })]).q18, undefined);
 assert('q19 = R32-kamp med flest gule', (deriveStatsBonus({ ...baseStats, matchYellows: { 1: 5, 2: 8 } }, r32done).q19 as { answer: string }).answer, 'Mexico - Ecuador');
 assert('q19 ikke satt uten matchYellows', deriveStatsBonus({ ...baseStats }, r32done).q19, undefined);
+
+// 4c4) Ekstraomganger/straffer: straffemål teller ALDRI som resultat/i målstatistikk; tips
+// scores mot 90-min-resultatet; ekstraomgangsmål teller.
+console.log('\nEkstraomganger/straffer (straffemål teller ikke):');
+// Straffekonk: 1–1 etter 90 (og e.o.), Paraguay vinner 4–3 på straffer (hjemme=Tyskland).
+const penMatch = mk({
+  stage: 'ROUND_OF_32', apiId: 10, homeTeam: 'Germany', awayTeam: 'Paraguay',
+  homeGoals: 1, awayGoals: 1, aetHomeGoals: 1, aetAwayGoals: 1,
+  penHomeGoals: 3, penAwayGoals: 4, duration: 'PENALTY_SHOOTOUT', winner: 'AWAY_TEAM',
+  status: 'FINISHED', utcDate: '2026-06-29T18:00:00Z',
+});
+// Ekstraomganger uten straffer: 2–2 etter 90, 3–2 etter e.o.
+const etMatch = mk({
+  stage: 'ROUND_OF_32', apiId: 11, homeTeam: 'Spain', awayTeam: 'Italy',
+  homeGoals: 2, awayGoals: 2, aetHomeGoals: 3, aetAwayGoals: 2,
+  duration: 'EXTRA_TIME', winner: 'HOME_TEAM', status: 'FINISHED', utcDate: '2026-06-29T20:00:00Z',
+});
+// Vanlig kamp avgjort innen 90.
+const regMatch = mk({
+  stage: 'ROUND_OF_32', apiId: 12, homeTeam: 'Mexico', awayTeam: 'Ecuador',
+  homeGoals: 4, awayGoals: 0, duration: 'REGULAR', winner: 'HOME_TEAM',
+  status: 'FINISHED', utcDate: '2026-06-30T18:00:00Z',
+});
+// playGoals: straffemål ekskl., ekstraomgangsmål inkl.
+assert('playGoals straffekonk = 1–1 (ikke 4–5)', playGoals(penMatch), { home: 1, away: 1 });
+assert('playGoals ekstraomganger = 3–2', playGoals(etMatch), { home: 3, away: 2 });
+assert('playGoals vanlig = 4–0', playGoals(regMatch), { home: 4, away: 0 });
+// Tips scores mot 90-min-resultatet (1–1), ikke straffene.
+assert('tip 1–1 på straffekamp = 3p (eksakt etter 90)', displayPointsForTip({ home: 1, away: 1 }, penMatch), 3);
+assert('tip 1–2 på straffekamp = 0p (feil utfall etter 90)', displayPointsForTip({ home: 1, away: 2 }, penMatch), 0);
+// q18 (mest målrik): e.o.-kampen (5 spille-mål) slår straffekampen (2, ikke 9).
+const etR32 = [penMatch, etMatch, regMatch];
+assert('q18 ikke blåst opp av straffer (e.o.-kampen vinner)',
+  (deriveDecidedBonus(etR32).q18 as { answer: string }).answer, 'Spania - Italy');
+// q5 (totale mål): 2 + 5 + 4 = 11 (straffer teller ikke).
+assert('q5 teller e.o.-mål men ikke straffer (11)', (deriveDecidedBonus(etR32).q5 as { answer: string }).answer, '11');
+// Visnings-indikator.
+assert('extraTimeResult straffekamp', extraTimeResult(penMatch)?.short, 'str. 3–4');
+assert('extraTimeResult e.o.-kamp', extraTimeResult(etMatch)?.short, 'e.o. 3–2');
+assert('extraTimeResult vanlig = null', extraTimeResult(regMatch), null);
 
 // 4c2) q12/q14 live-indikator: GUL for ALLE som fortsatt kan gå videre (ikke bare lengst nådd),
 // og aldri grønn før avgjort. Et lag «lever» hvis det har en kamp som ikke er ferdigspilt.

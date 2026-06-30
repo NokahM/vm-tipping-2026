@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { MatchResult } from '../types';
 import { normalizeTeamName } from '../utils/teamNames';
+import { playGoals } from '../utils/scoring';
 import { wcFrameStyle } from '../utils/wcFrame';
 
 const MIN_LABELS = ['1-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+'];
@@ -82,9 +83,11 @@ export default function FootballStats({
     const m = new Map<string, number>();
     for (const r of results) {
       // Teller alle kamper med stilling (live + ferdig) → oppdateres mens kamper spilles.
+      // Spille-mål (inkl. ekstraomganger, ekskl. straffekonk).
       if (r.homeGoals == null || r.awayGoals == null) continue;
       const day = usDay(r.utcDate);
-      m.set(day, (m.get(day) ?? 0) + r.homeGoals + r.awayGoals);
+      const g = playGoals(r);
+      m.set(day, (m.get(day) ?? 0) + g.home + g.away);
     }
     return [...m].sort((a, b) => a[0].localeCompare(b[0])) as [string, number][];
   }, [results]);
