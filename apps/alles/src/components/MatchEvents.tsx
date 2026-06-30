@@ -24,16 +24,13 @@ function displayName(full: string): string {
 }
 
 type Side = 'home' | 'away';
-type Phase = 'regular' | 'extra'; // ordinær tid (≤ 90') vs. ekstraomganger (> 90')
-// Tidspunkt med overtid: 90+3 lagres som minute:90 + injuryTime:3.
+// Tidspunkt med overtid: 90+3 lagres som minute:90 + injuryTime:3. Ekstraomganger (101', 114' …)
+// avsløres av selve minuttet, så vi trenger ingen egen fase-markering i tidslinjen.
 type Stamp = { minute: number | null; injuryTime: number | null };
 // Mål grupperes per spiller (flere minutter + én ⚽ per mål); røde kort/straffer står alltid alene.
 // 'penmiss' = bommet straffe i åpent spill (API-et har ingen minutt for den → vises uten klokkeslett).
 type Kind = 'goal' | 'pen' | 'own' | 'red' | 'penmiss';
-type EventRow = { side: Side; phase: Phase; minutes: Stamp[]; kind: Kind; name: string };
-
-/** Mål etter 90. minutt = ekstraomganger. Ukjent minutt → ordinær tid. */
-const phaseOf = (minute: number | null): Phase => (minute != null && minute > 90 ? 'extra' : 'regular');
+type EventRow = { side: Side; minutes: Stamp[]; kind: Kind; name: string };
 
 /** «67'», «90+3'» (overtid) eller null hvis minutt mangler. */
 function fmtStamp(s: Stamp): string | null {
@@ -81,11 +78,6 @@ function SideCell({ row, side }: { row: EventRow; side: Side }) {
   );
 }
 
-/** Subtil, horisontal skillestripe mellom fasene (ordinær tid / ekstraomganger / straffer). */
-function PhaseDivider() {
-  return <div className="col-span-3 my-1.5 h-px bg-slate-700/50" />;
-}
-
 function Mark({ scored }: { scored: boolean }) {
   return (
     <span aria-hidden="true" className={`shrink-0 text-[11px] leading-none ${scored ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -128,7 +120,7 @@ function Shootout({ pens, home, away }: { pens: MatchPenalty[]; home: string; aw
   const homeKicks = pens.filter((p) => p.team === home);
   const awayKicks = pens.filter((p) => p.team === away);
   return (
-    <div className="col-span-3 mt-1 grid grid-cols-2 gap-x-4 text-xs">
+    <div className="col-span-3 mt-2.5 grid grid-cols-2 gap-x-4 text-xs">
       <ul className="space-y-0.5">
         {homeKicks.map((p, i) => (
           <li key={i} className="flex min-w-0 items-baseline justify-end gap-1">
@@ -201,9 +193,10 @@ export default function MatchEvents({ match }: Props) {
     awayScored === match.penAwayGoals;
   if (goals.length === 0 && redCards.length === 0 && penalties.length === 0) return null;
 
-  // Mål gruppert per spiller (per fase + type). API-et setter `goal.team` = scorerens lag; for
-  // SELVMÅL teller målet for motstanderen, så det havner på motstanderens side (kolonnen summerer
-  // til stillingen). Straffemål (type PENALTY) får egen rad merket «(str.)».
+  // Mål gruppert per spiller. API-et setter `goal.team` = scorerens lag; for SELVMÅL teller målet
+  // for motstanderen, så det havner på motstanderens side (kolonnen summerer til stillingen).
+  // Straffemål (type PENALTY) får egen rad merket «(str.)». Ekstraomgangsmål skiller seg ut via
+  // selve minuttet (101', 114' …), så vi trenger ingen fase-inndeling.
   const groups = new Map<string, EventRow>();
   for (const g of goals) {
     const kind: Kind = g.type === 'OWN' ? 'own' : g.type === 'PENALTY' ? 'pen' : 'goal';
@@ -211,13 +204,12 @@ export default function MatchEvents({ match }: Props) {
       g.type === 'OWN' ? (g.team === home ? away : g.team === away ? home : g.team) : g.team;
     const side = sideOf(benefitTeam);
     if (!side) continue;
-    const phase = phaseOf(g.minute);
     const name = g.scorer;
-    const key = `${side}:${kind}:${name}:${phase}`;
+    const key = `${side}:${kind}:${name}`;
     const stamp: Stamp = { minute: g.minute, injuryTime: g.injuryTime };
     const existing = groups.get(key);
     if (existing) existing.minutes.push(stamp);
-    else groups.set(key, { side, phase, kind, name, minutes: [stamp] });
+    else groups.set(key, { side, kind, name, minutes: [stamp] });
   }
   for (const e of groups.values()) e.minutes.sort((a, b) => (a.minute ?? 999) - (b.minute ?? 999));
 
@@ -225,50 +217,40 @@ export default function MatchEvents({ match }: Props) {
   const reds: EventRow[] = redCards.flatMap((b) => {
     const side = sideOf(b.team);
     return side
-      ? [{ side, phase: phaseOf(b.minute), kind: 'red' as const, name: b.player, minutes: [{ minute: b.minute, injuryTime: b.injuryTime }] }]
+      ? [{ side, kind: 'red' as const, name: b.player, minutes: [{ minute: b.minute, injuryTime: b.injuryTime }] }]
       : [];
   });
 
-  // Bommede straffer i åpent spill: egen rad uten minutt (API-et har ingen) → havner sist i
-  // ordinær tid (firstMin = 999). Plasseres på lagets side.
+  // Bommede straffer i åpent spill: egen rad uten minutt (API-et har ingen) → havner sist (firstMin
+  // = 999), rett før en ev. straffekonk. Plasseres på lagets side.
   const penMisses: EventRow[] = inPlayMisses.flatMap((p) => {
     const side = sideOf(p.team);
     return side
-      ? [{ side, phase: 'regular' as const, kind: 'penmiss' as const, name: p.player, minutes: [{ minute: null, injuryTime: null }] }]
+      ? [{ side, kind: 'penmiss' as const, name: p.player, minutes: [{ minute: null, injuryTime: null }] }]
       : [];
   });
 
   const firstMin = (e: EventRow) => e.minutes[0]?.minute ?? 999;
-  const all = [...groups.values(), ...reds, ...penMisses];
-  const sortByMin = (rows: EventRow[]) => rows.sort((a, b) => firstMin(a) - firstMin(b));
-  const regularRows = sortByMin(all.filter((r) => r.phase === 'regular'));
-  const extraRows = sortByMin(all.filter((r) => r.phase === 'extra'));
-
-  const renderRows = (rows: EventRow[]) =>
-    rows.map((r, i) => (
-      <Fragment key={`${r.phase}-${i}`}>
-        <SideCell row={r} side="home" />
-        <div className="whitespace-nowrap px-1 text-center text-[11px] tabular-nums text-slate-500">
-          {r.minutes
-            .map(fmtStamp)
-            .filter((s): s is string => s != null)
-            .join(', ')}
-        </div>
-        <SideCell row={r} side="away" />
-      </Fragment>
-    ));
+  // Én sammenhengende tidslinje, sortert på minutt (ekstraomganger følger naturlig etter 90').
+  const rows = [...groups.values(), ...reds, ...penMisses].sort((a, b) => firstMin(a) - firstMin(b));
 
   return (
     <div className="mb-3 border-b border-slate-700/50 pb-3">
       <div className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-x-2 text-xs">
-        {/* Ordinær tid; hjemme venstre, borte høyre, minutt i midten. */}
-        {renderRows(regularRows)}
-
-        {/* Sluttspill utover 90 min: subtile skillestriper mellom fasene (uten tekst). En stripe
-            settes kun foran en fase som faktisk har innhold, så vi aldri får doble striper. */}
-        {extraRows.length > 0 && regularRows.length > 0 && <PhaseDivider />}
-        {renderRows(extraRows)}
-        {showShootout && (regularRows.length > 0 || extraRows.length > 0) && <PhaseDivider />}
+        {/* Hjemme venstre, borte høyre, minutt i midten – kronologisk, uten fase-skiller. */}
+        {rows.map((r, i) => (
+          <Fragment key={i}>
+            <SideCell row={r} side="home" />
+            <div className="whitespace-nowrap px-1 text-center text-[11px] tabular-nums text-slate-500">
+              {r.minutes
+                .map(fmtStamp)
+                .filter((s): s is string => s != null)
+                .join(', ')}
+            </div>
+            <SideCell row={r} side="away" />
+          </Fragment>
+        ))}
+        {/* Straffekonk: egen 2-kolonners blokk (selvforklarende ✓/✗ – ingen skillestripe trengs). */}
         {showShootout && <Shootout pens={shootoutKicks} home={home} away={away} />}
       </div>
     </div>
