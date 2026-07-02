@@ -20,7 +20,7 @@ export const BONUS_QUESTIONS: BonusQuestion[] = [
   { id: "q15", question: "Nevn en kjendis som dør i løpet av VM.", maxPoints: 3, answer: null },
   { id: "q16", question: "Får alle tre Bodø/Glimt-spillerne spilletid i løpet av VM?", maxPoints: 1, answer: null },
   { id: "q17", question: "Hvor langt kommer Norge?", maxPoints: 2, answer: null },
-  { id: "q18", question: "Hvilken kamp i sekstendelsfinalen blir mest målrik?", maxPoints: 2, answer: null },
+  { id: "q18", question: "Hvilken kamp i sekstendelsfinalen blir mest målrik? (90 min)", maxPoints: 2, answer: null },
   { id: "q19", question: "I hvilken kamp deles det ut flest gule kort?", maxPoints: 2, answer: null },
   { id: "q20", question: "Nevn to spillere som blir Superior Player of the Match", maxPoints: 4, answer: null },
 ];
