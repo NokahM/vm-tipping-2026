@@ -202,9 +202,10 @@ export default function BonusQuestions({
       style={frameStyle}
       className="wc-frame divide-y divide-slate-700/70 overflow-hidden rounded-xl bg-slate-800"
     >
-      {questions.map((q) => (
+      {questions.map((q, i) => (
         <BonusRow
           key={q.id}
+          num={i + 1}
           question={q}
           participants={participants}
           projection={projection}
@@ -221,6 +222,7 @@ export default function BonusQuestions({
 }
 
 function BonusRow({
+  num,
   question,
   participants,
   projection,
@@ -231,6 +233,7 @@ function BonusRow({
   preliminary,
   provisional,
 }: {
+  num: number;
   question: BonusQuestion;
   participants: Participant[];
   projection: GoalProjection | null;
@@ -296,6 +299,9 @@ function BonusRow({
         className="flex w-full items-start gap-2 px-3 py-2.5 text-left active:bg-slate-700/30"
         aria-expanded={open}
       >
+        <span className="mt-px w-5 shrink-0 text-sm font-semibold tabular-nums text-slate-500">
+          {num}.
+        </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm text-slate-100">{question.question}</p>
           {hasFasit ? (
