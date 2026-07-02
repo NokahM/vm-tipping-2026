@@ -237,7 +237,9 @@ export function scoreBonusQuestion(
         for (const p of participants) {
           const tip = tipFor(p);
           if (!tip) continue;
-          const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
+          // Distinkte korrekte (dedup mot dobbelt-nevning), som PER_ITEM_IDS-grenen.
+          const mine = new Set(bonusAnswerOf(tip).map(norm));
+          const hits = [...actual].filter((a) => mine.has(a)).length;
           if (hits > 0) add(p.name, Math.min(hits * per, q.maxPoints));
         }
       } else {
@@ -336,11 +338,13 @@ export function scoreBonusQuestion(
     const actual = new Set(q.answer.map(norm));
     if (PER_ITEM_IDS.has(q.id)) {
       // q7/q8/q20: deltakerne nevner 2 (lag/spillere), hvert korrekt er verdt maxPoints/2 (maks 4).
+      // Teller DISTINKTE korrekte (samme navn nevnt to ganger gir ikke dobbelt) – i tråd med breakdownen.
       const perTeam = q.maxPoints / 2;
       for (const p of participants) {
         const tip = tipFor(p);
         if (!tip) continue;
-        const hits = bonusAnswerOf(tip).filter((a) => actual.has(norm(a))).length;
+        const mine = new Set(bonusAnswerOf(tip).map(norm));
+        const hits = [...actual].filter((a) => mine.has(a)).length;
         if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
       }
     } else {

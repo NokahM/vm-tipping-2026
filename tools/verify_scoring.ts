@@ -475,10 +475,13 @@ const q20parts = [
   mkR32P('Ett', ['Messi', 'Mbappe'], 'q20'),
   mkR32P('Ingen', ['Kane', 'Ronaldo'], 'q20'),
 ];
-const q20pts = scoreBonusQuestion(q20parts, { ...q20def, answer: ['Messi', 'Haaland'] });
+const q20parts2 = [...q20parts, mkR32P('Duplikat', ['Messi', 'Messi'], 'q20')];
+const q20pts = scoreBonusQuestion(q20parts2, { ...q20def, answer: ['Messi', 'Haaland'] });
 assert('q20 begge riktige = 4p', q20pts.get('Begge'), 4);
 assert('q20 ett riktig = 2p', q20pts.get('Ett'), 2);
 assert('q20 ingen riktige = 0p', q20pts.get('Ingen'), 0);
+// Samme korrekte navn nevnt to ganger teller som ÉN → 2p (ikke dobbelt til 4p).
+assert('q20 duplikat av ett riktig = 2p (ikke 4p)', q20pts.get('Duplikat'), 2);
 
 console.log('\nderiveDecidedBonus/deriveStatsBonus q18/q19 (R32):');
 const r32done = [
