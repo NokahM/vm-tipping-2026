@@ -624,7 +624,7 @@ function BonusTab({
         la feltet stå tomt – du skriver kun inn det auto ikke finner (q2, q4, q6, q15) eller det du
         vil overstyre.
       </p>
-      {questions.map((q, i) => {
+      {questions.map((q) => {
         const isList = isListQuestion(q);
         const teams = isList
           ? (draft[q.id] ?? '')
@@ -641,7 +641,6 @@ function BonusTab({
         <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 p-3">
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm">
-              <span className="font-semibold tabular-nums text-slate-500">{i + 1}. </span>
               {q.question}{' '}
               <span
                 className={`text-[10px] ${AUTO_IDS.has(q.id) ? 'text-emerald-400/80' : 'text-amber-400/80'}`}
