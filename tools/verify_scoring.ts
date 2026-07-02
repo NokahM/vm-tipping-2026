@@ -520,10 +520,12 @@ assert('playGoals vanlig = 4–0', playGoals(regMatch), { home: 4, away: 0 });
 // Tips scores mot 90-min-resultatet (1–1), ikke straffene.
 assert('tip 1–1 på straffekamp = 3p (eksakt etter 90)', displayPointsForTip({ home: 1, away: 1 }, penMatch), 3);
 assert('tip 1–2 på straffekamp = 0p (feil utfall etter 90)', displayPointsForTip({ home: 1, away: 2 }, penMatch), 0);
-// q18 (mest målrik): e.o.-kampen (5 spille-mål) slår straffekampen (2, ikke 9).
+// q18 (mest målrik): teller KUN 90-min-mål – verken ekstraomganger eller straffer. e.o.-kampen
+// er 2–2 etter 90 (= 4 mål; det 3. Spania-målet kom i e.o. og teller ikke), så den blåses ikke
+// opp til 5 og havner likt med den vanlige 4–0-kampen – begge gjelder ved likhet.
 const etR32 = [penMatch, etMatch, regMatch];
-assert('q18 ikke blåst opp av straffer (e.o.-kampen vinner)',
-  (deriveDecidedBonus(etR32).q18 as { answer: string }).answer, 'Spania - Italy');
+assert('q18 teller kun 90-min-mål (e.o.-/straffemål teller ikke)',
+  (deriveDecidedBonus(etR32).q18 as { answer: string[] }).answer, ['Spania - Italy', 'Mexico - Ecuador']);
 // q5 (totale mål): 2 + 5 + 4 = 11 (straffer teller ikke).
 assert('q5 teller e.o.-mål men ikke straffer (11)', (deriveDecidedBonus(etR32).q5 as { answer: string }).answer, '11');
 // Visnings-indikator.

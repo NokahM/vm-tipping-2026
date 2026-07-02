@@ -115,11 +115,15 @@ function latestDay(matches: MatchResult[]): string {
 
 // --- R32-kamp-spørsmål (q18 mest målrik, q19 flest gule kort) ---
 const r32Of = (results: MatchResult[]) => results.filter((m) => m.stage === 'ROUND_OF_32');
-// Mål i spill (inkl. ekstraomganger, ekskl. straffekonk) – straffemål skal aldri telle for q18.
+// Mål i spill (inkl. ekstraomganger, ekskl. straffekonk) – brukes til q5 (totalt antall mål).
 const goalsOf = (m: MatchResult) => {
   const g = playGoals(m);
   return g.home + g.away;
 };
+// Mål i ordinær tid (KUN 90 min) – q18 «mest målrik R32-kamp» skal aldri telle ekstraomganger
+// eller straffekonk. Belgia–Senegal 3–2 e.e.o. (2–2 etter 90) teller derfor som 4 mål.
+// `homeGoals`/`awayGoals` er nettopp 90-min-stillingen (regularTime når kampen gikk utover 90 min).
+const regGoalsOf = (m: MatchResult) => (m.homeGoals ?? 0) + (m.awayGoals ?? 0);
 /** Kanonisk «Hjemme - Borte»-navn (norske lagnavn). */
 const matchName = (m: MatchResult) => `${normalizeTeamName(m.homeTeam)} - ${normalizeTeamName(m.awayTeam)}`;
 /** Kamp(er) med høyest `val` (likhet på toppen → flere). Tom liste hvis maks ≤ 0. */
@@ -177,9 +181,10 @@ export function deriveDecidedBonus(results: MatchResult[]): BonusStore {
   }
 
   // q18: mest målrik R32-kamp – låses når alle sekstendelsfinaler er ferdige (likt → flere gjelder).
+  // Teller KUN 90-min-mål (regGoalsOf) – ekstraomganger/straffekonk skal ikke telle.
   const r32 = r32Of(results);
   if (r32.length > 0 && r32.every((m) => m.status === 'FINISHED')) {
-    const top = topMatches(r32, goalsOf);
+    const top = topMatches(r32, regGoalsOf);
     if (top.length) {
       store.q18 = { answer: top.length === 1 ? top[0] : top, at: `${latestDay(r32)}T12:00:00.000Z` };
     }
@@ -295,10 +300,10 @@ export function derivePreliminaryBonus(
   const nor = furthestStageOf('Norway', results);
   if (nor) out.q17 = STAGE_LABELS[nor.stage];
 
-  // q18: mest målrik R32-kamp så langt.
+  // q18: mest målrik R32-kamp så langt (kun 90-min-mål).
   const r32 = r32Of(results);
-  const topGoals = topMatches(r32, goalsOf);
-  if (topGoals.length) out.q18 = `${topGoals.join(', ')} (${Math.max(...r32.map(goalsOf))} mål)`;
+  const topGoals = topMatches(r32, regGoalsOf);
+  if (topGoals.length) out.q18 = `${topGoals.join(', ')} (${Math.max(...r32.map(regGoalsOf))} mål)`;
 
   if (stats) {
     // q19: R32-kamp med flest gule kort så langt.
@@ -369,8 +374,8 @@ export function deriveProvisionalAnswers(
   const nor = furthestStageOf('Norway', results);
   if (nor) out.q17 = STAGE_LABELS[nor.stage];
 
-  // q18: mest målrik R32-kamp så langt (kamp-navn; scoringen matcher lag-par).
-  const topGoals = topMatches(r32Of(results), goalsOf);
+  // q18: mest målrik R32-kamp så langt (kun 90-min-mål; kamp-navn, scoringen matcher lag-par).
+  const topGoals = topMatches(r32Of(results), regGoalsOf);
   if (topGoals.length) out.q18 = topGoals;
 
   if (stats) {
