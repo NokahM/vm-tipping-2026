@@ -83,7 +83,7 @@ function autoText(v: BonusStore[string] | undefined): string {
   return Array.isArray(ans) ? ans.join(', ') : ans;
 }
 
-type Tab = 'sluttspill' | 'krydder' | 'nye' | 'oppdater';
+type Tab = 'sluttspill' | 'krydder' | 'nye' | 'importer' | 'oppdater';
 type SaveState = 'idle' | 'saving' | 'ok' | 'error';
 
 /** Et krydderspørsmål med liste-fasit (komma-separert): innbakte q7/q8/q15/q20 + custom list/perItem/match. */
@@ -275,6 +275,9 @@ function AdminContent({
           <TabBtn active={tab === 'nye'} onClick={() => setTab('nye')}>
             Nye spørsmål
           </TabBtn>
+          <TabBtn active={tab === 'importer'} onClick={() => setTab('importer')}>
+            Importer
+          </TabBtn>
           <TabBtn active={tab === 'oppdater'} onClick={() => setTab('oppdater')}>
             Oppdater
           </TabBtn>
@@ -308,6 +311,16 @@ function AdminContent({
             customTips={customTips}
             password={password}
             onSave={onSaveCustom}
+          />
+        )}
+        {tab === 'importer' && (
+          <ImporterTab
+            knockoutStore={knockoutStore}
+            customQuestions={customQuestions}
+            customTips={customTips}
+            password={password}
+            onSaveKnockout={onSaveKnockout}
+            onSaveCustom={onSaveCustom}
           />
         )}
         {tab === 'oppdater' && (
@@ -1163,6 +1176,135 @@ function CustomBonusTab({
         onSave={() => void save()}
         onExport={() => copyJson(buildStores())}
       />
+    </div>
+  );
+}
+
+// --- Tab: importer (bulk-innliming av tips) --------------------------------
+
+/**
+ * Bulk-import av tips fra en JSON-blob `{ knockoutTips?, bonusTips? }` – nyttig når mange
+ * deltakeres tips skal legges inn på én gang (f.eks. en hel sluttspill-runde fra et regneark)
+ * i stedet for celle-for-celle i Sluttspill/Nye spørsmål. Fletter INN i det som alt ligger:
+ * sluttspill-tips slås sammen per apiId (nye vinner), krydder-svar per questionId (nye vinner) –
+ * så eksisterende tips aldri forsvinner. Publiserer rett til KV (samme som «Lagre & publiser»).
+ */
+function ImporterTab({
+  knockoutStore,
+  customQuestions,
+  customTips,
+  password,
+  onSaveKnockout,
+  onSaveCustom,
+}: {
+  knockoutStore: KnockoutStore;
+  customQuestions: CustomQuestionStore;
+  customTips: CustomTipStore;
+  password: string;
+  onSaveKnockout: (store: KnockoutStore, password: string) => Promise<SaveResult>;
+  onSaveCustom: (
+    questions: CustomQuestionStore,
+    tips: CustomTipStore,
+    password: string,
+  ) => Promise<SaveResult>;
+}) {
+  const [text, setText] = useState('');
+  const [status, setStatus] = useState<SaveState>('idle');
+  const [msg, setMsg] = useState('');
+  const [summary, setSummary] = useState('');
+
+  async function run() {
+    let data: { knockoutTips?: KnockoutStore; bonusTips?: CustomTipStore };
+    try {
+      data = JSON.parse(text);
+    } catch {
+      setStatus('error');
+      setMsg('Ugyldig JSON – sjekk at hele blobben ble limt inn.');
+      return;
+    }
+    if (!data || (!data.knockoutTips && !data.bonusTips)) {
+      setStatus('error');
+      setMsg('Fant verken «knockoutTips» eller «bonusTips» i JSON-en.');
+      return;
+    }
+    setStatus('saving');
+    setMsg('');
+    let knockN = 0;
+    let bonusN = 0;
+
+    if (data.knockoutTips) {
+      const merged: KnockoutStore = { ...knockoutStore };
+      for (const [name, tips] of Object.entries(data.knockoutTips)) {
+        const byId = new Map((merged[name] ?? []).map((t) => [t.apiId, t]));
+        for (const t of tips) {
+          byId.set(t.apiId, t); // nye vinner ved samme kamp
+          knockN += 1;
+        }
+        merged[name] = [...byId.values()];
+      }
+      const r = await onSaveKnockout(merged, password);
+      if (!r.ok) {
+        setStatus('error');
+        setMsg(r.error ?? 'Feil ved lagring av sluttspill-tips.');
+        return;
+      }
+    }
+
+    if (data.bonusTips) {
+      const merged: CustomTipStore = { ...customTips };
+      for (const [name, byQ] of Object.entries(data.bonusTips)) {
+        merged[name] = { ...(merged[name] ?? {}), ...byQ };
+        bonusN += Object.keys(byQ).length;
+      }
+      const r = await onSaveCustom(customQuestions, merged, password);
+      if (!r.ok) {
+        setStatus('error');
+        setMsg(r.error ?? 'Feil ved lagring av krydder-tips.');
+        return;
+      }
+    }
+
+    setStatus('ok');
+    setSummary(`Importert: ${knockN} sluttspill-tips + ${bonusN} krydder-svar (flettet inn).`);
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
+        Lim inn en JSON-blob på formen{' '}
+        <code className="text-slate-300">{'{ "knockoutTips": {…}, "bonusTips": {…} }'}</code> for å
+        legge inn mange deltakeres tips på én gang. Data <span className="text-slate-300">flettes
+        inn</span> i det som alt ligger (per kamp / per spørsmål – eksisterende tips forsvinner
+        aldri), og publiseres rett til alle. Deltakernavn må matche appens navn eksakt.
+      </p>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setStatus('idle');
+        }}
+        placeholder='{ "knockoutTips": { "Navn": [ { "apiId": 537377, "homeGoals": 1, "awayGoals": 2 } ] }, "bonusTips": { "Navn": { "k1": "3" } } }'
+        rows={10}
+        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-slate-100 placeholder:text-slate-600"
+      />
+      <button
+        type="button"
+        disabled={status === 'saving' || !text.trim()}
+        onClick={() => void run()}
+        className="min-h-[44px] w-full rounded-lg bg-wc-red font-semibold text-white disabled:opacity-50"
+      >
+        {status === 'saving' ? 'Importerer …' : 'Importer & publiser'}
+      </button>
+      {status === 'ok' && (
+        <p className="rounded-lg border border-emerald-700/50 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-300">
+          Publisert ✓ – {summary}
+        </p>
+      )}
+      {status === 'error' && (
+        <p className="rounded-lg border border-red-800 bg-red-950/50 px-3 py-2 text-sm text-red-200">
+          {msg}
+        </p>
+      )}
     </div>
   );
 }
