@@ -45,6 +45,7 @@ import VictoryPopup from './components/VictoryPopup';
 import { useStats, type AutoBonus } from './hooks/useStats';
 import { normalizeTeamName } from './utils/teamNames';
 import {
+  deriveCustomBonus,
   deriveDecidedBonus,
   derivePreliminaryBonus,
   deriveProvisionalAnswers,
@@ -173,19 +174,37 @@ export default function App() {
   const autoBonusStore = useMemo(() => autoBonusToStore(stats?.autoBonus), [stats?.autoBonus]);
   const autoDecided = useMemo(() => deriveDecidedBonus(results), [results]);
   const autoStats = useMemo(() => deriveStatsBonus(stats, results), [stats, results]);
+  // Auto-utledning for admin-opprettede spørsmål med q.auto (k1/k2/…): fasit + hint + chip-farge.
+  const autoCustom = useMemo(
+    () => deriveCustomBonus(customQuestions, stats, results),
+    [customQuestions, stats, results],
+  );
   // Hva auto/API har funnet så langt (uten manuell overstyring) – vises som read-only hint i admin.
   const autoBonus = useMemo(
-    () => ({ ...autoBonusStore, ...autoDecided, ...autoStats }),
-    [autoBonusStore, autoDecided, autoStats],
+    () => ({ ...autoBonusStore, ...autoDecided, ...autoStats, ...autoCustom.decided }),
+    [autoBonusStore, autoDecided, autoStats, autoCustom],
   );
   // Foreløpige «slik ligger det an»-verdier for spørsmål som ennå ikke er avgjort (kun hint).
-  const autoPreliminary = useMemo(() => derivePreliminaryBonus(stats, results), [stats, results]);
+  const autoPreliminary = useMemo(
+    () => ({ ...derivePreliminaryBonus(stats, results), ...autoCustom.preliminary }),
+    [stats, results, autoCustom],
+  );
   // Foreløpig fasit i scorbar form – KUN til visuell fargekoding av tips-chips (scorer aldri).
-  const provisionalAnswers = useMemo(() => deriveProvisionalAnswers(stats, results), [stats, results]);
+  const provisionalAnswers = useMemo(
+    () => ({ ...deriveProvisionalAnswers(stats, results), ...autoCustom.provisional }),
+    [stats, results, autoCustom],
+  );
   // Manuelle KV-svar overstyrer alltid auto; innbakt JSON er bunn-fallback.
   const bonusMerged = useMemo(
-    () => ({ ...BONUS_BAKED, ...autoBonusStore, ...autoDecided, ...autoStats, ...bonusStore }),
-    [autoBonusStore, autoDecided, autoStats, bonusStore],
+    () => ({
+      ...BONUS_BAKED,
+      ...autoBonusStore,
+      ...autoDecided,
+      ...autoStats,
+      ...autoCustom.decided,
+      ...bonusStore,
+    }),
+    [autoBonusStore, autoDecided, autoStats, autoCustom, bonusStore],
   );
 
   // Full spørsmåls-katalog = innbakte q1–q20 + admin-opprettede (id «k…»).

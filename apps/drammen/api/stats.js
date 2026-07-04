@@ -277,9 +277,15 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     }
   }
   // Gule kort per kamp (apiId → antall straight YELLOW) – for q19 (flest gule kort-kamp).
+  // + røde kort (RED/YELLOW_RED) og straffemål i ÅPENT spill (goal.type PENALTY – straffekonk-
+  //   spark ligger ikke i goals-arrayet) per kamp – for custom auto «rødt kort el. straffe»-kamp.
   const matchYellows = {};
+  const matchReds = {};
+  const matchPenaltyGoals = {};
   for (const [id, m] of Object.entries(cache.matches)) {
     matchYellows[id] = (m.bookings || []).filter((b) => b.card === 'YELLOW').length;
+    matchReds[id] = (m.bookings || []).filter((b) => b.card === 'RED' || b.card === 'YELLOW_RED').length;
+    matchPenaltyGoals[id] = (m.goals || []).filter((g) => g.type === 'PENALTY').length;
   }
 
   return {
@@ -288,6 +294,8 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     playedIds: Object.keys(cache.played).map(Number), // spillere m/ spilletid – for q16
     playedAt: cache.played, // spiller-id → tidligste kampdag (noon-ISO) el. true – daterer q16
     matchYellows, // apiId → antall gule kort – for q19
+    matchReds, // apiId → antall røde kort (RED/YELLOW_RED) – for custom auto (rødt kort-kamp)
+    matchPenaltyGoals, // apiId → antall straffemål i åpent spill – for custom auto (straffe-kamp)
     finalReferee: finalMatch?.referee || null, // for q11
     fastestGoal, // for q6 live-indikator
     fastestGoals, // alle mål på det laveste minuttet (q6 – sekunder mangler i API-et)

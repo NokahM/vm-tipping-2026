@@ -1,4 +1,4 @@
-import type { MatchResult, Stage } from '../types';
+import type { BonusQuestion, MatchResult, Stage } from '../types';
 import type { StatsData } from '../hooks/useStats';
 import type { BonusStore } from './storage';
 import { groupGoalLeaders, matchDayKey, playGoals, projectTotalGoals } from './scoring';
@@ -132,6 +132,13 @@ function topMatches(matches: MatchResult[], val: (m: MatchResult) => number): st
   const max = Math.max(...matches.map(val));
   if (max <= 0) return [];
   return matches.filter((m) => val(m) === max).map(matchName);
+}
+
+/** Kamp(er) med LAVEST `val` (likhet → flere). Tom liste hvis ingen kamper. */
+function minMatches(matches: MatchResult[], val: (m: MatchResult) => number): string[] {
+  if (matches.length === 0) return [];
+  const min = Math.min(...matches.map(val));
+  return matches.filter((m) => val(m) === min).map(matchName);
 }
 
 /**
@@ -407,4 +414,83 @@ export function deriveProvisionalAnswers(
   }
 
   return out;
+}
+
+export interface CustomAutoResult {
+  decided: BonusStore; // låst fasit (runden ferdig) – flettes UNDER manuell KV
+  preliminary: Record<string, string>; // «Auto nå: X – ikke avgjort ennå»-hint i admin
+  provisional: Record<string, string | string[]>; // scorbar foreløpig fasit – kun chip-farge
+}
+
+/**
+ * Auto-utledet fasit for ADMIN-opprettede krydderspørsmål med `q.auto` satt. Kobler custom-
+ * spørsmål til API-et på samme måte som q18/q19: låses («decided») når `q.stage`-runden er
+ * ferdigspilt, med foreløpig admin-hint («preliminary») + scorbar foreløpig fasit for chip-farge
+ * («provisional») underveis. Den utledede fasiten lagres ALDRI i KV – den regnes ut på nytt hver
+ * gang fra ferske resultater/stats (som q18/q19), og flettes UNDER manuell KV (som overstyrer).
+ */
+export function deriveCustomBonus(
+  questions: BonusQuestion[],
+  stats: StatsData | null,
+  results: MatchResult[],
+): CustomAutoResult {
+  const decided: BonusStore = {};
+  const preliminary: Record<string, string> = {};
+  const provisional: Record<string, string | string[]> = {};
+  if (results.length === 0) return { decided, preliminary, provisional };
+
+  for (const q of questions) {
+    if (!q.auto || !q.stage) continue;
+    const inStage = results.filter((m) => m.stage === q.stage);
+    if (inStage.length === 0) continue;
+    const finished = inStage.filter((m) => m.status === 'FINISHED');
+    const allDone = finished.length === inStage.length;
+    const at = `${latestDay(inStage)}T12:00:00.000Z`;
+
+    if (q.auto === 'extraTimeCount') {
+      // Antall kamper i runden som gikk til ekstraomganger/straffekonk. Tall (scoring: number).
+      const isEt = (m: MatchResult) =>
+        m.duration === 'EXTRA_TIME' || m.duration === 'PENALTY_SHOOTOUT';
+      const soFar = finished.filter(isEt).length;
+      if (allDone) decided[q.id] = { answer: String(soFar), at };
+      else preliminary[q.id] = `${soFar} så langt (${finished.length}/${inStage.length} spilt)`;
+      // Ingen provisional: et voksende tall ville farget grønt for tidlig (jf. q5).
+      continue;
+    }
+
+    if (q.auto === 'redOrPenaltyMatch') {
+      // Kamp(er) i runden med rødt kort ELLER straffemål i åpent spill (fra deep data).
+      // Akkumulerende: en kamp som HAR fått det beholder kvalifiseringen → grønn chip er varig.
+      const reds = stats?.matchReds ?? {};
+      const pens = stats?.matchPenaltyGoals ?? {};
+      const qualifies = (m: MatchResult) => (reds[m.apiId] ?? 0) > 0 || (pens[m.apiId] ?? 0) > 0;
+      const names = finished.filter(qualifies).map(matchName);
+      if (allDone && stats && (stats.matchReds || stats.matchPenaltyGoals)) {
+        decided[q.id] = { answer: names.length === 1 ? names[0] : names, at };
+      }
+      if (names.length) {
+        preliminary[q.id] = names.join(', ');
+        provisional[q.id] = names;
+      } else if (!allDone) {
+        preliminary[q.id] = 'ingen ennå';
+      }
+      continue;
+    }
+
+    if (q.auto === 'fewestGoalsMatch') {
+      // Kamp(er) i runden med færrest mål etter 90 min (likhet → alle). Kun ferdigspilte teller.
+      const names = minMatches(finished, regGoalsOf);
+      if (allDone && names.length) {
+        decided[q.id] = { answer: names.length === 1 ? names[0] : names, at };
+      }
+      if (names.length) {
+        const min = Math.min(...finished.map(regGoalsOf));
+        preliminary[q.id] = `${names.join(', ')} (${min} mål)`;
+        provisional[q.id] = names;
+      }
+      continue;
+    }
+  }
+
+  return { decided, preliminary, provisional };
 }

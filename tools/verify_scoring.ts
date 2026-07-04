@@ -21,7 +21,7 @@ import { computeProgression } from '../apps/drammen/src/utils/progression';
 import { normalizeTeamName } from '../apps/drammen/src/utils/teamNames';
 import { applyBonusAnswers, decidedOnly, mergeCustomBonusTips, mergeKnockoutTips } from '../apps/drammen/src/utils/storage';
 import { reconcileResults } from '../apps/drammen/src/utils/reconcile';
-import { deriveDecidedBonus, deriveProvisionalAnswers, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
+import { deriveCustomBonus, deriveDecidedBonus, deriveProvisionalAnswers, deriveStatsBonus } from '../apps/drammen/src/utils/autoDerive';
 import type { BonusQuestion, MatchResult, Participant } from '../apps/drammen/src/types';
 
 let failures = 0;
@@ -493,6 +493,44 @@ assert('q18 ikke satt før alle R32 ferdige',
   deriveDecidedBonus([r32done[0], mk({ stage: 'ROUND_OF_32', homeTeam: 'Mexico', awayTeam: 'Ecuador', status: 'TIMED', apiId: 2 })]).q18, undefined);
 assert('q19 = R32-kamp med flest gule', (deriveStatsBonus({ ...baseStats, matchYellows: { 1: 5, 2: 8 } }, r32done).q19 as { answer: string }).answer, 'Mexico - Ecuador');
 assert('q19 ikke satt uten matchYellows', deriveStatsBonus({ ...baseStats }, r32done).q19, undefined);
+
+// 4c3b) Custom auto-krydder (R16): 'match'-scoring + deriveCustomBonus (k1/k2/k3).
+console.log('\nderiveCustomBonus (custom auto R16) + match-scoring:');
+
+// 'match'-scoring matcher kamp rekkefølge-uavhengig (som q18/q19), også for custom-spørsmål.
+const kMatchQ: BonusQuestion = {
+  id: 'k3', question: '', maxPoints: 2, answer: 'Norge - Brasil', scoring: 'match', custom: true,
+};
+const kMatchParts: Participant[] = [
+  { name: 'Rett', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k3', answer: 'Brasil - Norge' }] },
+  { name: 'Feil', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k3', answer: 'Norge - Sverige' }] },
+];
+assert("scoring 'match' reversert rekkefølge = 2p", scoreBonusQuestion(kMatchParts, kMatchQ).get('Rett'), 2);
+assert("scoring 'match' feil kamp = 0p", scoreBonusQuestion(kMatchParts, kMatchQ).get('Feil'), 0);
+
+const k1: BonusQuestion = { id: 'k1', question: '', maxPoints: 2, answer: null, scoring: 'number', margin: 0, stage: 'ROUND_OF_16', auto: 'extraTimeCount', custom: true };
+const k2: BonusQuestion = { id: 'k2', question: '', maxPoints: 2, answer: null, scoring: 'match', stage: 'ROUND_OF_16', auto: 'redOrPenaltyMatch', custom: true };
+const k3: BonusQuestion = { id: 'k3', question: '', maxPoints: 2, answer: null, scoring: 'match', stage: 'ROUND_OF_16', auto: 'fewestGoalsMatch', custom: true };
+const r16 = [
+  mk({ stage: 'ROUND_OF_16', apiId: 101, homeTeam: 'France', awayTeam: 'Sweden', homeGoals: 2, awayGoals: 2, duration: 'EXTRA_TIME', status: 'FINISHED', utcDate: '2026-07-03T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_16', apiId: 102, homeTeam: 'Mexico', awayTeam: 'Ecuador', homeGoals: 0, awayGoals: 0, duration: 'PENALTY_SHOOTOUT', status: 'FINISHED', utcDate: '2026-07-03T20:00:00Z' }),
+  mk({ stage: 'ROUND_OF_16', apiId: 103, homeTeam: 'Brazil', awayTeam: 'Norway', homeGoals: 3, awayGoals: 1, duration: 'REGULAR', status: 'FINISHED', utcDate: '2026-07-04T18:00:00Z' }),
+];
+// 101 rødt kort, 103 straffemål i åpent spill → begge kvalifiserer for k2.
+const cbStats = { ...baseStats, matchReds: { 101: 1, 102: 0, 103: 0 }, matchPenaltyGoals: { 101: 0, 102: 0, 103: 1 } };
+const cb = deriveCustomBonus([k1, k2, k3], cbStats, r16);
+assert('k1 = antall e.o./straffe-kamper (2)', (cb.decided.k1 as { answer: string }).answer, '2');
+assert('k2 = kamper m/ rødt kort el. straffe', (cb.decided.k2 as { answer: string[] }).answer, ['Frankrike - Sverige', 'Brasil - Norge']);
+assert('k3 = kamp m/ færrest 90-min-mål', (cb.decided.k3 as { answer: string }).answer, 'Mexico - Ecuador');
+
+// Ikke låst før alle R16 ferdige (én TIMED igjen), men foreløpig hint finnes.
+const r16partial = [r16[0], r16[1], mk({ stage: 'ROUND_OF_16', apiId: 103, homeTeam: 'Brazil', awayTeam: 'Norway', status: 'TIMED', utcDate: '2026-07-04T18:00:00Z' })];
+const cbPartial = deriveCustomBonus([k1, k2, k3], cbStats, r16partial);
+assert('k1 ikke låst før R16 ferdig', cbPartial.decided.k1, undefined);
+assert('k3 ikke låst før R16 ferdig', cbPartial.decided.k3, undefined);
+assert('k1 foreløpig hint finnes underveis', typeof cbPartial.preliminary.k1, 'string');
+// k2 låses ikke uten deep data (matchReds/matchPenaltyGoals mangler).
+assert('k2 ikke låst uten stats', deriveCustomBonus([k1, k2, k3], null, r16).decided.k2, undefined);
 
 // 4c4) Ekstraomganger/straffer: straffemål teller ALDRI som resultat/i målstatistikk; tips
 // scores mot 90-min-resultatet; ekstraomgangsmål teller.

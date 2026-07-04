@@ -67,8 +67,20 @@ export interface BonusTip {
  * - `list`    = fasit er flere gyldige svar; deltakerens ene svar i lista → full pott
  * - `perItem` = deltakeren nevner flere; `perItemPoints` per korrekt, opp til `maxPoints`
  * - `number`  = tall innenfor ±`margin` av fasit → full pott
+ * - `match`   = svaret er én kamp; matches rekkefølge-uavhengig på lag-par (matchKey),
+ *               robust mot typoer/varianter. Fasit kan være flere kamper (medlemskap).
  */
-export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number';
+export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number' | 'match';
+
+/**
+ * Auto-utleder for ADMIN-opprettede krydderspørsmål (q.auto): kobler et custom-spørsmål til
+ * API-et så fasiten fylles automatisk (låses når `q.stage`-runden er ferdigspilt). Uten `auto`
+ * er spørsmålet manuelt. Utledningen ligger i `utils/autoDerive.ts` (`deriveCustomBonus`).
+ * - `extraTimeCount`    = antall kamper i runden som gikk til ekstraomganger/straffekonk (tall)
+ * - `redOrPenaltyMatch` = kamp(er) i runden med rødt kort ELLER straffemål i åpent spill (match)
+ * - `fewestGoalsMatch`  = kamp(er) i runden med færrest mål etter 90 min (match)
+ */
+export type CustomAuto = 'extraTimeCount' | 'redOrPenaltyMatch' | 'fewestGoalsMatch';
 
 export interface BonusQuestion {
   id: string;
@@ -79,7 +91,8 @@ export interface BonusQuestion {
   scoring?: BonusScoring; // poeng-modus (mangler = innbakt q1–q20 med id-basert logikk)
   perItemPoints?: number; // poeng per korrekt element når scoring = 'perItem'
   margin?: number; // ± margin for full pott når scoring = 'number'
-  stage?: Stage; // valgfri runde-merkelapp (visning/gruppering)
+  stage?: Stage; // valgfri runde-merkelapp (visning/gruppering); også runden auto-utledning gjelder
+  auto?: CustomAuto; // kobler spørsmålet til API-et (auto-fasit), låst når `stage`-runden er ferdig
   custom?: boolean; // true = opprettet via admin (ikke innbakt)
 }
 

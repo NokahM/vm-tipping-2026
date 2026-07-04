@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   BonusQuestion,
   BonusScoring,
+  CustomAuto,
   KnockoutTip,
   MatchResult,
   Participant,
@@ -62,6 +63,10 @@ const DATE_OVERRIDE_IDS = new Set(['q6', 'q7', 'q8', 'q15']);
 // Spørsmål som settes automatisk fra deep data/resultater (admin trenger ikke gjøre noe).
 // Resten (q2, q4, q6, q15, q20) krever manuell fasit.
 const AUTO_IDS = new Set(['q1', 'q3', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q16', 'q17', 'q18', 'q19']);
+/** Automatisk? Innbakte auto-q-er, ELLER et custom-spørsmål med q.auto (koblet til API-et). */
+function isAutoQuestion(q: BonusQuestion): boolean {
+  return AUTO_IDS.has(q.id) || !!q.auto;
+}
 // Akkumulerende: poeng deles ut løpende, men lista kan vokse til turneringsslutt («ikke avsluttet»).
 const ACCUMULATING_IDS = new Set(['q7', 'q8', 'q15']); // rødt kort, selvmål, kjendis-dødsfall
 const KNOCKOUT_STAGES = STAGE_ORDER.filter((s) => s !== 'GROUP_STAGE');
@@ -81,9 +86,14 @@ function autoText(v: BonusStore[string] | undefined): string {
 type Tab = 'sluttspill' | 'krydder' | 'nye' | 'oppdater';
 type SaveState = 'idle' | 'saving' | 'ok' | 'error';
 
-/** Et krydderspørsmål med liste-fasit (komma-separert): innbakte q7/q8/q15/q20 + custom list/perItem. */
+/** Et krydderspørsmål med liste-fasit (komma-separert): innbakte q7/q8/q15/q20 + custom list/perItem/match. */
 function isListQuestion(q: BonusQuestion): boolean {
-  return LIST_ANSWER_IDS.has(q.id) || q.scoring === 'list' || q.scoring === 'perItem';
+  return (
+    LIST_ANSWER_IDS.has(q.id) ||
+    q.scoring === 'list' ||
+    q.scoring === 'perItem' ||
+    q.scoring === 'match'
+  );
 }
 
 /** Et krydderspørsmål med poeng-per-element (deltakeren nevner flere): q7/q8 + custom perItem. */
@@ -96,7 +106,20 @@ const SCORING_LABELS: Record<BonusScoring, string> = {
   list: 'Liste – full pott om svaret er i fasit',
   perItem: 'Liste – poeng per korrekt element',
   number: 'Tall ± margin',
+  match: 'Kamp – lag-par (rekkefølge-uavhengig)',
 };
+
+// Auto-utledere for admin-opprettede spørsmål (kobler til API-et; låses når `stage`-runden er ferdig).
+const AUTO_LABELS: Record<CustomAuto, string> = {
+  extraTimeCount: 'Antall kamper til ekstraomganger',
+  redOrPenaltyMatch: 'Kamp m/ rødt kort el. straffe (åpent spill)',
+  fewestGoalsMatch: 'Kamp med færrest mål (90 min)',
+};
+const AUTO_OPTIONS: CustomAuto[] = ['extraTimeCount', 'redOrPenaltyMatch', 'fewestGoalsMatch'];
+/** Poeng-modus (+ ev. margin) som et auto-valg impliserer, så scoringen stemmer med fasit-formen. */
+function scoringForAuto(a: CustomAuto): { scoring: BonusScoring; margin?: number } {
+  return a === 'extraTimeCount' ? { scoring: 'number', margin: 0 } : { scoring: 'match' };
+}
 
 async function copyJson(value: unknown): Promise<boolean> {
   try {
@@ -635,17 +658,17 @@ function BonusTab({
         // Bekreftelse på hva som faktisk er LAGRET som poenggivende (manuell KV overstyrer auto).
         const savedManual = autoText(store[q.id]);
         const counts = savedManual || autoText(autoBonus[q.id]);
-        const overriddenAuto = AUTO_IDS.has(q.id) && savedManual !== '';
-        const showCounts = overriddenAuto || (!AUTO_IDS.has(q.id) && counts !== '');
+        const overriddenAuto = isAutoQuestion(q) && savedManual !== '';
+        const showCounts = overriddenAuto || (!isAutoQuestion(q) && counts !== '');
         return (
         <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 p-3">
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm">
               {q.question}{' '}
               <span
-                className={`text-[10px] ${AUTO_IDS.has(q.id) ? 'text-emerald-400/80' : 'text-amber-400/80'}`}
+                className={`text-[10px] ${isAutoQuestion(q) ? 'text-emerald-400/80' : 'text-amber-400/80'}`}
               >
-                · {AUTO_IDS.has(q.id) ? 'automatisk' : 'manuell'}
+                · {isAutoQuestion(q) ? 'automatisk' : 'manuell'}
               </span>
             </p>
             <span className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[11px] font-semibold text-slate-300">
@@ -656,7 +679,7 @@ function BonusTab({
             value={draft[q.id] ?? ''}
             onChange={(v) => setVal(q.id, v)}
             placeholder={
-              AUTO_IDS.has(q.id)
+              isAutoQuestion(q)
                 ? 'La stå tomt (skriv for å overstyre)'
                 : !isList
                   ? 'Fasit (tom = ikke avgjort)'
@@ -700,7 +723,7 @@ function BonusTab({
           )}
           {/* Valgfri dato-overstyring + «nullstill til auto» (kun når relevant) */}
           {(DATE_OVERRIDE_IDS.has(q.id) ||
-            (AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '')) && (
+            (isAutoQuestion(q) && (draft[q.id] ?? '').trim() !== '')) && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
               {DATE_OVERRIDE_IDS.has(q.id) && (
                 <button
@@ -711,7 +734,7 @@ function BonusTab({
                   {showDate[q.id] ? 'Skjul dato' : '📅 sett dato'}
                 </button>
               )}
-              {AUTO_IDS.has(q.id) && (draft[q.id] ?? '').trim() !== '' && (
+              {isAutoQuestion(q) && (draft[q.id] ?? '').trim() !== '' && (
                 <button
                   type="button"
                   onClick={() => resetToAuto(q.id)}
@@ -773,7 +796,7 @@ function BonusTab({
 
 // --- Tab 3: nye (admin-opprettede) krydderspørsmål -------------------------
 
-const SCORING_OPTIONS: BonusScoring[] = ['exact', 'list', 'perItem', 'number'];
+const SCORING_OPTIONS: BonusScoring[] = ['exact', 'list', 'perItem', 'number', 'match'];
 
 /** Laveste ledige «k»-id (k1, k2 …), så custom-spørsmål aldri kolliderer med q1–q20. */
 function newQuestionId(existing: BonusQuestion[]): string {
@@ -824,6 +847,7 @@ function CustomBonusTab({
   const [perItem, setPerItem] = useState('2');
   const [margin, setMargin] = useState('5');
   const [stage, setStage] = useState<Stage | ''>('');
+  const [auto, setAuto] = useState<CustomAuto | ''>('');
 
   function addQuestion() {
     const q = text.trim();
@@ -840,8 +864,38 @@ function CustomBonusTab({
     if (scoring === 'perItem') nq.perItemPoints = Number(perItem) || max / 2;
     if (scoring === 'number') nq.margin = Number(margin) || 0;
     if (stage) nq.stage = stage;
+    // Auto-valg overstyrer poeng-modus så scoringen stemmer med fasit-formen (tall/kamp).
+    if (auto) {
+      nq.auto = auto;
+      const s = scoringForAuto(auto);
+      nq.scoring = s.scoring;
+      if (s.margin !== undefined) nq.margin = s.margin;
+    }
     setQuestions((qs) => [...qs, nq]);
     setText('');
+    setAuto('');
+    setStatus('idle');
+  }
+
+  // Koble et EKSISTERENDE spørsmål til (eller fra) en auto-utleder. Setter samtidig poeng-modus
+  // så fasit-formen (tall/kamp) stemmer. Brukes til å auto-koble allerede-lagrede k-spørsmål.
+  function setQuestionAuto(id: string, value: CustomAuto | '') {
+    setQuestions((qs) =>
+      qs.map((q) => {
+        if (q.id !== id) return q;
+        const next = { ...q };
+        if (!value) {
+          delete next.auto;
+          return next;
+        }
+        next.auto = value;
+        const s = scoringForAuto(value);
+        next.scoring = s.scoring;
+        if (s.margin !== undefined) next.margin = s.margin;
+        else delete next.margin;
+        return next;
+      }),
+    );
     setStatus('idle');
   }
 
@@ -981,7 +1035,28 @@ function CustomBonusTab({
               ))}
             </select>
           </label>
+          <label className="block min-w-[14rem] flex-1">
+            <span className="mb-1 block text-[11px] text-slate-400">Auto (API) – valgfritt</span>
+            <select
+              value={auto}
+              onChange={(e) => setAuto(e.target.value as CustomAuto | '')}
+              className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+            >
+              <option value="">– manuell –</option>
+              {AUTO_OPTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {AUTO_LABELS[a]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+        {auto && (
+          <p className="text-[11px] text-emerald-400/80">
+            Auto: fasit hentes fra API-et og låses når runden er ferdig – husk å velge{' '}
+            <span className="text-emerald-300">runde</span>. Poeng-type styres av auto-valget.
+          </p>
+        )}
         <button
           type="button"
           onClick={addQuestion}
@@ -1003,11 +1078,36 @@ function CustomBonusTab({
               <span className="text-sm font-medium">{q.question}</span>
               <span className="ml-2 text-[11px] text-slate-500">
                 {q.maxPoints}p · {SCORING_LABELS[q.scoring ?? 'exact'].split(' ')[0]}
-                {q.stage ? ` · ${STAGE_LABELS[q.stage]}` : ''} · {answeredCount(q.id)}/
+                {q.stage ? ` · ${STAGE_LABELS[q.stage]}` : ''}
+                {q.auto ? ' · ⚙ auto' : ''} · {answeredCount(q.id)}/
                 {participants.length} svart
               </span>
             </summary>
             <div className="border-t border-slate-700 px-3 py-2">
+              {/* Auto (API): koble spørsmålet til API-et så fasit fylles/låses automatisk. */}
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-slate-400">Auto (API):</span>
+                <select
+                  value={q.auto ?? ''}
+                  onChange={(e) => setQuestionAuto(q.id, e.target.value as CustomAuto | '')}
+                  className="h-8 rounded-lg border border-slate-700 bg-slate-900 px-2 text-xs text-slate-100"
+                >
+                  <option value="">– manuell –</option>
+                  {AUTO_OPTIONS.map((a) => (
+                    <option key={a} value={a}>
+                      {AUTO_LABELS[a]}
+                    </option>
+                  ))}
+                </select>
+                {q.auto && !q.stage && (
+                  <span className="text-[11px] text-amber-400/90">⚠ velg runde – auto trenger den</span>
+                )}
+                {q.auto && q.stage && (
+                  <span className="text-[11px] text-emerald-400/70">
+                    fasit fra API · låses når {STAGE_LABELS[q.stage].toLowerCase()} er ferdig
+                  </span>
+                )}
+              </div>
               {(q.scoring === 'perItem' || q.scoring === 'list') && (
                 <p className="mb-2 text-[11px] text-slate-500">
                   {q.scoring === 'perItem'

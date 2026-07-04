@@ -228,6 +228,23 @@ export function scoreBonusQuestion(
       }
       return points;
     }
+    if (q.scoring === 'match') {
+      // Svaret er én kamp. Fasit kan være flere kamper (medlemskap). Matches rekkefølge-uavhengig
+      // på lag-par (matchKey), robust mot typoer/varianter – samme som q18/q19.
+      const fasitKeys = new Set(
+        (Array.isArray(q.answer) ? q.answer : [String(q.answer)])
+          .map(matchKey)
+          .filter((k): k is string => k !== null),
+      );
+      if (fasitKeys.size === 0) return points;
+      for (const p of participants) {
+        const tip = tipFor(p);
+        if (!tip) continue;
+        const k = matchKey(bonusAnswerOf(tip)[0] ?? '');
+        if (k && fasitKeys.has(k)) add(p.name, q.maxPoints);
+      }
+      return points;
+    }
     if (q.scoring === 'list' || q.scoring === 'perItem') {
       const actual = new Set(
         (Array.isArray(q.answer) ? q.answer : [String(q.answer)]).map(norm),
