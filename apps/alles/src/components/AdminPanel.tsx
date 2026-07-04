@@ -877,6 +877,12 @@ function CustomBonusTab({
     setStatus('idle');
   }
 
+  // Rediger teksten på et eksisterende spørsmål (custom-spørsmål bor i KV, ikke i koden).
+  function setQuestionText(id: string, value: string) {
+    setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, question: value } : q)));
+    setStatus('idle');
+  }
+
   // Koble et EKSISTERENDE spørsmål til (eller fra) en auto-utleder. Setter samtidig poeng-modus
   // så fasit-formen (tall/kamp) stemmer. Brukes til å auto-koble allerede-lagrede k-spørsmål.
   function setQuestionAuto(id: string, value: CustomAuto | '') {
@@ -1084,6 +1090,15 @@ function CustomBonusTab({
               </span>
             </summary>
             <div className="border-t border-slate-700 px-3 py-2">
+              {/* Rediger spørsmålsteksten (lagres til KV ved «Lagre & publiser»). */}
+              <label className="mb-2 block">
+                <span className="mb-1 block text-[11px] text-slate-400">Spørsmålstekst</span>
+                <TextInput
+                  value={q.question}
+                  onChange={(v) => setQuestionText(q.id, v)}
+                  placeholder="Spørsmålstekst"
+                />
+              </label>
               {/* Auto (API): koble spørsmålet til API-et så fasit fylles/låses automatisk. */}
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] text-slate-400">Auto (API):</span>
