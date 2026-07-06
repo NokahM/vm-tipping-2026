@@ -41,6 +41,10 @@ TEAM_MAP = {
 # Krydderspørsmål som har to svar (string[]).
 TWO_ANSWER_QUESTIONS = {7, 8}
 
+# Krydderspørsmål som eksklusivt gjelder sekstendelsfinalene (R32) – merkes med runde-label
+# (vist som badge i Krydder-lista + admin). Lagt til i datalaget etter q1–q17.
+R32_QUESTIONS = {18, 19, 20}
+
 
 def read_csv(path: Path):
     with path.open(encoding="utf-8-sig", newline="") as f:
@@ -107,12 +111,15 @@ def parse_bonus(rows):
         # Regelvedtak: rødt kort (q7) og selvmål (q8) gir 2p per korrekt lag → maks 4 (2 lag × 2p).
         if qid in ("q7", "q8"):
             max_points = 4
-        questions.append({
+        q = {
             "id": qid,
             "question": cell(r, 1),
             "maxPoints": max_points,
             "two": qnum in TWO_ANSWER_QUESTIONS,
-        })
+        }
+        if qnum in R32_QUESTIONS:
+            q["stage"] = "ROUND_OF_32"
+        questions.append(q)
         nxt = rows[i + 1] if i + 1 < len(rows) else []
         for name, base in participants:
             first = cell(r, base)
@@ -152,9 +159,10 @@ def write_bonus_questions(app_dir: Path, questions):
              "// Fasit settes til null inntil den avgjøres (via admin-panelet).",
              "export const BONUS_QUESTIONS: BonusQuestion[] = ["]
     for q in questions:
+        stage = f", stage: {j(q['stage'])}" if q.get("stage") else ""
         lines.append(
             f"  {{ id: {j(q['id'])}, question: {j(q['question'])}, "
-            f"maxPoints: {q['maxPoints']}, answer: null }},"
+            f"maxPoints: {q['maxPoints']}, answer: null{stage} }},"
         )
     lines += ["];", ""]
     (app_dir / "src" / "data" / "bonusQuestions.ts").write_text("\n".join(lines), encoding="utf-8")
