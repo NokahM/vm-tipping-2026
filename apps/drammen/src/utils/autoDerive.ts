@@ -460,13 +460,21 @@ export function deriveCustomBonus(
 
     if (q.auto === 'redOrPenaltyMatch') {
       // Kamp(er) i runden med rødt kort ELLER straffemål i åpent spill (fra deep data).
-      // Akkumulerende: en kamp som HAR fått det beholder kvalifiseringen → grønn chip er varig.
+      // AKKUMULERENDE (som q7/q8): en kamp som HAR fått rødt kort/straffe beholder
+      // kvalifiseringen for alltid, så settet vokser bare monotont. Derfor scorer vi LØPENDE –
+      // den som tippet en alt-kvalifisert kamp har varig fortjent poengene, selv om runden ikke
+      // er ferdigspilt. Ingen kan miste poeng senere (settet krymper aldri). Datoen settes til
+      // den siste kvalifiserende kampens dag, ikke hele rundens siste dag.
       const reds = stats?.matchReds ?? {};
       const pens = stats?.matchPenaltyGoals ?? {};
       const qualifies = (m: MatchResult) => (reds[m.apiId] ?? 0) > 0 || (pens[m.apiId] ?? 0) > 0;
-      const names = finished.filter(qualifies).map(matchName);
-      if (allDone && stats && (stats.matchReds || stats.matchPenaltyGoals)) {
-        decided[q.id] = { answer: names.length === 1 ? names[0] : names, at };
+      const hits = finished.filter(qualifies);
+      const names = hits.map(matchName);
+      if (names.length && stats && (stats.matchReds || stats.matchPenaltyGoals)) {
+        decided[q.id] = {
+          answer: names.length === 1 ? names[0] : names,
+          at: `${latestDay(hits)}T12:00:00.000Z`,
+        };
       }
       if (names.length) {
         preliminary[q.id] = names.join(', ');
