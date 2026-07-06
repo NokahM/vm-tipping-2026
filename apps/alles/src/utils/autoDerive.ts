@@ -28,6 +28,49 @@ const AFRICAN_NATIONS = [
 ];
 const STAGE_RANK: Record<string, number> = Object.fromEntries(STAGE_ORDER.map((s, i) => [s, i]));
 
+// Sluttspill-runder der en SEIER sender laget videre til neste runde (så det fortsatt kan komme
+// lenger). GROUP_STAGE (videre avgjøres på tabell, ikke seier), THIRD_PLACE og FINAL er terminale.
+const ADVANCING_KO_STAGES = new Set<Stage>([
+  'ROUND_OF_32',
+  'ROUND_OF_16',
+  'QUARTER_FINALS',
+  'SEMI_FINALS',
+]);
+
+/**
+ * Kan laget fortsatt spille flere kamper (og dermed komme lenger)? Brukt til å avgjøre «kommer
+ * lengst»-spørsmålene (q12/q14/q17) så snart INGEN kandidat er «med» lenger – uten å vente på finalen.
+ * «Fortsatt med» hvis laget:
+ *  - har en gjenstående (ikke-FINISHED) kamp, ELLER
+ *  - vant sin siste (høyeste) ferdigspilte sluttspillkamp under finalen → gått videre, men neste slot
+ *    kan ennå stå som TBD (så den kampen bærer ikke lagnavnet ennå).
+ * Et lag som TAPTE en sluttspillkamp er definitivt ute (enkeltcup). Merk: i det korte vinduet mellom
+ * gruppespill-slutt og at R32-slotene fylles kan et videreført gruppelag se «ute» ut – men verdien
+ * regnes live hver gang og retter seg selv når sloten fylles (aldri lagret).
+ */
+function stillContending(team: string, results: MatchResult[]): boolean {
+  let latest: MatchResult | null = null;
+  let latestRank = -1;
+  for (const m of results) {
+    if (m.homeTeam !== team && m.awayTeam !== team) continue;
+    if (m.status !== 'FINISHED') return true; // en kommende/pågående kamp → fortsatt med
+    const rank = STAGE_RANK[m.stage];
+    if (rank == null) continue;
+    if (
+      rank > latestRank ||
+      (latest && rank === latestRank && matchDayKey(m.utcDate) > matchDayKey(latest.utcDate))
+    ) {
+      latestRank = rank;
+      latest = m;
+    }
+  }
+  if (!latest || !ADVANCING_KO_STAGES.has(latest.stage)) return false;
+  return (
+    (latest.winner === 'HOME_TEAM' && latest.homeTeam === team) ||
+    (latest.winner === 'AWAY_TEAM' && latest.awayTeam === team)
+  );
+}
+
 /** Lag i `list` som kom lengst (høyest stage). Likt → alle. `day` = den avgjørende kampdagen. */
 function furthestAmong(list: string[], results: MatchResult[]): { teams: string[]; day: string } | null {
   const set = new Set(list);
@@ -197,13 +240,19 @@ export function deriveDecidedBonus(results: MatchResult[]): BonusStore {
     }
   }
 
-  // q12/q14/q17: «kommer lengst» – avgjøres ved turneringsslutt (finalen ferdig), så vi aldri
-  // låser på et lag som fortsatt kan komme lenger. Likt på toppen → alle (q12/q14).
-  if (final && final.status === 'FINISHED') {
+  // q12/q14/q17: «kommer lengst» – låses så snart INGEN av kandidatene kan spille flere kamper (alle
+  // slått ut), ikke først når finalen er ferdig. Slik gis poeng med en gang det er avgjort (f.eks.
+  // alle øynasjoner ute i R32), men aldri på et lag som fortsatt kan komme lenger. Likt på toppen →
+  // alle (q12/q14: medlemskaps-scoring, alle delte lag gjelder).
+  if (!ISLAND_NATIONS.some((t) => stillContending(t, results))) {
     const isl = furthestAmong(ISLAND_NATIONS, results);
     if (isl) store.q12 = { answer: isl.teams.map(normalizeTeamName), at: `${isl.day}T12:00:00.000Z` };
+  }
+  if (!AFRICAN_NATIONS.some((t) => stillContending(t, results))) {
     const afr = furthestAmong(AFRICAN_NATIONS, results);
     if (afr) store.q14 = { answer: afr.teams.map(normalizeTeamName), at: `${afr.day}T12:00:00.000Z` };
+  }
+  if (!stillContending('Norway', results)) {
     const nor = furthestStageOf('Norway', results);
     if (nor) store.q17 = { answer: STAGE_LABELS[nor.stage], at: `${nor.day}T12:00:00.000Z` };
   }

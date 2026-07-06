@@ -599,7 +599,7 @@ assert('avgjort entry beholdes', decidedOnly({ q1: { answer: 'X', decided: true 
 assert('utkast (decided:false) filtreres bort', decidedOnly({ q1: { answer: 'X', decided: false } }).q1, undefined);
 assert('ren verdi regnes som avgjort', decidedOnly({ q1: 'X' }).q1, 'X');
 
-// 4e) Pulje 2: «kommer lengst» (q12/q14/q17) – låses ved turneringsslutt
+// 4e) Pulje 2: «kommer lengst» (q12/q14/q17) – låses så snart alle kandidatene er slått ut
 console.log('\nderiveDecidedBonus «kommer lengst» (q12/q14/q17):');
 const knockout = [
   mk({ stage: 'FINAL', homeTeam: 'France', awayTeam: 'Brazil', homeGoals: 2, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-19T18:00:00Z' }),
@@ -612,7 +612,29 @@ const dk = deriveDecidedBonus(knockout);
 assert('q12 lengste øynasjon = Japan (QF)', (dk.q12 as { answer: string[] }).answer.join(','), 'Japan');
 assert('q14 lengste afrikanske = Marokko (SF)', (dk.q14 as { answer: string[] }).answer.join(','), 'Marokko');
 assert('q17 Norge = Sekstendelsfinaler', (dk.q17 as { answer: string }).answer, 'Sekstendelsfinaler');
-assert('q12 ikke satt før finalen er ferdig', deriveDecidedBonus([knockout[1]]).q12, undefined);
+
+// Ny regel: låses så snart alle kandidatene er ute – uten å vente på finalen.
+// Alle øynasjoner ute i R32 (tapte) → q12 avgjort nå, begge deler «lengst» (R32).
+const islandsOut = [
+  mk({ stage: 'ROUND_OF_32', homeTeam: 'Japan', awayTeam: 'Spain', homeGoals: 0, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-01T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_32', homeTeam: 'Australia', awayTeam: 'Brazil', homeGoals: 0, awayGoals: 2, status: 'FINISHED', utcDate: '2026-07-02T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_16', homeTeam: 'Argentina', awayTeam: 'Germany', status: 'TIMED', utcDate: '2026-07-06T18:00:00Z' }), // ikke-øynasjon, R16 pågår
+];
+assert('q12 låst når alle øynasjoner ute (uten finale)',
+  (deriveDecidedBonus(islandsOut).q12 as { answer: string[] }).answer.slice().sort().join(','), 'Australia,Japan');
+
+// Fortsatt med: en øynasjon har en gjenstående kamp → q12 ikke avgjort.
+const islandAlive = [
+  mk({ stage: 'ROUND_OF_32', homeTeam: 'Japan', awayTeam: 'Spain', homeGoals: 0, awayGoals: 1, status: 'FINISHED', utcDate: '2026-07-01T18:00:00Z' }),
+  mk({ stage: 'ROUND_OF_16', homeTeam: 'Australia', awayTeam: 'Brazil', status: 'TIMED', utcDate: '2026-07-06T18:00:00Z' }),
+];
+assert('q12 ikke satt mens en øynasjon fortsatt er med', deriveDecidedBonus(islandAlive).q12, undefined);
+
+// Fortsatt med via seier: vant siste sluttspillkamp, neste slot ikke fylt (TBD) → fortsatt med.
+const islandWonWaiting = [
+  mk({ stage: 'ROUND_OF_16', homeTeam: 'Australia', awayTeam: 'Brazil', homeGoals: 1, awayGoals: 0, winner: 'HOME_TEAM', status: 'FINISHED', utcDate: '2026-07-06T18:00:00Z' }),
+];
+assert('q12 ikke satt når øynasjon vant siste kamp (venter på ny slot)', deriveDecidedBonus(islandWonWaiting).q12, undefined);
 // q17-scoring: parseStage robust mot format
 const q17q = BONUS_QUESTIONS.find((q) => q.id === 'q17')!;
 const q17p: Participant[] = [
