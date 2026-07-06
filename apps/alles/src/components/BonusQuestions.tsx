@@ -8,7 +8,7 @@ import {
   type GroupGoalStanding,
 } from '../utils/scoring';
 import { worstTeamSoFar, type GroupRow } from '../utils/groupTables';
-import { STAGE_LABELS } from '../utils/labels';
+import { STAGE_BADGE, STAGE_LABELS } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
 import { spellKey } from '../utils/teamCanon';
 import { wcFrameStyle } from '../utils/wcFrame';
@@ -299,7 +299,9 @@ function BonusRow({
       >
         <div className="min-w-0 flex-1">
           {question.stage && (
-            <span className="mb-1 inline-block rounded-full border border-wc-lavender/40 bg-wc-lavender/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-wc-lavender">
+            <span
+              className={`mb-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STAGE_BADGE[question.stage]}`}
+            >
               {STAGE_LABELS[question.stage]}
             </span>
           )}

@@ -10,6 +10,32 @@ export const STAGE_LABELS: Record<Stage, string> = {
   FINAL: 'Finale',
 };
 
+/**
+ * Farge-triade (kant/bakgrunn/tekst) per runde for krydder-runde-badgen. Distinkte WC-farger så
+ * rundene skilles på et blikk, med økende «temperatur» mot finalen. LITERAL klasse-strenger –
+ * Tailwind skanner denne fila og må se hele klassenavnet (ingen dynamisk `wc-${x}`-bygging).
+ */
+export const STAGE_BADGE: Record<Stage, string> = {
+  GROUP_STAGE: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
+  ROUND_OF_32: 'border-wc-mint/40 bg-wc-mint/15 text-wc-mint',
+  ROUND_OF_16: 'border-wc-lavender/40 bg-wc-lavender/15 text-wc-lavender',
+  QUARTER_FINALS: 'border-wc-lime/40 bg-wc-lime/15 text-wc-lime',
+  SEMI_FINALS: 'border-wc-orange/40 bg-wc-orange/15 text-wc-orange',
+  THIRD_PLACE: 'border-wc-yellow/40 bg-wc-yellow/15 text-wc-yellow',
+  FINAL: 'border-wc-red/40 bg-wc-red/15 text-wc-red',
+};
+
+/** Kun tekstfargen per runde – admin sin kompakte inline-etikett (samme farger som badgen). */
+export const STAGE_TEXT: Record<Stage, string> = {
+  GROUP_STAGE: 'text-slate-300',
+  ROUND_OF_32: 'text-wc-mint',
+  ROUND_OF_16: 'text-wc-lavender',
+  QUARTER_FINALS: 'text-wc-lime',
+  SEMI_FINALS: 'text-wc-orange',
+  THIRD_PLACE: 'text-wc-yellow',
+  FINAL: 'text-wc-red',
+};
+
 /** Rekkefølge for visning av runder. */
 export const STAGE_ORDER: Stage[] = [
   'GROUP_STAGE',

@@ -9,7 +9,7 @@ import type {
   Stage,
 } from '../types';
 import { APP_CONFIG } from '../config';
-import { STAGE_LABELS, STAGE_ORDER, formatKickoff } from '../utils/labels';
+import { STAGE_LABELS, STAGE_ORDER, STAGE_TEXT, formatKickoff } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
 import {
   bonusAnswerOf,
@@ -679,7 +679,7 @@ function BonusTab({
             <p className="text-sm">
               {q.question}{' '}
               {q.stage && (
-                <span className="text-[10px] text-wc-lavender">· {STAGE_LABELS[q.stage]} </span>
+                <span className={`text-[10px] ${STAGE_TEXT[q.stage]}`}>· {STAGE_LABELS[q.stage]} </span>
               )}
               <span
                 className={`text-[10px] ${isAutoQuestion(q) ? 'text-emerald-400/80' : 'text-amber-400/80'}`}
