@@ -678,6 +678,9 @@ function BonusTab({
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm">
               {q.question}{' '}
+              {q.stage && (
+                <span className="text-[10px] text-wc-lavender">· {STAGE_LABELS[q.stage]} </span>
+              )}
               <span
                 className={`text-[10px] ${isAutoQuestion(q) ? 'text-emerald-400/80' : 'text-amber-400/80'}`}
               >

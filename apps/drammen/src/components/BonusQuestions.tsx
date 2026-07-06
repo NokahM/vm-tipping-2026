@@ -8,6 +8,7 @@ import {
   type GroupGoalStanding,
 } from '../utils/scoring';
 import { worstTeamSoFar, type GroupRow } from '../utils/groupTables';
+import { STAGE_LABELS } from '../utils/labels';
 import { normalizeTeamName } from '../utils/teamNames';
 import { spellKey } from '../utils/teamCanon';
 import { wcFrameStyle } from '../utils/wcFrame';
@@ -297,6 +298,11 @@ function BonusRow({
         aria-expanded={open}
       >
         <div className="min-w-0 flex-1">
+          {question.stage && (
+            <span className="mb-1 inline-block rounded-full border border-wc-lavender/40 bg-wc-lavender/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-wc-lavender">
+              {STAGE_LABELS[question.stage]}
+            </span>
+          )}
           <p className="text-sm text-slate-100">{question.question}</p>
           {hasFasit ? (
             <p className="mt-0.5 text-xs text-emerald-400">
