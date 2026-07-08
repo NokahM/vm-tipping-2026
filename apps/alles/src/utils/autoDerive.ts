@@ -547,6 +547,74 @@ export function deriveCustomBonus(
       }
       continue;
     }
+
+    if (q.auto === 'cardedPlayers') {
+      // Spillere som får kort (alle korttyper) i runden. AKKUMULERENDE (som redOrPenaltyMatch):
+      // et utdelt kort står for alltid, så fasit-lista vokser bare monotont og scorer LØPENDE.
+      // Fasit inkluderer både fullt navn og etternavn (deltakerne skriver ofte bare etternavn).
+      const byMatch = stats?.matchCardedPlayers;
+      if (!byMatch) continue;
+      const hits = finished.filter((m) => (byMatch[m.apiId] ?? []).length > 0);
+      const full = [...new Set(finished.flatMap((m) => byMatch[m.apiId] ?? []))];
+      if (full.length) {
+        const answer = [...new Set(full.flatMap((n) => [n, lastName(n)]))];
+        // Dato per spiller (og etternavn-variant): dagen for rundens første kamp med kortet.
+        const ats: Record<string, string> = {};
+        for (const m of finished) {
+          const iso = noon(m.utcDate);
+          for (const n of byMatch[m.apiId] ?? []) {
+            for (const v of [n, lastName(n)]) if (!ats[v] || iso < ats[v]) ats[v] = iso;
+          }
+        }
+        decided[q.id] = { answer, ats, at: `${latestDay(hits)}T12:00:00.000Z` };
+        preliminary[q.id] = full.join(', ');
+        provisional[q.id] = answer;
+      } else if (!allDone) {
+        preliminary[q.id] = 'ingen kort ennå';
+      }
+      continue;
+    }
+
+    if (q.auto === 'earliestGoalMatch') {
+      // Kamp(er) med rundens tidligste mål (lavest minutt; API-et mangler sekunder → likhet
+      // mulig, alle gjelder). Kan slås av senere kamper → låses først når runden er ferdigspilt,
+      // og kun når deep data dekker alle kampene (nøkkelen finnes for alle cachede kamper).
+      const fg = stats?.matchFirstGoal;
+      if (!fg) continue;
+      const withGoal = finished.filter((m) => fg[m.apiId] != null);
+      if (!withGoal.length) {
+        if (!allDone) preliminary[q.id] = 'ingen mål ennå';
+        continue;
+      }
+      const min = Math.min(...withGoal.map((m) => fg[m.apiId] as number));
+      const names = withGoal.filter((m) => fg[m.apiId] === min).map(matchName);
+      const covered = finished.every((m) => m.apiId in fg);
+      if (allDone && covered) {
+        decided[q.id] = { answer: names.length === 1 ? names[0] : names, at };
+      }
+      preliminary[q.id] = `${names.join(', ')} (${min}')${allDone ? '' : ' – kan slås'}`;
+      provisional[q.id] = names;
+      continue;
+    }
+
+    if (q.auto === 'penaltyShootoutYesNo') {
+      // «Ja» i det øyeblikket en kamp i runden går til straffekonk (kan aldri omgjøres, så det
+      // låses og scores umiddelbart, datert til den første straffekonk-kampens dag). «Nei» kan
+      // først låses når hele runden er ferdigspilt. Fra bulk-resultatene (duration) – trenger
+      // ikke deep data. Ingen provisional: grønn «Nei»-chip underveis ville lovet for mye.
+      const pens = finished.filter((m) => m.duration === 'PENALTY_SHOOTOUT');
+      if (pens.length) {
+        const firstIso = pens.map((m) => noon(m.utcDate)).reduce((a, b) => (a < b ? a : b));
+        decided[q.id] = { answer: 'Ja', at: firstIso };
+        preliminary[q.id] = 'Ja';
+      } else if (allDone) {
+        decided[q.id] = { answer: 'Nei', at };
+        preliminary[q.id] = 'Nei';
+      } else {
+        preliminary[q.id] = `Nei så langt (${finished.length}/${inStage.length} spilt)`;
+      }
+      continue;
+    }
   }
 
   return { decided, preliminary, provisional };

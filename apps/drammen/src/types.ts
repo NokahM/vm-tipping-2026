@@ -79,8 +79,17 @@ export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number' | 'match';
  * - `extraTimeCount`    = antall kamper i runden som gikk til ekstraomganger/straffekonk (tall)
  * - `redOrPenaltyMatch` = kamp(er) i runden med rødt kort ELLER straffemål i åpent spill (match)
  * - `fewestGoalsMatch`  = kamp(er) i runden med færrest mål etter 90 min (match)
+ * - `cardedPlayers`     = spillere som får kort (alle korttyper) i runden (perItem)
+ * - `earliestGoalMatch` = kamp(er) i runden med det tidligste målet (match)
+ * - `penaltyShootoutYesNo` = «Ja»/«Nei»: går noen kamp i runden til straffekonk (exact)
  */
-export type CustomAuto = 'extraTimeCount' | 'redOrPenaltyMatch' | 'fewestGoalsMatch';
+export type CustomAuto =
+  | 'extraTimeCount'
+  | 'redOrPenaltyMatch'
+  | 'fewestGoalsMatch'
+  | 'cardedPlayers'
+  | 'earliestGoalMatch'
+  | 'penaltyShootoutYesNo';
 
 export interface BonusQuestion {
   id: string;

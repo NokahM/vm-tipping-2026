@@ -157,6 +157,18 @@ function bonusAnswerOf(tip: BonusTip): string[] {
   return Array.isArray(tip.answer) ? tip.answer : [tip.answer];
 }
 
+/**
+ * Elementene i et per-element-tips. Custom-tips (admin-grid/Importer) lagres som rå streng
+ * («Haaland, Bellingham») – splitt på komma så hvert navn teller hver for seg. Innbakte
+ * q7/q8/q20-tips er ferdige arrays fra generatoren og passerer uendret.
+ */
+function bonusItemsOf(tip: BonusTip): string[] {
+  return bonusAnswerOf(tip)
+    .flatMap((a) => a.split(','))
+    .map((a) => a.trim())
+    .filter(Boolean);
+}
+
 // Liste-fasit-spørsmål der deltakeren nevner FLERE og får poeng per korrekt (maxPoints/2 per lag).
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
@@ -255,7 +267,7 @@ export function scoreBonusQuestion(
           const tip = tipFor(p);
           if (!tip) continue;
           // Distinkte korrekte (dedup mot dobbelt-nevning), som PER_ITEM_IDS-grenen.
-          const mine = new Set(bonusAnswerOf(tip).map(norm));
+          const mine = new Set(bonusItemsOf(tip).map(norm));
           const hits = [...actual].filter((a) => mine.has(a)).length;
           if (hits > 0) add(p.name, Math.min(hits * per, q.maxPoints));
         }
@@ -360,7 +372,7 @@ export function scoreBonusQuestion(
       for (const p of participants) {
         const tip = tipFor(p);
         if (!tip) continue;
-        const mine = new Set(bonusAnswerOf(tip).map(norm));
+        const mine = new Set(bonusItemsOf(tip).map(norm));
         const hits = [...actual].filter((a) => mine.has(a)).length;
         if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
       }

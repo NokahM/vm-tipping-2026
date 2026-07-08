@@ -532,6 +532,53 @@ assert('k1 foreløpig hint finnes underveis', typeof cbPartial.preliminary.k1, '
 // k2 låses ikke uten deep data (matchReds/matchPenaltyGoals mangler).
 assert('k2 ikke låst uten stats', deriveCustomBonus([k1, k2, k3], null, r16).decided.k2, undefined);
 
+// 4c3c) Nye custom-autoer (QF): cardedPlayers (perItem) + earliestGoalMatch + penaltyShootoutYesNo.
+console.log('\nderiveCustomBonus (QF: kort-spillere, tidligste mål, straffekonk):');
+const k4: BonusQuestion = { id: 'k4', question: '', maxPoints: 4, answer: null, scoring: 'perItem', perItemPoints: 2, stage: 'QUARTER_FINALS', auto: 'cardedPlayers', custom: true };
+const k5: BonusQuestion = { id: 'k5', question: '', maxPoints: 2, answer: null, scoring: 'match', stage: 'QUARTER_FINALS', auto: 'earliestGoalMatch', custom: true };
+const k6: BonusQuestion = { id: 'k6', question: '', maxPoints: 2, answer: null, scoring: 'exact', stage: 'QUARTER_FINALS', auto: 'penaltyShootoutYesNo', custom: true };
+const qf = [
+  mk({ stage: 'QUARTER_FINALS', apiId: 201, homeTeam: 'France', awayTeam: 'Morocco', homeGoals: 1, awayGoals: 0, duration: 'REGULAR', status: 'FINISHED', utcDate: '2026-07-09T20:00:00Z' }),
+  mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', homeGoals: 1, awayGoals: 1, duration: 'PENALTY_SHOOTOUT', status: 'FINISHED', utcDate: '2026-07-11T21:00:00Z' }),
+];
+const qfStats = {
+  ...baseStats,
+  matchCardedPlayers: { 201: ['Erling Haaland'], 202: ['Jude Bellingham'] },
+  matchFirstGoal: { 201: 23, 202: 12 },
+};
+const qcb = deriveCustomBonus([k4, k5, k6], qfStats, qf);
+assert('k4 fasit = fulle navn + etternavn', (qcb.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland', 'Jude Bellingham', 'Bellingham']);
+assert('k5 = kamp m/ tidligste mål (12. min)', (qcb.decided.k5 as { answer: string }).answer, 'Norge - England');
+assert('k6 = Ja (straffekonk i runden)', (qcb.decided.k6 as { answer: string }).answer, 'Ja');
+
+// perItem-scoring mot k4-fasiten: etternavn holder; maks-taket capper.
+const k4Scored: BonusQuestion = { ...k4, answer: (qcb.decided.k4 as { answer: string[] }).answer };
+const k4Parts: Participant[] = [
+  { name: 'En', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: ['Haaland', 'Ødegaard'] }] },
+  { name: 'To', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: ['Haaland', 'Bellingham'] }] },
+];
+assert('k4: 1 av 2 riktig = 2p', scoreBonusQuestion(k4Parts, k4Scored).get('En'), 2);
+assert('k4: 2 av 2 riktig = 4p (maks)', scoreBonusQuestion(k4Parts, k4Scored).get('To'), 4);
+// Custom-tips lagres som RÅ komma-streng (admin-grid/Importer) – må splittes per navn.
+const k4Raw: Participant[] = [
+  { name: 'Rå', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: 'Haaland, Bellingham' }] },
+];
+assert('k4: komma-streng-tips splittes = 4p', scoreBonusQuestion(k4Raw, k4Scored).get('Rå'), 4);
+
+// Underveis (én kamp igjen): k4 scorer løpende (akkumulerende), k5 låses ikke, «Nei» låses ikke.
+const qfPartial = [qf[0], mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', status: 'TIMED', utcDate: '2026-07-11T21:00:00Z' })];
+const qcbP = deriveCustomBonus([k4, k5, k6], qfStats, qfPartial);
+assert('k4 scorer løpende (kort i kamp 1)', (qcbP.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland']);
+assert('k5 ikke låst før runden er ferdig', qcbP.decided.k5, undefined);
+assert('k6 «Nei» låses ikke underveis', qcbP.decided.k6, undefined);
+// … men «Ja» låses umiddelbart når en straffekonk HAR skjedd (kan aldri omgjøres).
+const qfPen = [qf[1], mk({ stage: 'QUARTER_FINALS', apiId: 201, homeTeam: 'France', awayTeam: 'Morocco', status: 'TIMED', utcDate: '2026-07-09T20:00:00Z' })];
+assert('k6 «Ja» låses umiddelbart underveis', (deriveCustomBonus([k6], qfStats, qfPen).decided.k6 as { answer: string }).answer, 'Ja');
+// k4/k5 låses ikke uten deep data (matchCardedPlayers/matchFirstGoal mangler).
+const qcbNoStats = deriveCustomBonus([k4, k5, k6], null, qf);
+assert('k4 ikke låst uten stats', qcbNoStats.decided.k4, undefined);
+assert('k5 ikke låst uten stats', qcbNoStats.decided.k5, undefined);
+
 // 4c4) Ekstraomganger/straffer: straffemål teller ALDRI som resultat/i målstatistikk; tips
 // scores mot 90-min-resultatet; ekstraomgangsmål teller.
 console.log('\nEkstraomganger/straffer (straffemål teller ikke):');

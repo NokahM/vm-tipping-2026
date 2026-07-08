@@ -2,34 +2,34 @@
   "bonusQuestions": [
     {
       "id": "k4",
-      "question": "Hvor mange av kvartfinalene går til ekstraomganger?",
-      "maxPoints": 2,
+      "question": "Nevn to spillere som får kort.",
+      "maxPoints": 4,
       "answer": null,
-      "scoring": "number",
+      "scoring": "perItem",
+      "perItemPoints": 2,
       "custom": true,
       "stage": "QUARTER_FINALS",
-      "margin": 0,
-      "auto": "extraTimeCount"
+      "auto": "cardedPlayers"
     },
     {
       "id": "k5",
-      "question": "Skriv en kvartfinale hvor vi får enten et rødt kort, eller en straffescoring.",
+      "question": "I hvilken kamp scores det tidligste målet?",
       "maxPoints": 2,
       "answer": null,
       "scoring": "match",
       "custom": true,
       "stage": "QUARTER_FINALS",
-      "auto": "redOrPenaltyMatch"
+      "auto": "earliestGoalMatch"
     },
     {
       "id": "k6",
-      "question": "I hvilken kamp blir det scoret færrest mål?",
+      "question": "Får vi straffekonk i kvartfinalene? (Ja/Nei)",
       "maxPoints": 2,
       "answer": null,
-      "scoring": "match",
+      "scoring": "exact",
       "custom": true,
       "stage": "QUARTER_FINALS",
-      "auto": "fewestGoalsMatch"
+      "auto": "penaltyShootoutYesNo"
     }
   ]
 }

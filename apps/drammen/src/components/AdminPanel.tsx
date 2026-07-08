@@ -114,11 +114,28 @@ const AUTO_LABELS: Record<CustomAuto, string> = {
   extraTimeCount: 'Antall kamper til ekstraomganger',
   redOrPenaltyMatch: 'Kamp m/ rødt kort el. straffe (åpent spill)',
   fewestGoalsMatch: 'Kamp med færrest mål (90 min)',
+  cardedPlayers: 'Spillere som får kort (poeng per spiller)',
+  earliestGoalMatch: 'Kamp med tidligste mål',
+  penaltyShootoutYesNo: 'Straffekonk i runden? (Ja/Nei)',
 };
-const AUTO_OPTIONS: CustomAuto[] = ['extraTimeCount', 'redOrPenaltyMatch', 'fewestGoalsMatch'];
-/** Poeng-modus (+ ev. margin) som et auto-valg impliserer, så scoringen stemmer med fasit-formen. */
-function scoringForAuto(a: CustomAuto): { scoring: BonusScoring; margin?: number } {
-  return a === 'extraTimeCount' ? { scoring: 'number', margin: 0 } : { scoring: 'match' };
+const AUTO_OPTIONS: CustomAuto[] = [
+  'extraTimeCount',
+  'redOrPenaltyMatch',
+  'fewestGoalsMatch',
+  'cardedPlayers',
+  'earliestGoalMatch',
+  'penaltyShootoutYesNo',
+];
+/** Poeng-modus (+ ev. margin/per-element) som et auto-valg impliserer, så scoringen stemmer med fasit-formen. */
+function scoringForAuto(a: CustomAuto): {
+  scoring: BonusScoring;
+  margin?: number;
+  perItemPoints?: number;
+} {
+  if (a === 'extraTimeCount') return { scoring: 'number', margin: 0 };
+  if (a === 'cardedPlayers') return { scoring: 'perItem', perItemPoints: 2 };
+  if (a === 'penaltyShootoutYesNo') return { scoring: 'exact' };
+  return { scoring: 'match' };
 }
 
 async function copyJson(value: unknown): Promise<boolean> {
@@ -886,6 +903,7 @@ function CustomBonusTab({
       const s = scoringForAuto(auto);
       nq.scoring = s.scoring;
       if (s.margin !== undefined) nq.margin = s.margin;
+      if (s.perItemPoints !== undefined) nq.perItemPoints = s.perItemPoints;
     }
     setQuestions((qs) => [...qs, nq]);
     setText('');
@@ -915,6 +933,8 @@ function CustomBonusTab({
         next.scoring = s.scoring;
         if (s.margin !== undefined) next.margin = s.margin;
         else delete next.margin;
+        if (s.perItemPoints !== undefined) next.perItemPoints = s.perItemPoints;
+        else delete next.perItemPoints;
         return next;
       }),
     );
