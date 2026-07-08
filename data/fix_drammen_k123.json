@@ -1,0 +1,35 @@
+{
+  "bonusQuestions": [
+    {
+      "id": "k1",
+      "question": "Hvor mange av åttedelsfinalene går til ekstraomganger?",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "number",
+      "custom": true,
+      "stage": "ROUND_OF_16",
+      "margin": 0,
+      "auto": "extraTimeCount"
+    },
+    {
+      "id": "k2",
+      "question": "Skriv en åttendelsfinale hvor vi får enten et rødt kort, eller en straffescoring.",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "match",
+      "custom": true,
+      "stage": "ROUND_OF_16",
+      "auto": "redOrPenaltyMatch"
+    },
+    {
+      "id": "k3",
+      "question": "I hvilken kamp blir det scoret færrest mål?",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "match",
+      "custom": true,
+      "stage": "ROUND_OF_16",
+      "auto": "fewestGoalsMatch"
+    }
+  ]
+}
