@@ -1217,7 +1217,11 @@ function ImporterTab({
   const [summary, setSummary] = useState('');
 
   async function run() {
-    let data: { knockoutTips?: KnockoutStore; bonusTips?: CustomTipStore };
+    let data: {
+      knockoutTips?: KnockoutStore;
+      bonusQuestions?: CustomQuestionStore;
+      bonusTips?: CustomTipStore;
+    };
     try {
       data = JSON.parse(text);
     } catch {
@@ -1225,14 +1229,15 @@ function ImporterTab({
       setMsg('Ugyldig JSON – sjekk at hele blobben ble limt inn.');
       return;
     }
-    if (!data || (!data.knockoutTips && !data.bonusTips)) {
+    if (!data || (!data.knockoutTips && !data.bonusQuestions && !data.bonusTips)) {
       setStatus('error');
-      setMsg('Fant verken «knockoutTips» eller «bonusTips» i JSON-en.');
+      setMsg('Fant verken «knockoutTips», «bonusQuestions» eller «bonusTips» i JSON-en.');
       return;
     }
     setStatus('saving');
     setMsg('');
     let knockN = 0;
+    let questionN = 0;
     let bonusN = 0;
 
     if (data.knockoutTips) {
@@ -1253,32 +1258,50 @@ function ImporterTab({
       }
     }
 
-    if (data.bonusTips) {
-      const merged: CustomTipStore = { ...customTips };
-      for (const [name, byQ] of Object.entries(data.bonusTips)) {
-        merged[name] = { ...(merged[name] ?? {}), ...byQ };
-        bonusN += Object.keys(byQ).length;
+    if (data.bonusQuestions || data.bonusTips) {
+      // Spørsmål flettes per id – importert vinner (slik kan f.eks. auto/scoring på et
+      // eksisterende spørsmål rettes), nye id-er legges til bakerst.
+      let mergedQs: CustomQuestionStore = customQuestions;
+      if (data.bonusQuestions) {
+        const imported = data.bonusQuestions;
+        mergedQs = customQuestions.map((q) => imported.find((n) => n.id === q.id) ?? q);
+        for (const n of imported) {
+          if (!mergedQs.some((q) => q.id === n.id)) mergedQs = [...mergedQs, n];
+        }
+        questionN = imported.length;
       }
-      const r = await onSaveCustom(customQuestions, merged, password);
+      const mergedTips: CustomTipStore = { ...customTips };
+      if (data.bonusTips) {
+        for (const [name, byQ] of Object.entries(data.bonusTips)) {
+          mergedTips[name] = { ...(mergedTips[name] ?? {}), ...byQ };
+          bonusN += Object.keys(byQ).length;
+        }
+      }
+      const r = await onSaveCustom(mergedQs, mergedTips, password);
       if (!r.ok) {
         setStatus('error');
-        setMsg(r.error ?? 'Feil ved lagring av krydder-tips.');
+        setMsg(r.error ?? 'Feil ved lagring av krydder-spørsmål/-svar.');
         return;
       }
     }
 
     setStatus('ok');
-    setSummary(`Importert: ${knockN} sluttspill-tips + ${bonusN} krydder-svar (flettet inn).`);
+    setSummary(
+      `Importert: ${knockN} sluttspill-tips + ${questionN} spørsmål + ${bonusN} krydder-svar (flettet inn).`,
+    );
   }
 
   return (
     <div className="space-y-4">
       <p className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[11px] text-slate-400">
         Lim inn en JSON-blob på formen{' '}
-        <code className="text-slate-300">{'{ "knockoutTips": {…}, "bonusTips": {…} }'}</code> for å
-        legge inn mange deltakeres tips på én gang. Data <span className="text-slate-300">flettes
-        inn</span> i det som alt ligger (per kamp / per spørsmål – eksisterende tips forsvinner
-        aldri), og publiseres rett til alle. Deltakernavn må matche appens navn eksakt.
+        <code className="text-slate-300">
+          {'{ "knockoutTips": {…}, "bonusQuestions": […], "bonusTips": {…} }'}
+        </code>{' '}
+        for å legge inn mange deltakeres tips på én gang. Data{' '}
+        <span className="text-slate-300">flettes inn</span> i det som alt ligger (per kamp / per
+        spørsmål – eksisterende tips forsvinner aldri; et importert spørsmål med kjent id erstatter
+        definisjonen), og publiseres rett til alle. Deltakernavn må matche appens navn eksakt.
       </p>
       <textarea
         value={text}
