@@ -565,6 +565,22 @@ const k4Raw: Participant[] = [
 ];
 assert('k4: komma-streng-tips splittes = 4p', scoreBonusQuestion(k4Raw, k4Scored).get('Rå'), 4);
 
+// Skrivefeil-toleranse (bonusItemMatches): å/aa- og ø-varianter + maks én bokstav feil for
+// navn ≥ 5 tegn; korte navn krever eksakt nøkkel («Kane» treffer aldri «Kante»).
+const k4Typo: Participant[] = [
+  { name: 'Typo', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: 'Håland, Bellingam' }] },
+  { name: 'Kort', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: 'Kane' }] },
+];
+const k4Kante: BonusQuestion = { ...k4, answer: ['Kante', 'Haaland', 'Bellingham'] };
+assert('k4: «Håland» + «Bellingam» (skrivefeil) = 4p', scoreBonusQuestion(k4Typo, k4Scored).get('Typo'), 4);
+assert('k4: «Kane» treffer ikke «Kante» (kort navn) = 0p', scoreBonusQuestion(k4Typo, k4Kante).get('Kort') ?? 0, 0);
+// q15-style liste (kjendis): fuzzy medlemskap.
+const q15ish: BonusQuestion = { id: 'q15', question: '', maxPoints: 3, answer: ['Sean Connery', 'Dolly Parton'] };
+const q15Parts: Participant[] = [
+  { name: 'Nesten', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'q15', answer: 'Dolly Partton' }] },
+];
+assert('q15: «Dolly Partton» treffer fasit = 3p', scoreBonusQuestion(q15Parts, q15ish).get('Nesten'), 3);
+
 // Underveis (én kamp igjen): k4 scorer løpende (akkumulerende), k5 låses ikke, «Nei» låses ikke.
 const qfPartial = [qf[0], mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', status: 'TIMED', utcDate: '2026-07-11T21:00:00Z' })];
 const qcbP = deriveCustomBonus([k4, k5, k6], qfStats, qfPartial);

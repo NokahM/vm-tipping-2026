@@ -169,6 +169,52 @@ function bonusItemsOf(tip: BonusTip): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Feilstavings-tolerant nøkkel for liste-elementer (spillere/lag/kjendiser): spellKey
+ * (diakritikk-strippet), ø/æ → o/ae (NFD dekomponerer ikke bokstav-med-strek), kun a-z,
+ * dobbeltbokstaver kollapset – «Haaland», «Håland» og «haland» gir alle «haland».
+ */
+function itemKey(s: string): string {
+  return norm(s.replace(/ø/g, 'o').replace(/Ø/g, 'O').replace(/æ/g, 'ae').replace(/Æ/g, 'AE'))
+    .replace(/[^a-z]/g, '')
+    .replace(/(.)\1+/g, '$1');
+}
+
+/** Levenshtein-avstand ≤ 1 (maks én substitusjon/innsetting/sletting)? */
+function withinOneEdit(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      i++;
+      j++;
+      continue;
+    }
+    if (++edits > 1) return false;
+    if (a.length === b.length) {
+      i++;
+      j++;
+    } else if (a.length > b.length) i++;
+    else j++;
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
+}
+
+/**
+ * Matcher et deltaker-element mot et fasit-element med skrivefeil-toleranse: lik nøkkel,
+ * eller maks én bokstav feil for navn på ≥ 5 tegn («Bellingam» treffer «Bellingham»).
+ * Korte navn krever eksakt nøkkel, så «Kane» aldri treffer «Kante».
+ */
+export function bonusItemMatches(fasitItem: string, answer: string): boolean {
+  const a = itemKey(fasitItem);
+  const b = itemKey(answer);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return Math.min(a.length, b.length) >= 5 && withinOneEdit(a, b);
+}
+
 // Liste-fasit-spørsmål der deltakeren nevner FLERE og får poeng per korrekt (maxPoints/2 per lag).
 // Andre liste-fasit-spørsmål (f.eks. q15 kjendis) gir full pott hvis deltakerens ene svar er i lista.
 const PER_TEAM_IDS = new Set(['q7', 'q8']);
@@ -258,24 +304,25 @@ export function scoreBonusQuestion(
       return points;
     }
     if (q.scoring === 'list' || q.scoring === 'perItem') {
-      const actual = new Set(
-        (Array.isArray(q.answer) ? q.answer : [String(q.answer)]).map(norm),
-      );
+      const fasitItems = Array.isArray(q.answer) ? q.answer : [String(q.answer)];
       if (q.scoring === 'perItem') {
         const per = q.perItemPoints ?? q.maxPoints / 2;
         for (const p of participants) {
           const tip = tipFor(p);
           if (!tip) continue;
-          // Distinkte korrekte (dedup mot dobbelt-nevning), som PER_ITEM_IDS-grenen.
-          const mine = new Set(bonusItemsOf(tip).map(norm));
-          const hits = [...actual].filter((a) => mine.has(a)).length;
+          // Distinkte korrekte telles over FASIT-elementene (dedup mot dobbelt-nevning),
+          // som PER_ITEM_IDS-grenen – med skrivefeil-toleranse per element.
+          const mine = bonusItemsOf(tip);
+          const hits = fasitItems.filter((f) => mine.some((m) => bonusItemMatches(f, m))).length;
           if (hits > 0) add(p.name, Math.min(hits * per, q.maxPoints));
         }
       } else {
         for (const p of participants) {
           const tip = tipFor(p);
           if (!tip) continue;
-          if (bonusAnswerOf(tip).some((a) => actual.has(norm(a)))) add(p.name, q.maxPoints);
+          if (bonusAnswerOf(tip).some((a) => fasitItems.some((f) => bonusItemMatches(f, a)))) {
+            add(p.name, q.maxPoints);
+          }
         }
       }
       return points;
@@ -364,7 +411,7 @@ export function scoreBonusQuestion(
   }
 
   if (Array.isArray(q.answer)) {
-    const actual = new Set(q.answer.map(norm));
+    const fasitItems = q.answer;
     if (PER_ITEM_IDS.has(q.id)) {
       // q7/q8/q20: deltakerne nevner 2 (lag/spillere), hvert korrekt er verdt maxPoints/2 (maks 4).
       // Teller DISTINKTE korrekte (samme navn nevnt to ganger gir ikke dobbelt) – i tråd med breakdownen.
@@ -372,8 +419,8 @@ export function scoreBonusQuestion(
       for (const p of participants) {
         const tip = tipFor(p);
         if (!tip) continue;
-        const mine = new Set(bonusItemsOf(tip).map(norm));
-        const hits = [...actual].filter((a) => mine.has(a)).length;
+        const mine = bonusItemsOf(tip);
+        const hits = fasitItems.filter((f) => mine.some((m) => bonusItemMatches(f, m))).length;
         if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
       }
     } else {
@@ -381,7 +428,9 @@ export function scoreBonusQuestion(
       for (const p of participants) {
         const tip = tipFor(p);
         if (!tip) continue;
-        if (bonusAnswerOf(tip).some((a) => actual.has(norm(a)))) add(p.name, q.maxPoints);
+        if (bonusAnswerOf(tip).some((a) => fasitItems.some((f) => bonusItemMatches(f, a)))) {
+          add(p.name, q.maxPoints);
+        }
       }
     }
     return points;
@@ -665,8 +714,8 @@ export function participantBreakdown(
 
     // q7/q8 i kronologisk modus: én chip per nevnt lag, hver rett etter sin egen kamp.
     if (bonusInfo && tip && PER_TEAM_IDS.has(q.id) && Array.isArray(q.answer)) {
-      const mine = new Set(bonusAnswerOf(tip).map(norm));
-      const relevant = q.answer.filter((ae) => mine.has(norm(ae)));
+      const mine = bonusItemsOf(tip);
+      const relevant = q.answer.filter((ae) => mine.some((m) => bonusItemMatches(ae, m)));
       const perTeam = q.maxPoints / 2;
       for (const team of relevant) {
         const day = decidedDay(q, [team]);
@@ -683,9 +732,11 @@ export function participantBreakdown(
     let answer = tip ? (Array.isArray(tip.answer) ? tip.answer.join(' + ') : tip.answer) : '';
     let relevant: string[] | null = null;
     if (tip && Array.isArray(q.answer)) {
-      const mine = new Set(bonusAnswerOf(tip).map(norm));
-      relevant = q.answer.filter((ae) => mine.has(norm(ae)));
-      if (PER_ITEM_IDS.has(q.id) && relevant.length) answer = relevant.join(' + ');
+      const mine = bonusItemsOf(tip);
+      relevant = q.answer.filter((ae) => mine.some((m) => bonusItemMatches(ae, m)));
+      if ((PER_ITEM_IDS.has(q.id) || q.scoring === 'perItem') && relevant.length) {
+        answer = relevant.join(' + ');
+      }
     }
     const day = decidedDay(q, relevant);
     // Lag-knyttet krydder (q16) plasseres rett etter sin egen kamp («~»); ellers sist på dagen.
