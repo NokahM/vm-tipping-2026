@@ -72,6 +72,43 @@ def norm_team(s: str) -> str:
     return ''.join(ch for ch in s.casefold() if ch.isalnum())
 
 
+# --- Spillernavn (--players): normaliser til kanonisk ETTERNAVN slik siden viser dem ---
+
+# Etternavns-partikler som beholdes («Kevin De Bruyne» → «De Bruyne»).
+PLAYER_PARTICLES = {'de', 'van', 'der', 'den', 'di', 'da', 'la', 'le', 'el', 'dos', 'del'}
+
+# Diakritisk-strippet nøkkel → kanonisk etternavn slik API-et staver det (matcher auto-fasiten).
+# Fanger norsk stavemåte («Håland» → Haaland). Utvid ved behov når nye varianter dukker opp.
+PLAYER_ALIASES = {
+    'haland': 'Haaland',
+    'odegard': 'Ødegaard',
+    'sorlot': 'Sørloth',
+    'sorloth': 'Sørloth',
+    'nusa': 'Nusa',
+    'mbappe': 'Mbappé',
+}
+
+
+def strip_dia(s: str) -> str:
+    # NFD fjerner diakritikk (é, å, ü …), men IKKE bokstaver med strek (ø/Ø) – map dem manuelt.
+    s = s.replace('ø', 'o').replace('Ø', 'O').replace('æ', 'ae').replace('Æ', 'AE')
+    return ''.join(ch for ch in unicodedata.normalize('NFD', s) if not unicodedata.combining(ch))
+
+
+def normalize_player(raw: str) -> str:
+    """«Erling Braut Håland» → «Haaland», «kevin de bruyne» → «De Bruyne», «Saka» → «Saka»."""
+    parts = raw.strip().split()
+    if not parts:
+        return ''
+    if len(parts) >= 2 and parts[-2].lower() in PLAYER_PARTICLES:
+        surname = f'{parts[-2].capitalize()} {parts[-1].capitalize()}'
+        key = strip_dia(f'{parts[-2]} {parts[-1]}').casefold()
+    else:
+        surname = parts[-1].capitalize()
+        key = strip_dia(parts[-1]).casefold()
+    return PLAYER_ALIASES.get(key, surname)
+
+
 def parse_score(cell: object) -> tuple[int, int] | None:
     """Tolk et «h-b»-tips. Godtar 1-1, 1–1, 1:1, «1 - 1». Tomt/uleselig → None."""
     if cell is None:
@@ -121,6 +158,7 @@ def main() -> None:
     ap.add_argument('--app', required=True, choices=['drammen', 'alles'])
     ap.add_argument('--round', required=True, choices=sorted(FIXTURES), help='runde (velger apiId-oppsett)')
     ap.add_argument('--k', nargs='*', default=[], help='question-id per Krydder-rad i rekkefølge, f.eks. k4 k5 k6')
+    ap.add_argument('--players', nargs='*', default=[], help='id-er blant --k der svaret er spillernavn (normaliseres til etternavn, f.eks. k4)')
     ap.add_argument('-o', '--out', help='output-fil (default: stdout)')
     args = ap.parse_args()
 
@@ -159,6 +197,7 @@ def main() -> None:
 
     # --- Ark «Krydder»: krydder-svar (valgfritt) ---
     bonus: dict[str, dict[str, str]] = {}
+    renamed: list[str] = []
     if args.k:
         ws = wb['Krydder']
         krows = [list(r) for r in ws.iter_rows(values_only=True)]
@@ -174,7 +213,14 @@ def main() -> None:
                 # Heltall fra Excel (3 / 3.0) → «3»; ellers rå tekst (typoer bevares bevisst).
                 if isinstance(v, (int, float)) and float(v).is_integer():
                     v = int(v)
-                bonus.setdefault(name, {})[qid] = str(v).strip()
+                v = str(v).strip()
+                # Spillernavn-spørsmål: hvert komma-element → kanonisk etternavn (som på siden).
+                if qid in args.players:
+                    nv = ', '.join(filter(None, (normalize_player(x) for x in v.split(','))))
+                    if nv != v:
+                        renamed.append(f'{qid} {name}: «{v}» → «{nv}»')
+                    v = nv
+                bonus.setdefault(name, {})[qid] = v
 
     # --- Oppsummering + output ---
     out: dict[str, object] = {}
@@ -199,6 +245,8 @@ def main() -> None:
     for qid in args.k:
         vals = sorted({v[qid] for v in bonus.values() if qid in v})
         print(f'   {qid}: {vals}', file=sys.stderr)
+    for r in renamed:
+        print(f'   normalisert: {r}', file=sys.stderr)
 
     blob = json.dumps(out, ensure_ascii=False, indent=2)
     if args.out:

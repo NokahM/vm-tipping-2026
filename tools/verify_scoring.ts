@@ -543,11 +543,11 @@ const qf = [
 ];
 const qfStats = {
   ...baseStats,
-  matchCardedPlayers: { 201: ['Erling Haaland'], 202: ['Jude Bellingham'] },
+  matchCardedPlayers: { 201: ['Erling Haaland'], 202: ['Jude Bellingham', 'Kevin De Bruyne'] },
   matchFirstGoal: { 201: 23, 202: 12 },
 };
 const qcb = deriveCustomBonus([k4, k5, k6], qfStats, qf);
-assert('k4 fasit = fulle navn + etternavn', (qcb.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland', 'Jude Bellingham', 'Bellingham']);
+assert('k4 fasit = fulle navn + etternavn (inkl. partikkel-form)', (qcb.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland', 'Jude Bellingham', 'Bellingham', 'Kevin De Bruyne', 'Bruyne', 'De Bruyne']);
 assert('k5 = kamp m/ tidligste mål (12. min)', (qcb.decided.k5 as { answer: string }).answer, 'Norge - England');
 assert('k6 = Ja (straffekonk i runden)', (qcb.decided.k6 as { answer: string }).answer, 'Ja');
 
@@ -555,10 +555,10 @@ assert('k6 = Ja (straffekonk i runden)', (qcb.decided.k6 as { answer: string }).
 const k4Scored: BonusQuestion = { ...k4, answer: (qcb.decided.k4 as { answer: string[] }).answer };
 const k4Parts: Participant[] = [
   { name: 'En', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: ['Haaland', 'Ødegaard'] }] },
-  { name: 'To', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: ['Haaland', 'Bellingham'] }] },
+  { name: 'To', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: ['Haaland', 'De Bruyne'] }] },
 ];
 assert('k4: 1 av 2 riktig = 2p', scoreBonusQuestion(k4Parts, k4Scored).get('En'), 2);
-assert('k4: 2 av 2 riktig = 4p (maks)', scoreBonusQuestion(k4Parts, k4Scored).get('To'), 4);
+assert('k4: 2 av 2 riktig (m/ partikkel-etternavn) = 4p (maks)', scoreBonusQuestion(k4Parts, k4Scored).get('To'), 4);
 // Custom-tips lagres som RÅ komma-streng (admin-grid/Importer) – må splittes per navn.
 const k4Raw: Participant[] = [
   { name: 'Rå', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k4', answer: 'Haaland, Bellingham' }] },

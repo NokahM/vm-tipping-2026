@@ -135,6 +135,20 @@ function lastName(full: string): string {
   return parts.length ? parts[parts.length - 1] : full;
 }
 
+// Etternavns-partikler («Kevin De Bruyne»): både «Bruyne» og «De Bruyne» skal telle som treff.
+const NAME_PARTICLES = new Set(['de', 'van', 'der', 'den', 'di', 'da', 'la', 'le', 'el', 'dos', 'del']);
+
+/** Etternavn-varianter av et fullt navn: siste ord + ev. partikkel-form (tomt for ett-ords-navn). */
+function surnameVariants(full: string): string[] {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length < 2) return [];
+  const out = [parts[parts.length - 1]];
+  if (NAME_PARTICLES.has(parts[parts.length - 2].toLowerCase())) {
+    out.push(`${parts[parts.length - 2]} ${parts[parts.length - 1]}`);
+  }
+  return out;
+}
+
 /**
  * Datoen (noon-ISO) da alle tre Bodø/Glimt-spillerne hadde spilt – dvs. kampdagen der den SISTE
  * av de tre debuterte (maks av tidligste-spilte-dato per spiller). Mater q16 sin `at` så chipen
@@ -557,13 +571,13 @@ export function deriveCustomBonus(
       const hits = finished.filter((m) => (byMatch[m.apiId] ?? []).length > 0);
       const full = [...new Set(finished.flatMap((m) => byMatch[m.apiId] ?? []))];
       if (full.length) {
-        const answer = [...new Set(full.flatMap((n) => [n, lastName(n)]))];
+        const answer = [...new Set(full.flatMap((n) => [n, ...surnameVariants(n)]))];
         // Dato per spiller (og etternavn-variant): dagen for rundens første kamp med kortet.
         const ats: Record<string, string> = {};
         for (const m of finished) {
           const iso = noon(m.utcDate);
           for (const n of byMatch[m.apiId] ?? []) {
-            for (const v of [n, lastName(n)]) if (!ats[v] || iso < ats[v]) ats[v] = iso;
+            for (const v of [n, ...surnameVariants(n)]) if (!ats[v] || iso < ats[v]) ats[v] = iso;
           }
         }
         decided[q.id] = { answer, ats, at: `${latestDay(hits)}T12:00:00.000Z` };
