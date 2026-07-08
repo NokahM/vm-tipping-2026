@@ -1,0 +1,35 @@
+{
+  "bonusQuestions": [
+    {
+      "id": "k4",
+      "question": "Hvor mange av kvartfinalene går til ekstraomganger?",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "number",
+      "custom": true,
+      "stage": "QUARTER_FINALS",
+      "margin": 0,
+      "auto": "extraTimeCount"
+    },
+    {
+      "id": "k5",
+      "question": "Skriv en kvartfinale hvor vi får enten et rødt kort, eller en straffescoring.",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "match",
+      "custom": true,
+      "stage": "QUARTER_FINALS",
+      "auto": "redOrPenaltyMatch"
+    },
+    {
+      "id": "k6",
+      "question": "I hvilken kamp blir det scoret færrest mål?",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "match",
+      "custom": true,
+      "stage": "QUARTER_FINALS",
+      "auto": "fewestGoalsMatch"
+    }
+  ]
+}
