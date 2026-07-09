@@ -1,0 +1,546 @@
+{
+  "knockoutTips": {
+    "Erling": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 0
+      }
+    ],
+    "Morten": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 1
+      }
+    ],
+    "Bent Arne": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Nicholas": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 2
+      }
+    ],
+    "Sofia": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 1
+      }
+    ],
+    "Ole": [
+      {
+        "apiId": 537383,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 1
+      }
+    ],
+    "Jonas G": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 1
+      }
+    ],
+    "Anne Marte": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Kajsa": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 3,
+        "awayGoals": 1
+      }
+    ],
+    "Sindre": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 0
+      }
+    ],
+    "Håkon M": [
+      {
+        "apiId": 537383,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Magnus": [
+      {
+        "apiId": 537383,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 1
+      }
+    ],
+    "Hilde": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Gunvor": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 0
+      }
+    ],
+    "Anders": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Espen": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Kay Robin": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 0
+      }
+    ],
+    "Ida": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Trond": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Viktor": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 2
+      }
+    ]
+  },
+  "bonusTips": {
+    "Erling": {
+      "k4": "Anderson, Halhal",
+      "k5": "Norge-England",
+      "k6": "Nei"
+    },
+    "Morten": {
+      "k4": "El Aynaoui, Mechele",
+      "k5": "Frankrike-Marokko",
+      "k6": "Ja"
+    },
+    "Bent Arne": {
+      "k4": "Spence, Wolfe",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
+    "Nicholas": {
+      "k4": "Cucurella, Hakimi",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
+    "Sofia": {
+      "k4": "Stones, Pedri",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
+    "Ole": {
+      "k4": "Hakimi, Ajer",
+      "k5": "Argentina - Sveits",
+      "k6": "Nei"
+    },
+    "Jonas G": {
+      "k4": "Koné, Hakimi",
+      "k5": "Frankrike - Marokko",
+      "k6": "Nei"
+    },
+    "Anne Marte": {
+      "k4": "Konsa, Ajer",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
+    "Kajsa": {
+      "k4": "Hakimi, Kounde",
+      "k5": "Frankrike Marokko",
+      "k6": "Ja"
+    },
+    "Sindre": {
+      "k4": "Romero, Bellingham",
+      "k5": "Frankrike-Marokko",
+      "k6": "Ja"
+    },
+    "Håkon M": {
+      "k4": "Fernandez, Xhaka",
+      "k5": "Norge-England",
+      "k6": "Nei"
+    },
+    "Magnus": {
+      "k4": "Hakimi, Bouaddi",
+      "k5": "Argentina - Sveits",
+      "k6": "Nei"
+    },
+    "Hilde": {
+      "k4": "Romero, Ajer",
+      "k5": "Frankrike-Marokko",
+      "k6": "Ja"
+    },
+    "Gunvor": {
+      "k4": "Guehi, De Paul",
+      "k5": "Spania-Belgia",
+      "k6": "Ja"
+    },
+    "Anders": {
+      "k4": "Diaz, Saka",
+      "k5": "Spania - Belgia",
+      "k6": "Nei"
+    },
+    "Espen": {
+      "k4": "Romero, Ajer",
+      "k5": "Frankrike - Marokko",
+      "k6": "Ja"
+    },
+    "Kay Robin": {
+      "k4": "Diop, Romero",
+      "k5": "Frankrike - Marokko",
+      "k6": "Nei"
+    },
+    "Ida": {
+      "k4": "Xhaka, Hakimi",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
+    "Trond": {
+      "k4": "Mazraoui, Romero",
+      "k5": "Frankrike - Marokko",
+      "k6": "Ja"
+    },
+    "Viktor": {
+      "k4": "Bellingham, Martinez",
+      "k5": "Frankrike - Marokko",
+      "k6": "Nei"
+    }
+  }
+}
