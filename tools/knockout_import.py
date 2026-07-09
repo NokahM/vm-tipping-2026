@@ -30,8 +30,9 @@ from openpyxl import load_workbook
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# apiId per kamp, med lagnavn på norsk slik de skrives i arkene.
-# Nye runder: legg til her (apiId-er ligger i API-et fra start).
+# apiId per kamp, med lagnavn på norsk slik de skrives i arkene. Runder som IKKE ligger
+# her (semifinaler, bronse, finale) hentes live fra API-et når lagene er klare – se
+# fetch_fixtures(). R16/QF står innbakt så regresjonstestene virker offline.
 FIXTURES: dict[str, dict[int, tuple[str, str]]] = {
     'R16': {
         537375: ('Paraguay', 'Frankrike'),
@@ -49,9 +50,51 @@ FIXTURES: dict[str, dict[int, tuple[str, str]]] = {
         537385: ('Norge', 'England'),
         537386: ('Argentina', 'Sveits'),
     },
-    # Semifinaler (537387/537388), bronse (537389) og finale (537390): lagene er
-    # ikke klare ennå – legg inn parene når runden er trukket.
 }
+
+# Runde → football-data stage-parameter (for live-henting av oppsett).
+ROUND_STAGE = {
+    'R32': 'LAST_32',
+    'R16': 'LAST_16',
+    'QF': 'QUARTER_FINALS',
+    'SF': 'SEMI_FINALS',
+    'BRONSE': 'THIRD_PLACE',
+    'FINALE': 'FINAL',
+}
+
+
+def team_name_map() -> dict[str, str]:
+    """Engelsk API-navn → norsk, parset fra den genererte teamNames.ts (alle 48 lag)."""
+    src = (REPO_ROOT / 'apps' / 'drammen' / 'src' / 'utils' / 'teamNames.ts').read_text(encoding='utf-8')
+    return dict(re.findall(r'"([^"]+)":\s*"([^"]+)"', src))
+
+
+def fetch_fixtures(round_key: str) -> dict[int, tuple[str, str]]:
+    """Hent rundens kampoppsett (apiId + norske lagnavn) live fra football-data.org."""
+    import json as _json
+    import urllib.request
+
+    env = (REPO_ROOT / 'apps' / 'drammen' / '.env.local').read_text(encoding='utf-8')
+    m = re.search(r'FOOTBALL_API_KEY\s*=\s*"?([^"\r\n]+)', env)
+    if not m:
+        sys.exit('FEIL: fant ikke FOOTBALL_API_KEY i apps/drammen/.env.local (trengs for å hente oppsettet).')
+    req = urllib.request.Request(
+        f'https://api.football-data.org/v4/competitions/WC/matches?stage={ROUND_STAGE[round_key]}',
+        headers={'X-Auth-Token': m.group(1).strip()},
+    )
+    with urllib.request.urlopen(req) as r:
+        matches = _json.load(r).get('matches', [])
+    no = team_name_map()
+    out: dict[int, tuple[str, str]] = {}
+    for match in matches:
+        home = match['homeTeam'].get('name')
+        away = match['awayTeam'].get('name')
+        if not home or not away:
+            sys.exit(f'FEIL: {round_key} er ikke trukket ennå (kamp {match["id"]} har TBD-lag). Prøv igjen når runden er klar.')
+        out[match['id']] = (no.get(home, home), no.get(away, away))
+    if not out:
+        sys.exit(f'FEIL: API-et returnerte ingen kamper for {round_key}.')
+    return out
 
 # Regneark-navn → kanonisk app-navn (participants.ts), per app («Håkon M» er
 # drammen-Håkon i drammen-ark, men en egen deltaker i alles). Utvid ved behov.
@@ -156,13 +199,13 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('xlsx', help='regneark med runde-tips (Resultater + Krydder-ark)')
     ap.add_argument('--app', required=True, choices=['drammen', 'alles'])
-    ap.add_argument('--round', required=True, choices=sorted(FIXTURES), help='runde (velger apiId-oppsett)')
+    ap.add_argument('--round', required=True, choices=sorted(ROUND_STAGE), help='runde (velger apiId-oppsett; SF/BRONSE/FINALE hentes live fra API-et)')
     ap.add_argument('--k', nargs='*', default=[], help='question-id per Krydder-rad i rekkefølge, f.eks. k4 k5 k6')
     ap.add_argument('--players', nargs='*', default=[], help='id-er blant --k der svaret er spillernavn (normaliseres til etternavn, f.eks. k4)')
     ap.add_argument('-o', '--out', help='output-fil (default: stdout)')
     args = ap.parse_args()
 
-    fixtures = FIXTURES[args.round]
+    fixtures = FIXTURES.get(args.round) or fetch_fixtures(args.round)
     by_pair = {frozenset(map(norm_team, pair)): (api_id, pair) for api_id, pair in fixtures.items()}
     canon = canonical_names(args.app)
 

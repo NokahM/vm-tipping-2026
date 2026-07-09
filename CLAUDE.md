@@ -132,6 +132,7 @@ tippekonk/                          # repo-root
 ├── tools/
 │   ├── generate_data.py            # Excel-CSV → participants.ts / teamNames.ts / bonusQuestions.ts
 │   ├── add_late_joiner.py*         # fletter inn en sen enkeltdeltaker (se «Datapipeline»)
+│   ├── knockout_import.py          # runde-regneark → Importer-JSON (se «Arbeidsflyt under VM»)
 │   └── verify_scoring.ts           # regresjonstester (npx tsx)
 ├── CLAUDE.md
 └── README.md
@@ -402,12 +403,22 @@ og KV-nøklene (hentes fra Upstash-storen / `vercel env pull`). Ingen `VITE_ADMI
 
 ## Arbeidsflyt under VM
 
-**Sluttspill per runde (R32 → finale):**
+**Sluttspill per runde (R32 → finale) – import-basert (etablert fra og med QF):**
 1. Når runden trekkes dukker kampene opp automatisk fra API-et (TBD-kamper skjules til lagene er klare).
-2. Samle inn tips fra deltakerne.
-3. Admin → **Sluttspill**-fanen → velg runde → legg inn 2-talls tips per deltaker → **Lagre & publiser**
-   (skriver til KV → live for alle). Gjøres per app.
-4. Krydder-fasit settes på samme måte i **Krydder**-fanen etter hvert som spørsmål avgjøres.
+2. Quizlederen sender skjema til deltakerne og samler svarene i et MASTER-regneark (ark «Resultater»
+   med én kolonne per deltaker + ark «Krydder» med én rad per spørsmål) → legges i `data/`.
+3. Rundens nye krydderspørsmål (fortløpende id `k…`) legges i en `{ "bonusQuestions": […] }`-blob
+   (jf. `data/qf_questions.json`) med `scoring`/`auto`/`stage` – velg auto-utleder fra menyen i
+   `types.ts` (`CustomAuto`, 6 stk) når spørsmålet kan utledes av API-data.
+4. Konverter MASTER-arket: `py tools/knockout_import.py <fil> --app <alles|drammen> --round <QF|SF|BRONSE|FINALE>
+   --k k7 k8 … --players <spillernavn-id-er>` → import-JSON per app. R16/QF-oppsett er innbakt;
+   SF/BRONSE/FINALE hentes live fra API-et (feiler pent hvis runden ikke er trukket). `--players`
+   normaliserer spillernavn til kanonisk etternavn («Erling Braut Håland» → «Haaland»). Verifiser
+   normaliserings-/svaroversikten scriptet printer.
+5. Admin → **Importer**-fanen → lim inn blobene (spørsmål først, så tips) → «Importer & publiser».
+   Gjøres per app. Manuelle fasit-korrigeringer (f.eks. hendelser API-et ikke ser, som rødt kort til
+   støtteapparat) settes i **Krydder**-fanen – manuell KV-fasit overstyrer alltid auto, men merk at
+   den FRYSER akkumulerende spørsmål (q7/q8/k-kort): vent til runden/turneringen er ferdig.
 
 Sluttspill-tips matches mot resultat via `apiId`. «Backup JSON» kan limes inn i `knockoutTips.json` /
 `bonusAnswers.json` som git-versjonert sikkerhetskopi ved behov.
