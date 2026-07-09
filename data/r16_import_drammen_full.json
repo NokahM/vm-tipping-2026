@@ -1,0 +1,147 @@
+{
+  "knockoutTips": {
+    "Erling": [
+      {
+        "apiId": 537376,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537375,
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537377,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537378,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537379,
+        "homeGoals": 0,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537380,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537381,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537382,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Håkon": [
+      {
+        "apiId": 537376,
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537375,
+        "homeGoals": 0,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537377,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537378,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537379,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537380,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537381,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537382,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Rune": [
+      {
+        "apiId": 537376,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537375,
+        "homeGoals": 0,
+        "awayGoals": 3
+      },
+      {
+        "apiId": 537377,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537378,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537379,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537380,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537381,
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537382,
+        "homeGoals": 1,
+        "awayGoals": 2
+      }
+    ]
+  },
+  "bonusTips": {
+    "Erling": {
+      "k1": "3",
+      "k2": "Sveits-Colombia",
+      "k3": "Portugal-Spania"
+    },
+    "Håkon": {
+      "k1": "2",
+      "k2": "Paraguay-Frankrike",
+      "k3": "Sveits-Colombia"
+    },
+    "Rune": {
+      "k1": "3",
+      "k2": "Argentina-Egypt",
+      "k3": "Portugal-Spania"
+    }
+  }
+}

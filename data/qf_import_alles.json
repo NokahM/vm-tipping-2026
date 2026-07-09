@@ -44,6 +44,28 @@
         "awayGoals": 1
       }
     ],
+    "Skjalg": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
     "Bent Arne": [
       {
         "apiId": 537383,
@@ -176,6 +198,28 @@
         "awayGoals": 1
       }
     ],
+    "Håkon Emil": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 0
+      }
+    ],
     "Kajsa": [
       {
         "apiId": 537383,
@@ -286,6 +330,28 @@
         "awayGoals": 1
       }
     ],
+    "Eirik": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 0
+      }
+    ],
     "Gunvor": [
       {
         "apiId": 537383,
@@ -322,6 +388,28 @@
       {
         "apiId": 537385,
         "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Lisa": [
+      {
+        "apiId": 537383,
+        "homeGoals": 1,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 1,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
         "awayGoals": 1
       },
       {
@@ -372,6 +460,28 @@
         "apiId": 537386,
         "homeGoals": 2,
         "awayGoals": 0
+      }
+    ],
+    "Margret": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
       }
     ],
     "Ida": [
@@ -439,6 +549,28 @@
         "homeGoals": 1,
         "awayGoals": 2
       }
+    ],
+    "Jonas W": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 1
+      }
     ]
   },
   "bonusTips": {
@@ -449,6 +581,11 @@
     },
     "Morten": {
       "k4": "El Aynaoui, Mechele",
+      "k5": "Frankrike-Marokko",
+      "k6": "Ja"
+    },
+    "Skjalg": {
+      "k4": "Ngoy, Bouaddi",
       "k5": "Frankrike-Marokko",
       "k6": "Ja"
     },
@@ -482,6 +619,11 @@
       "k5": "Norge-England",
       "k6": "Ja"
     },
+    "Håkon Emil": {
+      "k4": "Xhaka, Zakaria",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
     "Kajsa": {
       "k4": "Hakimi, Kounde",
       "k5": "Frankrike Marokko",
@@ -507,6 +649,11 @@
       "k5": "Frankrike-Marokko",
       "k6": "Ja"
     },
+    "Eirik": {
+      "k4": "Romero, Konsa",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    },
     "Gunvor": {
       "k4": "Guehi, De Paul",
       "k5": "Spania-Belgia",
@@ -517,6 +664,11 @@
       "k5": "Spania - Belgia",
       "k6": "Nei"
     },
+    "Lisa": {
+      "k4": "Fernandez, Hakimi",
+      "k5": "Norge - England",
+      "k6": "Ja"
+    },
     "Espen": {
       "k4": "Romero, Ajer",
       "k5": "Frankrike - Marokko",
@@ -526,6 +678,11 @@
       "k4": "Diop, Romero",
       "k5": "Frankrike - Marokko",
       "k6": "Nei"
+    },
+    "Margret": {
+      "k4": "Hakimi, Halhal",
+      "k5": "Norge-England",
+      "k6": "ja"
     },
     "Ida": {
       "k4": "Xhaka, Hakimi",
@@ -541,6 +698,11 @@
       "k4": "Bellingham, Martinez",
       "k5": "Frankrike - Marokko",
       "k6": "Nei"
+    },
+    "Jonas W": {
+      "k4": "Ryerson, Berg",
+      "k5": "Norge-England",
+      "k6": "Ja"
     }
   }
 }

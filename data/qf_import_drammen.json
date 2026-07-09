@@ -1,0 +1,87 @@
+{
+  "knockoutTips": {
+    "Erling": [
+      {
+        "apiId": 537383,
+        "homeGoals": 3,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 3,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 0
+      }
+    ],
+    "Håkon": [
+      {
+        "apiId": 537383,
+        "homeGoals": 1,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 3,
+        "awayGoals": 2
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Rune": [
+      {
+        "apiId": 537383,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537384,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537385,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537386,
+        "homeGoals": 2,
+        "awayGoals": 0
+      }
+    ]
+  },
+  "bonusTips": {
+    "Erling": {
+      "k4": "Anderson, Halhal",
+      "k5": "Norge-England",
+      "k6": "Nei"
+    },
+    "Håkon": {
+      "k4": "Fernandez, Xhaka",
+      "k5": "Norge-England",
+      "k6": "Nei"
+    },
+    "Rune": {
+      "k4": "Bellingham, Xhaka",
+      "k5": "Norge-England",
+      "k6": "Ja"
+    }
+  }
+}
