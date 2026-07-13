@@ -118,6 +118,7 @@ const AUTO_LABELS: Record<CustomAuto, string> = {
   earliestGoalMatch: 'Kamp med tidligste mål',
   penaltyShootoutYesNo: 'Straffekonk i runden? (Ja/Nei)',
   extraTimeYesNo: 'Ekstraomganger i runden? (Ja/Nei)',
+  firstGoalMinute: 'Første måls minutt (én kamp)',
 };
 const AUTO_OPTIONS: CustomAuto[] = [
   'extraTimeCount',
@@ -127,6 +128,7 @@ const AUTO_OPTIONS: CustomAuto[] = [
   'earliestGoalMatch',
   'penaltyShootoutYesNo',
   'extraTimeYesNo',
+  'firstGoalMinute',
 ];
 /** Poeng-modus (+ ev. margin/per-element) som et auto-valg impliserer, så scoringen stemmer med fasit-formen. */
 function scoringForAuto(a: CustomAuto): {
@@ -135,6 +137,7 @@ function scoringForAuto(a: CustomAuto): {
   perItemPoints?: number;
 } {
   if (a === 'extraTimeCount') return { scoring: 'number', margin: 0 };
+  if (a === 'firstGoalMinute') return { scoring: 'number', margin: 5 };
   if (a === 'cardedPlayers') return { scoring: 'perItem', perItemPoints: 2 };
   if (a === 'penaltyShootoutYesNo' || a === 'extraTimeYesNo') return { scoring: 'exact' };
   return { scoring: 'match' };
@@ -325,6 +328,7 @@ function AdminContent({
         )}
         {tab === 'nye' && (
           <CustomBonusTab
+            results={results}
             participants={participants}
             customQuestions={customQuestions}
             customTips={customTips}
@@ -842,12 +846,14 @@ function newQuestionId(existing: BonusQuestion[]): string {
 }
 
 function CustomBonusTab({
+  results,
   participants,
   customQuestions,
   customTips,
   password,
   onSave,
 }: {
+  results: MatchResult[];
   participants: Participant[];
   customQuestions: CustomQuestionStore;
   customTips: CustomTipStore;
@@ -883,6 +889,14 @@ function CustomBonusTab({
   const [margin, setMargin] = useState('5');
   const [stage, setStage] = useState<Stage | ''>('');
   const [auto, setAuto] = useState<CustomAuto | ''>('');
+  const [matchApiId, setMatchApiId] = useState('');
+
+  // Kjente (ikke-TBD) kamper i en runde – til kampvelgeren for kamp-målrettede autoer.
+  function matchesFor(s: Stage | ''): MatchResult[] {
+    return results
+      .filter((m) => m.stage === s && m.homeTeam !== 'TBD' && m.awayTeam !== 'TBD')
+      .sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+  }
 
   function addQuestion() {
     const q = text.trim();
@@ -906,10 +920,12 @@ function CustomBonusTab({
       nq.scoring = s.scoring;
       if (s.margin !== undefined) nq.margin = s.margin;
       if (s.perItemPoints !== undefined) nq.perItemPoints = s.perItemPoints;
+      if (auto === 'firstGoalMinute' && matchApiId) nq.matchApiId = Number(matchApiId);
     }
     setQuestions((qs) => [...qs, nq]);
     setText('');
     setAuto('');
+    setMatchApiId('');
     setStatus('idle');
   }
 
@@ -937,6 +953,21 @@ function CustomBonusTab({
         else delete next.margin;
         if (s.perItemPoints !== undefined) next.perItemPoints = s.perItemPoints;
         else delete next.perItemPoints;
+        if (value !== 'firstGoalMinute') delete next.matchApiId;
+        return next;
+      }),
+    );
+    setStatus('idle');
+  }
+
+  // Kampen et kamp-målrettet auto-spørsmål (firstGoalMinute) gjelder.
+  function setQuestionMatch(id: string, apiId: string) {
+    setQuestions((qs) =>
+      qs.map((q) => {
+        if (q.id !== id) return q;
+        const next = { ...q };
+        if (apiId) next.matchApiId = Number(apiId);
+        else delete next.matchApiId;
         return next;
       }),
     );
@@ -1094,11 +1125,35 @@ function CustomBonusTab({
               ))}
             </select>
           </label>
+          {auto === 'firstGoalMinute' && (
+            <label className="block min-w-[14rem] flex-1">
+              <span className="mb-1 block text-[11px] text-slate-400">Kamp (kreves av autoen)</span>
+              <select
+                value={matchApiId}
+                onChange={(e) => setMatchApiId(e.target.value)}
+                className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-100"
+              >
+                <option value="">– velg kamp –</option>
+                {matchesFor(stage).map((m) => (
+                  <option key={m.apiId} value={m.apiId}>
+                    {m.homeTeam} – {m.awayTeam}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         {auto && (
           <p className="text-[11px] text-emerald-400/80">
             Auto: fasit hentes fra API-et og låses når runden er ferdig – husk å velge{' '}
-            <span className="text-emerald-300">runde</span>. Poeng-type styres av auto-valget.
+            <span className="text-emerald-300">runde</span>
+            {auto === 'firstGoalMinute' && (
+              <>
+                {' '}
+                og <span className="text-emerald-300">kamp</span>
+              </>
+            )}
+            . Poeng-type styres av auto-valget.
           </p>
         )}
         <button
@@ -1152,12 +1207,32 @@ function CustomBonusTab({
                     </option>
                   ))}
                 </select>
+                {q.auto === 'firstGoalMinute' && (
+                  <select
+                    value={q.matchApiId ?? ''}
+                    onChange={(e) => setQuestionMatch(q.id, e.target.value)}
+                    className="h-8 rounded-lg border border-slate-700 bg-slate-900 px-2 text-xs text-slate-100"
+                  >
+                    <option value="">– velg kamp –</option>
+                    {matchesFor(q.stage ?? '').map((m) => (
+                      <option key={m.apiId} value={m.apiId}>
+                        {m.homeTeam} – {m.awayTeam}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 {q.auto && !q.stage && (
                   <span className="text-[11px] text-amber-400/90">⚠ velg runde – auto trenger den</span>
                 )}
+                {q.auto === 'firstGoalMinute' && q.stage && q.matchApiId == null && (
+                  <span className="text-[11px] text-amber-400/90">⚠ velg kamp – auto trenger den</span>
+                )}
                 {q.auto && q.stage && (
                   <span className="text-[11px] text-emerald-400/70">
-                    fasit fra API · låses når {STAGE_LABELS[q.stage].toLowerCase()} er ferdig
+                    fasit fra API ·{' '}
+                    {q.auto === 'firstGoalMinute'
+                      ? 'låses når første mål er scoret'
+                      : `låses når ${STAGE_LABELS[q.stage].toLowerCase()} er ferdig`}
                   </span>
                 )}
               </div>

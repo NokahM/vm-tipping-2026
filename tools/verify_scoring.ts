@@ -615,6 +615,22 @@ assert('k8 «Nei» låses ikke underveis', deriveCustomBonus([k8], null, sfNoEt)
 const sfAllReg = [sfReg[0], mk({ ...sfReg[1], duration: 'REGULAR' })];
 assert('k8 = Nei når runden er ferdig uten e.o.', (deriveCustomBonus([k8], null, sfAllReg).decided.k8 as { answer: string }).answer, 'Nei');
 
+// firstGoalMinute: første måls minutt i ÉN bestemt kamp (matchApiId) – låses/scorer straks
+// målet finnes i deep data (kan aldri slås av et senere mål), også mens kampen pågår.
+const k9: BonusQuestion = { id: 'k9', question: '', maxPoints: 2, answer: null, scoring: 'number', margin: 5, stage: 'SEMI_FINALS', auto: 'firstGoalMinute', matchApiId: 302, custom: true };
+const sfFgStats = { ...baseStats, matchFirstGoal: { 301: 8, 302: 44 } };
+assert('k9 = første måls minutt i valgt kamp (ikke rundens)', (deriveCustomBonus([k9], sfFgStats, sfReg).decided.k9 as { answer: string }).answer, '44');
+const sfLive = [sfReg[0], mk({ stage: 'SEMI_FINALS', apiId: 302, homeTeam: 'England', awayTeam: 'Argentina', homeGoals: 1, awayGoals: 0, status: 'IN_PLAY', utcDate: '2026-07-15T19:00:00Z' })];
+assert('k9 låses løpende under kampen', (deriveCustomBonus([k9], sfFgStats, sfLive).decided.k9 as { answer: string }).answer, '44');
+assert('k9 ikke låst uten stats', deriveCustomBonus([k9], null, sfReg).decided.k9, undefined);
+// Målløs ferdigspilt kamp låses ikke (fasit settes ev. manuelt); nøkkel med null = dekket.
+const sfGoalless = { ...baseStats, matchFirstGoal: { 301: 8, 302: null } };
+assert('k9 målløs kamp låses ikke', deriveCustomBonus([k9], sfGoalless, sfReg).decided.k9, undefined);
+assert('k9 riktig tips innenfor ±5', scoreBonusQuestion(
+  [{ name: 'N', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k9', answer: '40' }] }],
+  { ...k9, answer: '44' },
+).get('N'), 2);
+
 // 4c4) Ekstraomganger/straffer: straffemål teller ALDRI som resultat/i målstatistikk; tips
 // scores mot 90-min-resultatet; ekstraomgangsmål teller.
 console.log('\nEkstraomganger/straffer (straffemål teller ikke):');

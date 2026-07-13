@@ -83,6 +83,7 @@ export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number' | 'match';
  * - `earliestGoalMatch` = kamp(er) i runden med det tidligste målet (match)
  * - `penaltyShootoutYesNo` = «Ja»/«Nei»: går noen kamp i runden til straffekonk (exact)
  * - `extraTimeYesNo`    = «Ja»/«Nei»: går noen kamp i runden til ekstraomganger (exact)
+ * - `firstGoalMinute`   = første måls minutt i ÉN bestemt kamp (`q.matchApiId`) (number)
  */
 export type CustomAuto =
   | 'extraTimeCount'
@@ -91,7 +92,8 @@ export type CustomAuto =
   | 'cardedPlayers'
   | 'earliestGoalMatch'
   | 'penaltyShootoutYesNo'
-  | 'extraTimeYesNo';
+  | 'extraTimeYesNo'
+  | 'firstGoalMinute';
 
 export interface BonusQuestion {
   id: string;
@@ -104,6 +106,7 @@ export interface BonusQuestion {
   margin?: number; // ± margin for full pott når scoring = 'number'
   stage?: Stage; // valgfri runde-merkelapp (visning/gruppering); også runden auto-utledning gjelder
   auto?: CustomAuto; // kobler spørsmålet til API-et (auto-fasit), låst når `stage`-runden er ferdig
+  matchApiId?: number; // kamp-målrettede autoer (firstGoalMinute): apiId til kampen spørsmålet gjelder
   custom?: boolean; // true = opprettet via admin (ikke innbakt)
 }
 

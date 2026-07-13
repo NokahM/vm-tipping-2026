@@ -29,7 +29,9 @@
       "scoring": "number",
       "margin": 5,
       "custom": true,
-      "stage": "SEMI_FINALS"
+      "stage": "SEMI_FINALS",
+      "auto": "firstGoalMinute",
+      "matchApiId": 537388
     }
   ]
 }

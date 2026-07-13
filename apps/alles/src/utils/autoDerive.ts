@@ -649,6 +649,27 @@ export function deriveCustomBonus(
       }
       continue;
     }
+
+    if (q.auto === 'firstGoalMinute') {
+      // Første måls minutt i ÉN bestemt kamp (q.matchApiId). Et scoret første mål kan aldri
+      // slås av et senere → låses og scorer LØPENDE straks målet finnes i deep data (utledes
+      // ferskt hver gang, så en ev. VAR-annullering ruller tilbake av seg selv). API-et har kun
+      // hele minutter (45+2 → 45) → scoring 'number' med margin. En målløs ferdigspilt kamp
+      // låses IKKE (ingen kan treffe et tall uansett; admin kan sette fasit manuelt).
+      const fg = stats?.matchFirstGoal;
+      const match = q.matchApiId != null ? inStage.find((m) => m.apiId === q.matchApiId) : undefined;
+      if (!fg || !match) continue;
+      const min = fg[match.apiId];
+      if (min != null) {
+        decided[q.id] = { answer: String(min), at: noon(match.utcDate) };
+        preliminary[q.id] = `${min}'`;
+      } else if (match.status !== 'FINISHED') {
+        preliminary[q.id] = 'ingen mål ennå';
+      } else if (match.apiId in fg) {
+        preliminary[q.id] = 'målløs kamp – sett fasit manuelt';
+      }
+      continue;
+    }
   }
 
   return { decided, preliminary, provisional };
