@@ -1,0 +1,35 @@
+{
+  "bonusQuestions": [
+    {
+      "id": "k7",
+      "question": "Nevn to spillere som får kort.",
+      "maxPoints": 4,
+      "answer": null,
+      "scoring": "perItem",
+      "perItemPoints": 2,
+      "custom": true,
+      "stage": "SEMI_FINALS",
+      "auto": "cardedPlayers"
+    },
+    {
+      "id": "k8",
+      "question": "Går minst én av semifinalene til ekstraomganger? (Ja/Nei)",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "exact",
+      "custom": true,
+      "stage": "SEMI_FINALS",
+      "auto": "extraTimeYesNo"
+    },
+    {
+      "id": "k9",
+      "question": "Hvilket minutt scores det første målet i England-Argentina? (±5 min)",
+      "maxPoints": 2,
+      "answer": null,
+      "scoring": "number",
+      "margin": 5,
+      "custom": true,
+      "stage": "SEMI_FINALS"
+    }
+  ]
+}

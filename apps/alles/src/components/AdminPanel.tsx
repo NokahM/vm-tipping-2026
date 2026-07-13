@@ -117,6 +117,7 @@ const AUTO_LABELS: Record<CustomAuto, string> = {
   cardedPlayers: 'Spillere som får kort (poeng per spiller)',
   earliestGoalMatch: 'Kamp med tidligste mål',
   penaltyShootoutYesNo: 'Straffekonk i runden? (Ja/Nei)',
+  extraTimeYesNo: 'Ekstraomganger i runden? (Ja/Nei)',
 };
 const AUTO_OPTIONS: CustomAuto[] = [
   'extraTimeCount',
@@ -125,6 +126,7 @@ const AUTO_OPTIONS: CustomAuto[] = [
   'cardedPlayers',
   'earliestGoalMatch',
   'penaltyShootoutYesNo',
+  'extraTimeYesNo',
 ];
 /** Poeng-modus (+ ev. margin/per-element) som et auto-valg impliserer, så scoringen stemmer med fasit-formen. */
 function scoringForAuto(a: CustomAuto): {
@@ -134,7 +136,7 @@ function scoringForAuto(a: CustomAuto): {
 } {
   if (a === 'extraTimeCount') return { scoring: 'number', margin: 0 };
   if (a === 'cardedPlayers') return { scoring: 'perItem', perItemPoints: 2 };
-  if (a === 'penaltyShootoutYesNo') return { scoring: 'exact' };
+  if (a === 'penaltyShootoutYesNo' || a === 'extraTimeYesNo') return { scoring: 'exact' };
   return { scoring: 'match' };
 }
 

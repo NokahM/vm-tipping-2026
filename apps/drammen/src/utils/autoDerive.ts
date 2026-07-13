@@ -629,6 +629,26 @@ export function deriveCustomBonus(
       }
       continue;
     }
+
+    if (q.auto === 'extraTimeYesNo') {
+      // Som penaltyShootoutYesNo, men for ekstraomganger: «Ja» låses umiddelbart når en kamp i
+      // runden går til e.o. (straffekonk teller også – den gikk via e.o.); «Nei» først når hele
+      // runden er ferdigspilt. Fra bulk-resultatene (duration). Ingen provisional «Nei».
+      const ets = finished.filter(
+        (m) => m.duration === 'EXTRA_TIME' || m.duration === 'PENALTY_SHOOTOUT',
+      );
+      if (ets.length) {
+        const firstIso = ets.map((m) => noon(m.utcDate)).reduce((a, b) => (a < b ? a : b));
+        decided[q.id] = { answer: 'Ja', at: firstIso };
+        preliminary[q.id] = 'Ja';
+      } else if (allDone) {
+        decided[q.id] = { answer: 'Nei', at };
+        preliminary[q.id] = 'Nei';
+      } else {
+        preliminary[q.id] = `Nei så langt (${finished.length}/${inStage.length} spilt)`;
+      }
+      continue;
+    }
   }
 
   return { decided, preliminary, provisional };

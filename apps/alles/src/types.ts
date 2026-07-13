@@ -82,6 +82,7 @@ export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number' | 'match';
  * - `cardedPlayers`     = spillere som får kort (alle korttyper) i runden (perItem)
  * - `earliestGoalMatch` = kamp(er) i runden med det tidligste målet (match)
  * - `penaltyShootoutYesNo` = «Ja»/«Nei»: går noen kamp i runden til straffekonk (exact)
+ * - `extraTimeYesNo`    = «Ja»/«Nei»: går noen kamp i runden til ekstraomganger (exact)
  */
 export type CustomAuto =
   | 'extraTimeCount'
@@ -89,7 +90,8 @@ export type CustomAuto =
   | 'fewestGoalsMatch'
   | 'cardedPlayers'
   | 'earliestGoalMatch'
-  | 'penaltyShootoutYesNo';
+  | 'penaltyShootoutYesNo'
+  | 'extraTimeYesNo';
 
 export interface BonusQuestion {
   id: string;

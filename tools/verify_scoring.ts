@@ -595,6 +595,26 @@ const qcbNoStats = deriveCustomBonus([k4, k5, k6], null, qf);
 assert('k4 ikke låst uten stats', qcbNoStats.decided.k4, undefined);
 assert('k5 ikke låst uten stats', qcbNoStats.decided.k5, undefined);
 
+// 4c3d) Ny custom-auto (SF): extraTimeYesNo – «Ja» straks en kamp går til e.o./straffekonk,
+// «Nei» først når runden er ferdigspilt.
+console.log('\nderiveCustomBonus (SF: ekstraomganger Ja/Nei):');
+const k8: BonusQuestion = { id: 'k8', question: '', maxPoints: 2, answer: null, scoring: 'exact', stage: 'SEMI_FINALS', auto: 'extraTimeYesNo', custom: true };
+const sfReg = [
+  mk({ stage: 'SEMI_FINALS', apiId: 301, homeTeam: 'France', awayTeam: 'Spain', homeGoals: 2, awayGoals: 0, duration: 'REGULAR', status: 'FINISHED', utcDate: '2026-07-14T19:00:00Z' }),
+  mk({ stage: 'SEMI_FINALS', apiId: 302, homeTeam: 'England', awayTeam: 'Argentina', homeGoals: 1, awayGoals: 1, duration: 'EXTRA_TIME', status: 'FINISHED', utcDate: '2026-07-15T19:00:00Z' }),
+];
+assert('k8 = Ja (e.o. i runden)', (deriveCustomBonus([k8], null, sfReg).decided.k8 as { answer: string }).answer, 'Ja');
+// Straffekonk teller også som e.o. (gikk via ekstraomganger).
+const sfPen = [sfReg[0], mk({ ...sfReg[1], duration: 'PENALTY_SHOOTOUT' })];
+assert('k8 = Ja (straffekonk teller som e.o.)', (deriveCustomBonus([k8], null, sfPen).decided.k8 as { answer: string }).answer, 'Ja');
+// «Ja» låses umiddelbart underveis; «Nei» ikke før runden er ferdig.
+const sfEarly = [sfReg[1], mk({ stage: 'SEMI_FINALS', apiId: 301, homeTeam: 'France', awayTeam: 'Spain', status: 'TIMED', utcDate: '2026-07-14T19:00:00Z' })];
+assert('k8 «Ja» låses umiddelbart underveis', (deriveCustomBonus([k8], null, sfEarly).decided.k8 as { answer: string }).answer, 'Ja');
+const sfNoEt = [sfReg[0], mk({ stage: 'SEMI_FINALS', apiId: 302, homeTeam: 'England', awayTeam: 'Argentina', status: 'TIMED', utcDate: '2026-07-15T19:00:00Z' })];
+assert('k8 «Nei» låses ikke underveis', deriveCustomBonus([k8], null, sfNoEt).decided.k8, undefined);
+const sfAllReg = [sfReg[0], mk({ ...sfReg[1], duration: 'REGULAR' })];
+assert('k8 = Nei når runden er ferdig uten e.o.', (deriveCustomBonus([k8], null, sfAllReg).decided.k8 as { answer: string }).answer, 'Nei');
+
 // 4c4) Ekstraomganger/straffer: straffemål teller ALDRI som resultat/i målstatistikk; tips
 // scores mot 90-min-resultatet; ekstraomgangsmål teller.
 console.log('\nEkstraomganger/straffer (straffemål teller ikke):');
