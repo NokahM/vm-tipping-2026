@@ -585,6 +585,13 @@ assert('q15: «Dolly Partton» treffer fasit = 3p', scoreBonusQuestion(q15Parts,
 const qfPartial = [qf[0], mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', status: 'TIMED', utcDate: '2026-07-11T21:00:00Z' })];
 const qcbP = deriveCustomBonus([k4, k5, k6], qfStats, qfPartial);
 assert('k4 scorer løpende (kort i kamp 1)', (qcbP.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland']);
+// Kort i en PÅGÅENDE kamp teller også løpende (utdelt er utdelt) – ikke bare ferdigspilte.
+const qfLive = [qf[0], mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', homeGoals: 0, awayGoals: 0, status: 'IN_PLAY', utcDate: '2026-07-11T21:00:00Z' })];
+assert('k4 teller kort i live kamp', (deriveCustomBonus([k4], qfStats, qfLive).decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland', 'Jude Bellingham', 'Bellingham', 'Kevin De Bruyne', 'Bruyne', 'De Bruyne']);
+// … og rødt kort i pågående kamp kvalifiserer kampen for redOrPenaltyMatch løpende.
+const k2Live: BonusQuestion = { ...k2, stage: 'QUARTER_FINALS' };
+const qfLiveRed = { ...baseStats, matchReds: { 202: 1 }, matchPenaltyGoals: {} };
+assert('redOrPenaltyMatch teller live kamp', (deriveCustomBonus([k2Live], qfLiveRed, qfLive).decided.k2 as { answer: string }).answer, 'Norge - England');
 assert('k5 ikke låst før runden er ferdig', qcbP.decided.k5, undefined);
 assert('k6 «Nei» låses ikke underveis', qcbP.decided.k6, undefined);
 // … men «Ja» låses umiddelbart når en straffekonk HAR skjedd (kan aldri omgjøres).

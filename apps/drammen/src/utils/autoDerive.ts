@@ -531,7 +531,10 @@ export function deriveCustomBonus(
       const reds = stats?.matchReds ?? {};
       const pens = stats?.matchPenaltyGoals ?? {};
       const qualifies = (m: MatchResult) => (reds[m.apiId] ?? 0) > 0 || (pens[m.apiId] ?? 0) > 0;
-      const hits = finished.filter(qualifies);
+      // Ikke bare finished: et rødt kort/straffemål i en PÅGÅENDE kamp kvalifiserer også for
+      // alltid – aggregatoren dekker live-kamper. Ustartede kamper holdes utenfor uansett.
+      const started = inStage.filter((m) => m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED');
+      const hits = started.filter(qualifies);
       const names = hits.map(matchName);
       if (names.length && stats && (stats.matchReds || stats.matchPenaltyGoals)) {
         decided[q.id] = {
@@ -568,13 +571,16 @@ export function deriveCustomBonus(
       // Fasit inkluderer både fullt navn og etternavn (deltakerne skriver ofte bare etternavn).
       const byMatch = stats?.matchCardedPlayers;
       if (!byMatch) continue;
-      const hits = finished.filter((m) => (byMatch[m.apiId] ?? []).length > 0);
-      const full = [...new Set(finished.flatMap((m) => byMatch[m.apiId] ?? []))];
+      // Ikke bare finished: kort i PÅGÅENDE kamper teller også – utdelt er utdelt, og
+      // aggregatoren dekker live-kamper. Ustartede kamper holdes utenfor uansett.
+      const started = inStage.filter((m) => m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED');
+      const hits = started.filter((m) => (byMatch[m.apiId] ?? []).length > 0);
+      const full = [...new Set(started.flatMap((m) => byMatch[m.apiId] ?? []))];
       if (full.length) {
         const answer = [...new Set(full.flatMap((n) => [n, ...surnameVariants(n)]))];
         // Dato per spiller (og etternavn-variant): dagen for rundens første kamp med kortet.
         const ats: Record<string, string> = {};
-        for (const m of finished) {
+        for (const m of started) {
           const iso = noon(m.utcDate);
           for (const n of byMatch[m.apiId] ?? []) {
             for (const v of [n, ...surnameVariants(n)]) if (!ats[v] || iso < ats[v]) ats[v] = iso;
