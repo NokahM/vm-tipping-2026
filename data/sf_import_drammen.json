@@ -1,0 +1,57 @@
+{
+  "knockoutTips": {
+    "Erling": [
+      {
+        "apiId": 537387,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537388,
+        "homeGoals": 2,
+        "awayGoals": 0
+      }
+    ],
+    "Håkon": [
+      {
+        "apiId": 537387,
+        "homeGoals": 2,
+        "awayGoals": 0
+      },
+      {
+        "apiId": 537388,
+        "homeGoals": 1,
+        "awayGoals": 1
+      }
+    ],
+    "Rune": [
+      {
+        "apiId": 537387,
+        "homeGoals": 2,
+        "awayGoals": 1
+      },
+      {
+        "apiId": 537388,
+        "homeGoals": 1,
+        "awayGoals": 2
+      }
+    ]
+  },
+  "bonusTips": {
+    "Erling": {
+      "k7": "Digne, Porro",
+      "k8": "Nei",
+      "k9": "9"
+    },
+    "Håkon": {
+      "k7": "Anderson, Fernandez",
+      "k8": "Ja",
+      "k9": "29"
+    },
+    "Rune": {
+      "k7": "Montiel, Medina",
+      "k8": "Ja",
+      "k9": "21"
+    }
+  }
+}
