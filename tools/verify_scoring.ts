@@ -547,7 +547,7 @@ const qfStats = {
   matchFirstGoal: { 201: 23, 202: 12 },
 };
 const qcb = deriveCustomBonus([k4, k5, k6], qfStats, qf);
-assert('k4 fasit = fulle navn + etternavn (inkl. partikkel-form)', (qcb.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland', 'Jude Bellingham', 'Bellingham', 'Kevin De Bruyne', 'Bruyne', 'De Bruyne']);
+assert('k4 fasit = kun fulle navn (matcheren tar etternavn-tips)', (qcb.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Jude Bellingham', 'Kevin De Bruyne']);
 assert('k5 = kamp m/ tidligste mål (12. min)', (qcb.decided.k5 as { answer: string }).answer, 'Norge - England');
 assert('k6 = Ja (straffekonk i runden)', (qcb.decided.k6 as { answer: string }).answer, 'Ja');
 
@@ -574,6 +574,32 @@ const k4Typo: Participant[] = [
 const k4Kante: BonusQuestion = { ...k4, answer: ['Kante', 'Haaland', 'Bellingham'] };
 assert('k4: «Håland» + «Bellingam» (skrivefeil) = 4p', scoreBonusQuestion(k4Typo, k4Scored).get('Typo'), 4);
 assert('k4: «Kane» treffer ikke «Kante» (kort navn) = 0p', scoreBonusQuestion(k4Typo, k4Kante).get('Kort') ?? 0, 0);
+// Fornavn-bevisst matching: bare etternavn treffer fullt navn, men feil fornavn/initial
+// avviser – tre argentinske Martinez-er er tre forskjellige spillere. Ett enkelt «Martinez»
+// kan heller aldri telle to fasit-spillere (countItemHits-taket).
+const kSF: BonusQuestion = { id: 'k7', question: '', maxPoints: 4, answer: ['Lisandro Martínez', 'Christian Romero'], scoring: 'perItem', perItemPoints: 2, custom: true };
+const sfNavn: Participant[] = [
+  { name: 'Bare', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k7', answer: 'Martinez, Romero' }] },
+  { name: 'Fullt', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k7', answer: 'Lissandro Martinez, Stones' }] },
+  { name: 'Keeper', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k7', answer: 'E. Martinez, Stones' }] },
+  { name: 'Lautaro', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k7', answer: 'Lautaro Martinez, Stones' }] },
+];
+assert('k7: bare etternavn treffer fullt navn (2 treff) = 4p', scoreBonusQuestion(sfNavn, kSF).get('Bare'), 4);
+assert('k7: fullt fornavn m/ skrivefeil treffer = 2p', scoreBonusQuestion(sfNavn, kSF).get('Fullt'), 2);
+assert('k7: «E. Martinez» treffer IKKE Lisandro = 0p', scoreBonusQuestion(sfNavn, kSF).get('Keeper'), 0);
+assert('k7: «Lautaro Martinez» treffer IKKE Lisandro = 0p', scoreBonusQuestion(sfNavn, kSF).get('Lautaro'), 0);
+const kToLike: BonusQuestion = { ...kSF, answer: ['Emiliano Martínez', 'Lautaro Martínez'] };
+const enMartinez: Participant[] = [
+  { name: 'Grådig', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k7', answer: 'Martinez, Stones' }] },
+];
+assert('k7: ett «Martinez» teller ikke to fasit-spillere = 2p', scoreBonusQuestion(enMartinez, kToLike).get('Grådig'), 2);
+// Initial matcher riktig spiller, og partikkel-etternavn («de Paul») matcher begge veier.
+const kInit: BonusQuestion = { ...kSF, answer: ['Emiliano Martínez', 'Rodrigo de Paul'] };
+const initParts: Participant[] = [
+  { name: 'Init', groupTips: [], knockoutTips: [], bonusTips: [{ questionId: 'k7', answer: 'E. Martinez, De Paul' }] },
+];
+assert('k7: «E. Martinez» treffer Emiliano + «De Paul» treffer Rodrigo de Paul = 4p', scoreBonusQuestion(initParts, kInit).get('Init'), 4);
+
 // q15-style liste (kjendis): fuzzy medlemskap.
 const q15ish: BonusQuestion = { id: 'q15', question: '', maxPoints: 3, answer: ['Sean Connery', 'Dolly Parton'] };
 const q15Parts: Participant[] = [
@@ -584,10 +610,10 @@ assert('q15: «Dolly Partton» treffer fasit = 3p', scoreBonusQuestion(q15Parts,
 // Underveis (én kamp igjen): k4 scorer løpende (akkumulerende), k5 låses ikke, «Nei» låses ikke.
 const qfPartial = [qf[0], mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', status: 'TIMED', utcDate: '2026-07-11T21:00:00Z' })];
 const qcbP = deriveCustomBonus([k4, k5, k6], qfStats, qfPartial);
-assert('k4 scorer løpende (kort i kamp 1)', (qcbP.decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland']);
+assert('k4 scorer løpende (kort i kamp 1)', (qcbP.decided.k4 as { answer: string[] }).answer, ['Erling Haaland']);
 // Kort i en PÅGÅENDE kamp teller også løpende (utdelt er utdelt) – ikke bare ferdigspilte.
 const qfLive = [qf[0], mk({ stage: 'QUARTER_FINALS', apiId: 202, homeTeam: 'Norway', awayTeam: 'England', homeGoals: 0, awayGoals: 0, status: 'IN_PLAY', utcDate: '2026-07-11T21:00:00Z' })];
-assert('k4 teller kort i live kamp', (deriveCustomBonus([k4], qfStats, qfLive).decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Haaland', 'Jude Bellingham', 'Bellingham', 'Kevin De Bruyne', 'Bruyne', 'De Bruyne']);
+assert('k4 teller kort i live kamp', (deriveCustomBonus([k4], qfStats, qfLive).decided.k4 as { answer: string[] }).answer, ['Erling Haaland', 'Jude Bellingham', 'Kevin De Bruyne']);
 // … og rødt kort i pågående kamp kvalifiserer kampen for redOrPenaltyMatch løpende.
 const k2Live: BonusQuestion = { ...k2, stage: 'QUARTER_FINALS' };
 const qfLiveRed = { ...baseStats, matchReds: { 202: 1 }, matchPenaltyGoals: {} };

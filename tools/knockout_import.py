@@ -115,7 +115,7 @@ def norm_team(s: str) -> str:
     return ''.join(ch for ch in s.casefold() if ch.isalnum())
 
 
-# --- Spillernavn (--players): normaliser til kanonisk ETTERNAVN slik siden viser dem ---
+# --- Spillernavn (--players): kanonisk etternavn, med fornavn/initial BEHOLDT når oppgitt ---
 
 # Etternavns-partikler som beholdes («Kevin De Bruyne» → «De Bruyne»).
 PLAYER_PARTICLES = {'de', 'van', 'der', 'den', 'di', 'da', 'la', 'le', 'el', 'dos', 'del'}
@@ -139,17 +139,30 @@ def strip_dia(s: str) -> str:
 
 
 def normalize_player(raw: str) -> str:
-    """«Erling Braut Håland» → «Haaland», «kevin de bruyne» → «De Bruyne», «Saka» → «Saka»."""
+    """«Erling Braut Håland» → «Erling Haaland», «kevin de bruyne» → «Kevin De Bruyne»,
+    «Saka» → «Saka», «E. Martinez» → «E. Martinez».
+
+    Etternavnet kanoniseres (PLAYER_ALIASES), men FORNAVNET (eller initialen) beholdes når det
+    er oppgitt – «E. Martinez» og «Lisandro Martinez» er forskjellige spillere, og scoringens
+    navne-matching (bonusItemMatches) er fornavn-bevisst. Merk: reduser ALDRI et fullt fornavn
+    til initial – «L. Martinez» ville vært tvetydig mellom Lisandro og Lautaro.
+    """
     parts = raw.strip().split()
     if not parts:
         return ''
     if len(parts) >= 2 and parts[-2].lower() in PLAYER_PARTICLES:
         surname = f'{parts[-2].capitalize()} {parts[-1].capitalize()}'
         key = strip_dia(f'{parts[-2]} {parts[-1]}').casefold()
+        first = parts[:-2]
     else:
         surname = parts[-1].capitalize()
         key = strip_dia(parts[-1]).casefold()
-    return PLAYER_ALIASES.get(key, surname)
+        first = parts[:-1]
+    surname = PLAYER_ALIASES.get(key, surname)
+    if first:
+        f0 = first[0] if first[0].endswith('.') else first[0].capitalize()
+        return f'{f0} {surname}'
+    return surname
 
 
 def parse_score(cell: object) -> tuple[int, int] | None:
@@ -201,7 +214,7 @@ def main() -> None:
     ap.add_argument('--app', required=True, choices=['drammen', 'alles'])
     ap.add_argument('--round', required=True, choices=sorted(ROUND_STAGE), help='runde (velger apiId-oppsett; SF/BRONSE/FINALE hentes live fra API-et)')
     ap.add_argument('--k', nargs='*', default=[], help='question-id per Krydder-rad i rekkefølge, f.eks. k4 k5 k6')
-    ap.add_argument('--players', nargs='*', default=[], help='id-er blant --k der svaret er spillernavn (normaliseres til etternavn, f.eks. k4)')
+    ap.add_argument('--players', nargs='*', default=[], help='id-er blant --k der svaret er spillernavn (kanonisk etternavn, fornavn/initial beholdes, f.eks. k4)')
     ap.add_argument('-o', '--out', help='output-fil (default: stdout)')
     args = ap.parse_args()
 
@@ -257,7 +270,7 @@ def main() -> None:
                 if isinstance(v, (int, float)) and float(v).is_integer():
                     v = int(v)
                 v = str(v).strip()
-                # Spillernavn-spørsmål: hvert komma-element → kanonisk etternavn (som på siden).
+                # Spillernavn-spørsmål: hvert komma-element → kanonisk etternavn, fornavn beholdt.
                 if qid in args.players:
                     nv = ', '.join(filter(None, (normalize_player(x) for x in v.split(','))))
                     if nv != v:

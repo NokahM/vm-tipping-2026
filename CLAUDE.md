@@ -413,7 +413,9 @@ og KV-nøklene (hentes fra Upstash-storen / `vercel env pull`). Ingen `VITE_ADMI
 4. Konverter MASTER-arket: `py tools/knockout_import.py <fil> --app <alles|drammen> --round <QF|SF|BRONSE|FINALE>
    --k k7 k8 … --players <spillernavn-id-er>` → import-JSON per app. R16/QF-oppsett er innbakt;
    SF/BRONSE/FINALE hentes live fra API-et (feiler pent hvis runden ikke er trukket). `--players`
-   normaliserer spillernavn til kanonisk etternavn («Erling Braut Håland» → «Haaland»). Verifiser
+   kanoniserer etternavnet men BEHOLDER fornavn/initial («Erling Braut Håland» → «Erling Haaland»,
+   «E. Martinez» → «E. Martinez») – scoringens navne-matching er fornavn-bevisst, så «E. Martinez»
+   (Emiliano) og «Lisandro Martinez» skilles fra hverandre (og fra Lautaro). Verifiser
    normaliserings-/svaroversikten scriptet printer.
 5. Admin → **Importer**-fanen → lim inn blobene (spørsmål først, så tips) → «Importer & publiser».
    Gjøres per app. Manuelle fasit-korrigeringer (f.eks. hendelser API-et ikke ser, som rødt kort til

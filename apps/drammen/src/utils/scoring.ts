@@ -202,17 +202,70 @@ function withinOneEdit(a: string, b: string): boolean {
   return edits + (a.length - i) + (b.length - j) <= 1;
 }
 
+// Etternavns-partikler («Rodrigo de Paul» → etternavn «de Paul», «Kevin De Bruyne» → «De Bruyne»).
+const NAME_PARTICLES = new Set(['de', 'van', 'der', 'den', 'di', 'da', 'la', 'le', 'el', 'dos', 'del']);
+
+/** Splitter et navn i fornavn-del (alle ledende ord) og etternavn (siste ord + ev. partikkel). */
+function nameParts(s: string): { first: string[]; surname: string } {
+  const t = s.trim().split(/\s+/).filter(Boolean);
+  let i = t.length - 1;
+  if (i > 0 && NAME_PARTICLES.has(t[i - 1].toLowerCase())) i--;
+  return { first: t.slice(0, i), surname: t.slice(i).join(' ') };
+}
+
 /**
- * Matcher et deltaker-element mot et fasit-element med skrivefeil-toleranse: lik nøkkel,
- * eller maks én bokstav feil for navn på ≥ 5 tegn («Bellingam» treffer «Bellingham»).
- * Korte navn krever eksakt nøkkel, så «Kane» aldri treffer «Kante».
+ * Fornavn-kompatibilitet: mangler den ene siden fornavn helt («Martinez») er alt kompatibelt.
+ * Ellers må minst ett ledende ord matche på tvers – initial mot initial/fullt fornavn holder
+ * («E. Martinez» ↔ «Emiliano Martínez»), mens ulike fornavn avviser («E. Martinez» ↔
+ * «Lisandro Martínez», «Lautaro» ↔ «Lisandro»).
+ */
+function firstNamesCompatible(xs: string[], ys: string[]): boolean {
+  if (!xs.length || !ys.length) return true;
+  const one = (x: string, y: string) => {
+    const a = itemKey(x);
+    const b = itemKey(y);
+    if (!a || !b) return true;
+    if (a[0] !== b[0]) return false;
+    if (a.length === 1 || b.length === 1) return true;
+    return a === b || (Math.min(a.length, b.length) >= 5 && withinOneEdit(a, b));
+  };
+  return xs.some((x) => ys.some((y) => one(x, y)));
+}
+
+/**
+ * Matcher et deltaker-element mot et fasit-element. Skrivefeil-toleranse: lik nøkkel, eller
+ * maks én bokstav feil for navn på ≥ 5 tegn («Bellingam» treffer «Bellingham»); korte navn
+ * krever eksakt nøkkel, så «Kane» aldri treffer «Kante». Navn med flere ord sammenlignes
+ * strukturert (etternavn + fornavn-kompatibilitet): «Martinez» alene treffer «Lisandro
+ * Martínez», men «E. Martinez»/«Emiliano Martinez» gjør det IKKE – Argentina har tre
+ * forskjellige Martinez-er.
  */
 export function bonusItemMatches(fasitItem: string, answer: string): boolean {
   const a = itemKey(fasitItem);
   const b = itemKey(answer);
   if (!a || !b) return false;
   if (a === b) return true;
+  const fa = nameParts(fasitItem);
+  const fb = nameParts(answer);
+  const sa = itemKey(fa.surname);
+  const sb = itemKey(fb.surname);
+  if (sa === sb || (Math.min(sa.length, sb.length) >= 5 && withinOneEdit(sa, sb))) {
+    return firstNamesCompatible(fa.first, fb.first);
+  }
+  // Etternavnene matcher ikke (f.eks. for korte for toleransen): fall tilbake til hel-nøkkel
+  // med én-bokstav-toleranse («Ruben Diaz» ↔ «Rúben Dias»).
   return Math.min(a.length, b.length) >= 5 && withinOneEdit(a, b);
+}
+
+/**
+ * Antall poenggivende treff for per-element-spørsmål: distinkte fasit-elementer truffet, men
+ * aldri flere enn distinkte deltaker-elementer som traff – ett enkelt «Martinez» kan ikke
+ * telle både Emiliano og Lautaro, og samme navn nevnt to ganger gir ikke dobbelt.
+ */
+function countItemHits(fasitItems: string[], mine: string[]): number {
+  const fasitHit = fasitItems.filter((f) => mine.some((m) => bonusItemMatches(f, m))).length;
+  const mineHit = mine.filter((m) => fasitItems.some((f) => bonusItemMatches(f, m))).length;
+  return Math.min(fasitHit, mineHit);
 }
 
 // Liste-fasit-spørsmål der deltakeren nevner FLERE og får poeng per korrekt (maxPoints/2 per lag).
@@ -310,10 +363,10 @@ export function scoreBonusQuestion(
         for (const p of participants) {
           const tip = tipFor(p);
           if (!tip) continue;
-          // Distinkte korrekte telles over FASIT-elementene (dedup mot dobbelt-nevning),
-          // som PER_ITEM_IDS-grenen – med skrivefeil-toleranse per element.
+          // Distinkte korrekte (dedup mot dobbelt-nevning og mot ett tips som treffer flere
+          // fasit-elementer), som PER_ITEM_IDS-grenen – med skrivefeil-toleranse per element.
           const mine = bonusItemsOf(tip);
-          const hits = fasitItems.filter((f) => mine.some((m) => bonusItemMatches(f, m))).length;
+          const hits = countItemHits(fasitItems, mine);
           if (hits > 0) add(p.name, Math.min(hits * per, q.maxPoints));
         }
       } else {
@@ -420,7 +473,7 @@ export function scoreBonusQuestion(
         const tip = tipFor(p);
         if (!tip) continue;
         const mine = bonusItemsOf(tip);
-        const hits = fasitItems.filter((f) => mine.some((m) => bonusItemMatches(f, m))).length;
+        const hits = countItemHits(fasitItems, mine);
         if (hits > 0) add(p.name, Math.min(hits * perTeam, q.maxPoints));
       }
     } else {
