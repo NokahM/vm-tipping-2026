@@ -37,6 +37,7 @@ export interface StatsData {
   matchPenaltyGoals?: Record<string, number>; // apiId → straffemål i åpent spill (custom auto)
   matchCardedPlayers?: Record<string, string[]>; // apiId → spillere m/ kort (custom auto: kort-spillere)
   matchFirstGoal?: Record<string, number | null>; // apiId → tidligste mål-minutt, null = målløs (custom auto)
+  matchLastRegGoal?: Record<string, number | null>; // apiId → siste mål-minutt i ordinær tid, null = ingen (custom auto)
   finalReferee?: string | null; // for q11
   fastestGoal?: { minute: number; scorer: string; team: string } | null; // for q6
   fastestGoals?: { minute: number; scorer: string; team: string }[]; // alle mål på laveste minutt (q6)

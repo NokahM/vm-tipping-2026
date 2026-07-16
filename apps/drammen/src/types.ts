@@ -84,6 +84,8 @@ export type BonusScoring = 'exact' | 'list' | 'perItem' | 'number' | 'match';
  * - `penaltyShootoutYesNo` = «Ja»/«Nei»: går noen kamp i runden til straffekonk (exact)
  * - `extraTimeYesNo`    = «Ja»/«Nei»: går noen kamp i runden til ekstraomganger (exact)
  * - `firstGoalMinute`   = første måls minutt i ÉN bestemt kamp (`q.matchApiId`) (number)
+ * - `lastGoalMinute`    = SISTE måls minutt i ORDINÆR TID (minutt ≤ 90, overtid = 90) på tvers
+ *                         av rundens kamper – kronologisk siste kamp med mål teller (number)
  */
 export type CustomAuto =
   | 'extraTimeCount'
@@ -93,7 +95,8 @@ export type CustomAuto =
   | 'earliestGoalMatch'
   | 'penaltyShootoutYesNo'
   | 'extraTimeYesNo'
-  | 'firstGoalMinute';
+  | 'firstGoalMinute'
+  | 'lastGoalMinute';
 
 export interface BonusQuestion {
   id: string;
@@ -105,6 +108,7 @@ export interface BonusQuestion {
   perItemPoints?: number; // poeng per korrekt element når scoring = 'perItem'
   margin?: number; // ± margin for full pott når scoring = 'number'
   stage?: Stage; // valgfri runde-merkelapp (visning/gruppering); også runden auto-utledning gjelder
+  stages?: Stage[]; // FLERE runder for auto-utledning (f.eks. bronse+finale); overstyrer `stage` der
   auto?: CustomAuto; // kobler spørsmålet til API-et (auto-fasit), låst når `stage`-runden er ferdig
   matchApiId?: number; // kamp-målrettede autoer (firstGoalMinute): apiId til kampen spørsmålet gjelder
   custom?: boolean; // true = opprettet via admin (ikke innbakt)

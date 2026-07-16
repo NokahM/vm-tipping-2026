@@ -52,14 +52,16 @@ FIXTURES: dict[str, dict[int, tuple[str, str]]] = {
     },
 }
 
-# Runde → football-data stage-parameter (for live-henting av oppsett).
+# Runde → football-data stage-parameter(e) (for live-henting av oppsett). FINALER = kombinert
+# runde for bronse + finale i ETT ark (ett skjema til deltakerne for begge kampene).
 ROUND_STAGE = {
-    'R32': 'LAST_32',
-    'R16': 'LAST_16',
-    'QF': 'QUARTER_FINALS',
-    'SF': 'SEMI_FINALS',
-    'BRONSE': 'THIRD_PLACE',
-    'FINALE': 'FINAL',
+    'R32': ['LAST_32'],
+    'R16': ['LAST_16'],
+    'QF': ['QUARTER_FINALS'],
+    'SF': ['SEMI_FINALS'],
+    'BRONSE': ['THIRD_PLACE'],
+    'FINALE': ['FINAL'],
+    'FINALER': ['THIRD_PLACE', 'FINAL'],
 }
 
 
@@ -78,20 +80,21 @@ def fetch_fixtures(round_key: str) -> dict[int, tuple[str, str]]:
     m = re.search(r'FOOTBALL_API_KEY\s*=\s*"?([^"\r\n]+)', env)
     if not m:
         sys.exit('FEIL: fant ikke FOOTBALL_API_KEY i apps/drammen/.env.local (trengs for å hente oppsettet).')
-    req = urllib.request.Request(
-        f'https://api.football-data.org/v4/competitions/WC/matches?stage={ROUND_STAGE[round_key]}',
-        headers={'X-Auth-Token': m.group(1).strip()},
-    )
-    with urllib.request.urlopen(req) as r:
-        matches = _json.load(r).get('matches', [])
     no = team_name_map()
     out: dict[int, tuple[str, str]] = {}
-    for match in matches:
-        home = match['homeTeam'].get('name')
-        away = match['awayTeam'].get('name')
-        if not home or not away:
-            sys.exit(f'FEIL: {round_key} er ikke trukket ennå (kamp {match["id"]} har TBD-lag). Prøv igjen når runden er klar.')
-        out[match['id']] = (no.get(home, home), no.get(away, away))
+    for stage in ROUND_STAGE[round_key]:
+        req = urllib.request.Request(
+            f'https://api.football-data.org/v4/competitions/WC/matches?stage={stage}',
+            headers={'X-Auth-Token': m.group(1).strip()},
+        )
+        with urllib.request.urlopen(req) as r:
+            matches = _json.load(r).get('matches', [])
+        for match in matches:
+            home = match['homeTeam'].get('name')
+            away = match['awayTeam'].get('name')
+            if not home or not away:
+                sys.exit(f'FEIL: {round_key} er ikke trukket ennå (kamp {match["id"]} har TBD-lag). Prøv igjen når runden er klar.')
+            out[match['id']] = (no.get(home, home), no.get(away, away))
     if not out:
         sys.exit(f'FEIL: API-et returnerte ingen kamper for {round_key}.')
     return out

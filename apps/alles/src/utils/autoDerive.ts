@@ -489,8 +489,10 @@ export function deriveCustomBonus(
   if (results.length === 0) return { decided, preliminary, provisional };
 
   for (const q of questions) {
-    if (!q.auto || !q.stage) continue;
-    const inStage = results.filter((m) => m.stage === q.stage);
+    // `stages` (flertall) lar ett spørsmål dekke flere runder (bronse+finale); ellers `stage`.
+    const stages = q.stages?.length ? q.stages : q.stage ? [q.stage] : null;
+    if (!q.auto || !stages) continue;
+    const inStage = results.filter((m) => stages.includes(m.stage));
     if (inStage.length === 0) continue;
     const finished = inStage.filter((m) => m.status === 'FINISHED');
     const allDone = finished.length === inStage.length;
@@ -659,6 +661,36 @@ export function deriveCustomBonus(
       } else if (match.apiId in fg) {
         preliminary[q.id] = 'målløs kamp – sett fasit manuelt';
       }
+      continue;
+    }
+
+    if (q.auto === 'lastGoalMinute') {
+      // Siste måls minutt i ORDINÆR TID (minutt ≤ 90; 90+X rapporteres som 90 av API-et) på
+      // tvers av rundens/rundenes kamper: den KRONOLOGISK siste kampen med ordinær-tids-mål
+      // teller, og innen kampen det høyeste minuttet. Kan slås av ethvert senere mål → låses
+      // først når alle kampene er ferdigspilte og deep data dekker dem. Ekstraomgangs-mål
+      // (minutt > 90) teller ikke.
+      const lg = stats?.matchLastRegGoal;
+      if (!lg) continue;
+      // Foreløpig hint følger også PÅGÅENDE kamper (aggregatoren dekker live); låsing krever
+      // uansett allDone, og da er started == finished.
+      const started = inStage.filter((m) => m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED');
+      const lastWith = [...started]
+        .sort((a, b) => a.utcDate.localeCompare(b.utcDate))
+        .reverse()
+        .find((m) => lg[m.apiId] != null);
+      if (!lastWith) {
+        if (!allDone) preliminary[q.id] = 'ingen mål i ordinær tid ennå';
+        else if (finished.every((m) => m.apiId in lg)) preliminary[q.id] = 'ingen mål i ordinær tid – sett fasit manuelt';
+        continue;
+      }
+      const min = lg[lastWith.apiId] as number;
+      const covered = finished.every((m) => m.apiId in lg);
+      if (allDone && covered) {
+        decided[q.id] = { answer: String(min), at: noon(lastWith.utcDate) };
+      }
+      preliminary[q.id] = `${min}' (${matchName(lastWith)})${allDone ? '' : ' – kan slås'}`;
+      // Ingen provisional: «siste mål» flytter seg utover, grønn chip underveis ville lovet for mye.
       continue;
     }
   }

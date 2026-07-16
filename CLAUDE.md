@@ -409,10 +409,15 @@ og KV-nøklene (hentes fra Upstash-storen / `vercel env pull`). Ingen `VITE_ADMI
    med én kolonne per deltaker + ark «Krydder» med én rad per spørsmål) → legges i `data/`.
 3. Rundens nye krydderspørsmål (fortløpende id `k…`) legges i en `{ "bonusQuestions": […] }`-blob
    (jf. `data/qf_questions.json`) med `scoring`/`auto`/`stage` – velg auto-utleder fra menyen i
-   `types.ts` (`CustomAuto`, 6 stk) når spørsmålet kan utledes av API-data.
-4. Konverter MASTER-arket: `py tools/knockout_import.py <fil> --app <alles|drammen> --round <QF|SF|BRONSE|FINALE>
+   `types.ts` (`CustomAuto`, 9 stk) når spørsmålet kan utledes av API-data. Spørsmål som spenner
+   over FLERE runder (bronse+finale) setter `stages: ["THIRD_PLACE","FINAL"]` i tillegg til
+   `stage` (badge) – auto-utledningen bruker da alle rundene (jf. `data/finale_questions.json`).
+   Merk: ballinnehav/skudd o.l. er låst bak en egen «Stats-Package» hos football-data (ikke i
+   abonnementet) → slike spørsmål må ha manuell fasit.
+4. Konverter MASTER-arket: `py tools/knockout_import.py <fil> --app <alles|drammen> --round <QF|SF|BRONSE|FINALE|FINALER>
    --k k7 k8 … --players <spillernavn-id-er>` → import-JSON per app. R16/QF-oppsett er innbakt;
-   SF/BRONSE/FINALE hentes live fra API-et (feiler pent hvis runden ikke er trukket). `--players`
+   SF/BRONSE/FINALE hentes live fra API-et (feiler pent hvis runden ikke er trukket). `FINALER` =
+   kombinert runde (bronse + finale i ETT ark – ett skjema for begge kampene). `--players`
    kanoniserer etternavnet men BEHOLDER fornavn/initial («Erling Braut Håland» → «Erling Haaland»,
    «E. Martinez» → «E. Martinez») – scoringens navne-matching er fornavn-bevisst, så «E. Martinez»
    (Emiliano) og «Lisandro Martinez» skilles fra hverandre (og fra Lautaro). Verifiser

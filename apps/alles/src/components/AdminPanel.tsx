@@ -119,6 +119,7 @@ const AUTO_LABELS: Record<CustomAuto, string> = {
   penaltyShootoutYesNo: 'Straffekonk i runden? (Ja/Nei)',
   extraTimeYesNo: 'Ekstraomganger i runden? (Ja/Nei)',
   firstGoalMinute: 'Første måls minutt (én kamp)',
+  lastGoalMinute: 'Siste måls minutt i ordinær tid (runden)',
 };
 const AUTO_OPTIONS: CustomAuto[] = [
   'extraTimeCount',
@@ -129,6 +130,7 @@ const AUTO_OPTIONS: CustomAuto[] = [
   'penaltyShootoutYesNo',
   'extraTimeYesNo',
   'firstGoalMinute',
+  'lastGoalMinute',
 ];
 /** Poeng-modus (+ ev. margin/per-element) som et auto-valg impliserer, så scoringen stemmer med fasit-formen. */
 function scoringForAuto(a: CustomAuto): {
@@ -137,7 +139,7 @@ function scoringForAuto(a: CustomAuto): {
   perItemPoints?: number;
 } {
   if (a === 'extraTimeCount') return { scoring: 'number', margin: 0 };
-  if (a === 'firstGoalMinute') return { scoring: 'number', margin: 5 };
+  if (a === 'firstGoalMinute' || a === 'lastGoalMinute') return { scoring: 'number', margin: 5 };
   if (a === 'cardedPlayers') return { scoring: 'perItem', perItemPoints: 2 };
   if (a === 'penaltyShootoutYesNo' || a === 'extraTimeYesNo') return { scoring: 'exact' };
   return { scoring: 'match' };
@@ -1232,7 +1234,9 @@ function CustomBonusTab({
                     fasit fra API ·{' '}
                     {q.auto === 'firstGoalMinute'
                       ? 'låses når første mål er scoret'
-                      : `låses når ${STAGE_LABELS[q.stage].toLowerCase()} er ferdig`}
+                      : q.stages?.length
+                        ? 'låses når alle kampene er ferdigspilt'
+                        : `låses når ${STAGE_LABELS[q.stage].toLowerCase()} er ferdig`}
                   </span>
                 )}
               </div>

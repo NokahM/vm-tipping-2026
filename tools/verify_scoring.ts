@@ -664,6 +664,30 @@ assert('k9 riktig tips innenfor ±5', scoreBonusQuestion(
   { ...k9, answer: '44' },
 ).get('N'), 2);
 
+// 4c3e) Flerrunde-autoer (bronse+finale via q.stages) + lastGoalMinute (siste mål i ordinær tid).
+console.log('\nderiveCustomBonus (FINALER: stages + siste måls minutt):');
+const finaler = [
+  mk({ stage: 'THIRD_PLACE', apiId: 401, homeTeam: 'France', awayTeam: 'England', homeGoals: 2, awayGoals: 1, duration: 'REGULAR', status: 'FINISHED', utcDate: '2026-07-18T19:00:00Z' }),
+  mk({ stage: 'FINAL', apiId: 402, homeTeam: 'Spain', awayTeam: 'Argentina', homeGoals: 1, awayGoals: 1, aetHomeGoals: 2, aetAwayGoals: 1, duration: 'EXTRA_TIME', winner: 'HOME_TEAM', status: 'FINISHED', utcDate: '2026-07-19T19:00:00Z' }),
+];
+const k10: BonusQuestion = { id: 'k10', question: '', maxPoints: 2, answer: null, scoring: 'number', margin: 5, stage: 'FINAL', stages: ['THIRD_PLACE', 'FINAL'], auto: 'lastGoalMinute', custom: true };
+const k11: BonusQuestion = { id: 'k11', question: '', maxPoints: 2, answer: null, scoring: 'exact', stage: 'FINAL', stages: ['THIRD_PLACE', 'FINAL'], auto: 'extraTimeYesNo', custom: true };
+// Finalen: siste ordinær-tids-mål i 87. min (e.o.-målet i 105. ekskluderes → null-filter i stats).
+const finStats = { ...baseStats, matchLastRegGoal: { 401: 78, 402: 87 } };
+const fcb = deriveCustomBonus([k10, k11], finStats, finaler);
+assert('k10 = siste måls minutt i KRONOLOGISK siste kamp med mål', (fcb.decided.k10 as { answer: string }).answer, '87');
+assert('k11 = Ja over BEGGE finalekampene (e.o. i finalen)', (fcb.decided.k11 as { answer: string }).answer, 'Ja');
+// Målløs finale i ordinær tid → bronsefinalens siste mål teller.
+const finStats0 = { ...baseStats, matchLastRegGoal: { 401: 78, 402: null } };
+assert('k10 faller tilbake til bronsefinalen når finalen er målløs (90 min)', (deriveCustomBonus([k10], finStats0, finaler).decided.k10 as { answer: string }).answer, '78');
+// Låses ikke underveis (et senere mål kan alltid slå det) eller uten full deep data-dekning.
+const finPartial = [finaler[0], mk({ ...finaler[1], status: 'IN_PLAY' })];
+assert('k10 ikke låst før begge kampene er ferdige', deriveCustomBonus([k10], finStats, finPartial).decided.k10, undefined);
+assert('k10 foreløpig hint underveis', deriveCustomBonus([k10], finStats, finPartial).preliminary.k10, "87' (Spania - Argentina) – kan slås");
+const finUncovered = { ...baseStats, matchLastRegGoal: { 401: 78 } };
+assert('k10 ikke låst uten deep data for alle kampene', deriveCustomBonus([k10], finUncovered, finaler).decided.k10, undefined);
+assert('k11 «Nei» låses ikke før begge stages er ferdige', deriveCustomBonus([k11], null, [mk({ ...finaler[0], duration: 'REGULAR' }), mk({ ...finaler[1], duration: 'REGULAR', status: 'TIMED' })]).decided.k11, undefined);
+
 // 4c4) Ekstraomganger/straffer: straffemål teller ALDRI som resultat/i målstatistikk; tips
 // scores mot 90-min-resultatet; ekstraomgangsmål teller.
 console.log('\nEkstraomganger/straffer (straffemål teller ikke):');

@@ -288,6 +288,9 @@ async function computeStats(apiKey, kvUrl, kvToken) {
   //   alle cachede kamper, så klienten kan skille «målløs» fra «deep data mangler».
   const matchCardedPlayers = {};
   const matchFirstGoal = {};
+  // + siste mål-minutt i ORDINÆR TID (minutt ≤ 90; 90+X har minute:90) per kamp – for custom
+  //   auto «siste måls minutt» (ekstraomgangs-mål teller ikke). null = ingen ordinær-tids-mål.
+  const matchLastRegGoal = {};
   for (const [id, m] of Object.entries(cache.matches)) {
     matchYellows[id] = (m.bookings || []).filter((b) => b.card === 'YELLOW').length;
     matchReds[id] = (m.bookings || []).filter((b) => b.card === 'RED' || b.card === 'YELLOW_RED').length;
@@ -295,6 +298,8 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     matchCardedPlayers[id] = [...new Set((m.bookings || []).map((b) => b.name).filter(Boolean))];
     const mins = (m.goals || []).map((g) => g.minute).filter((x) => x != null);
     matchFirstGoal[id] = mins.length ? Math.min(...mins) : null;
+    const regs = mins.filter((x) => x <= 90);
+    matchLastRegGoal[id] = regs.length ? Math.max(...regs) : null;
   }
 
   return {
@@ -307,6 +312,7 @@ async function computeStats(apiKey, kvUrl, kvToken) {
     matchPenaltyGoals, // apiId → antall straffemål i åpent spill – for custom auto (straffe-kamp)
     matchCardedPlayers, // apiId → spillere med kort – for custom auto (kort-spillere)
     matchFirstGoal, // apiId → tidligste mål-minutt (null = målløs) – for custom auto (tidligste mål)
+    matchLastRegGoal, // apiId → siste mål-minutt i ordinær tid (null = ingen) – for custom auto (siste mål)
     finalReferee: finalMatch?.referee || null, // for q11
     fastestGoal, // for q6 live-indikator
     fastestGoals, // alle mål på det laveste minuttet (q6 – sekunder mangler i API-et)
