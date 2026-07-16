@@ -1,0 +1,136 @@
+{
+  "knockoutTips": {
+    "Magnus": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 1 }
+    ],
+    "Anders": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 0 }
+    ],
+    "Kay Robin": [
+      { "apiId": 537389, "homeGoals": 1, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Skjalg": [
+      { "apiId": 537389, "homeGoals": 1, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 3, "awayGoals": 0 }
+    ],
+    "Lisa": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Håkon M": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 1 }
+    ],
+    "Bent Arne": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Espen": [
+      { "apiId": 537389, "homeGoals": 3, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Ida": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 1 }
+    ],
+    "Erling": [
+      { "apiId": 537389, "homeGoals": 3, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 0 }
+    ],
+    "Trond": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 2 },
+      { "apiId": 537390, "homeGoals": 4, "awayGoals": 1 }
+    ],
+    "Anne Marte": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Ole": [
+      { "apiId": 537389, "homeGoals": 1, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 0 }
+    ],
+    "Eirik": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 1 }
+    ],
+    "Håkon Emil": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 0, "awayGoals": 1 }
+    ],
+    "Gunvor": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 0, "awayGoals": 1 }
+    ],
+    "Sindre": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 2 }
+    ],
+    "Morten": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Jonas G": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 0 }
+    ],
+    "Viktor": [
+      { "apiId": 537389, "homeGoals": 3, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 3, "awayGoals": 0 }
+    ],
+    "Hilde": [
+      { "apiId": 537389, "homeGoals": 1, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Kajsa": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 1 }
+    ],
+    "Nicholas": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 1, "awayGoals": 1 }
+    ],
+    "Jonas W": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 0 }
+    ],
+    "Sofia": [
+      { "apiId": 537389, "homeGoals": 2, "awayGoals": 1 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ],
+    "Margret": [
+      { "apiId": 537389, "homeGoals": 3, "awayGoals": 0 },
+      { "apiId": 537390, "homeGoals": 2, "awayGoals": 1 }
+    ]
+  },
+  "bonusTips": {
+    "Magnus": { "k10": "90+2", "k11": "Ja", "k12": "54" },
+    "Anders": { "k10": "89", "k11": "Nei", "k12": "64" },
+    "Kay Robin": { "k10": "85", "k11": "Nei", "k12": "57" },
+    "Skjalg": { "k10": "85", "k11": "Ja", "k12": "60" },
+    "Lisa": { "k10": "88", "k11": "Nei", "k12": "64" },
+    "Håkon M": { "k10": "76", "k11": "Ja", "k12": "60" },
+    "Bent Arne": { "k10": "86", "k11": "Nei", "k12": "59" },
+    "Espen": { "k10": "76", "k11": "Nei", "k12": "58" },
+    "Ida": { "k10": "87", "k11": "Ja", "k12": "62" },
+    "Erling": { "k10": "89", "k11": "Nei", "k12": "55" },
+    "Trond": { "k10": "75", "k11": "Ja", "k12": "68" },
+    "Anne Marte": { "k10": "82", "k11": "Nei", "k12": "56" },
+    "Ole": { "k10": "90", "k11": "Nei", "k12": "68" },
+    "Eirik": { "k10": "91", "k11": "Ja", "k12": "56" },
+    "Håkon Emil": { "k10": "78", "k11": "Ja", "k12": "70" },
+    "Gunvor": { "k10": "87", "k11": "Nei", "k12": "65" },
+    "Sindre": { "k10": "92", "k11": "Nei", "k12": "58" },
+    "Morten": { "k10": "85", "k11": "Nei", "k12": "58" },
+    "Jonas G": { "k10": "94", "k11": "Nei", "k12": "65" },
+    "Viktor": { "k10": "84", "k11": "Nei", "k12": "67" },
+    "Hilde": { "k10": "83", "k11": "Ja", "k12": "56" },
+    "Kajsa": { "k10": "89", "k11": "Ja", "k12": "67" },
+    "Nicholas": { "k10": "86", "k11": "Ja", "k12": "53" },
+    "Jonas W": { "k10": "78", "k11": "Nei", "k12": "61" },
+    "Sofia": { "k10": "85", "k11": "Nei", "k12": "72" },
+    "Margret": { "k10": "85", "k11": "Ja", "k12": "65" }
+  }
+}
