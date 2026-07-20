@@ -328,14 +328,19 @@ export function scoreBonusQuestion(
   // Admin-opprettede spørsmål: poengsettes etter valgt modus (q.scoring), ikke id.
   if (q.scoring) {
     if (q.scoring === 'number') {
-      const fasit = firstNumber(String(q.answer));
-      if (Number.isNaN(fasit)) return points;
+      // Fasit kan være FLERE tall (komma-separert) når flere verdier er «riktige» – f.eks. to
+      // beregningsmåter for ballinnehav. Treff = innenfor margin av minst ett av tallene.
+      const fasitList = (Array.isArray(q.answer) ? q.answer : String(q.answer).split(/[,;/]/))
+        .map((s) => firstNumber(String(s)))
+        .filter((n) => !Number.isNaN(n));
+      if (fasitList.length === 0) return points;
       const margin = q.margin ?? GOAL_MARGIN;
       for (const p of participants) {
         const tip = tipFor(p);
         if (!tip) continue;
         const guess = firstNumber(bonusAnswerOf(tip)[0] ?? '');
-        if (!Number.isNaN(guess) && Math.abs(guess - fasit) <= margin) add(p.name, q.maxPoints);
+        if (!Number.isNaN(guess) && fasitList.some((f) => Math.abs(guess - f) <= margin))
+          add(p.name, q.maxPoints);
       }
       return points;
     }

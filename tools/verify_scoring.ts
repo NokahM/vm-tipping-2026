@@ -831,6 +831,22 @@ const numQ: BonusQuestion = { id: 'k2', question: 'Antall?', maxPoints: 2, answe
 assert('custom number: innenfor ±5 = 2p', scoreBonusQuestion(cMerged, numQ).get('A'), 2); // 50 vs 52
 assert('custom number: utenfor ±5 = 0p', scoreBonusQuestion(cMerged, numQ).get('B') ?? 0, 0); // 60 vs 52
 
+// Fasit med FLERE tall (komma-separert): treff hvis innenfor margin av minst ett av dem.
+// (k12 ballinnehav: to beregningsmåter ga 60 % og 65 % → «60, 65» ±2 godtar 58–67.)
+const possQ: BonusQuestion = { id: 'k2', question: 'Ballinnehav?', maxPoints: 2, answer: '60, 65', scoring: 'number', margin: 2, custom: true };
+const possMerged = mergeCustomBonusTips(cParts, {
+  A: { k2: '58' }, // nedre grense (60-2)
+  B: { k2: '67' }, // øvre grense (65+2)
+});
+assert('custom number flertallig fasit: 58 mot «60, 65» ±2 = 2p', scoreBonusQuestion(possMerged, possQ).get('A'), 2);
+assert('custom number flertallig fasit: 67 mot «60, 65» ±2 = 2p', scoreBonusQuestion(possMerged, possQ).get('B'), 2);
+const possEdge = mergeCustomBonusTips(cParts, { A: { k2: '57' }, B: { k2: '68' } });
+assert('custom number flertallig fasit: 57 = 0p', scoreBonusQuestion(possEdge, possQ).get('A') ?? 0, 0);
+assert('custom number flertallig fasit: 68 = 0p', scoreBonusQuestion(possEdge, possQ).get('B') ?? 0, 0);
+const possMid = mergeCustomBonusTips(cParts, { A: { k2: '63 %' }, B: { k2: '62' } });
+assert('custom number flertallig fasit: «63 %» (mellom sonene) = 2p', scoreBonusQuestion(possMid, possQ).get('A'), 2);
+assert('custom number flertallig fasit: 62 = 2p', scoreBonusQuestion(possMid, possQ).get('B'), 2);
+
 const listQ: BonusQuestion = { id: 'k3', question: 'Land?', maxPoints: 3, answer: ['Norge', 'Island'], scoring: 'list', custom: true };
 assert('custom list: svar i lista = full pott', scoreBonusQuestion(cMerged, listQ).get('A'), 3);
 assert('custom list: svar ikke i lista = 0p', scoreBonusQuestion(cMerged, listQ).get('B') ?? 0, 0);
